@@ -102,7 +102,8 @@
     display:flex; gap:12px; align-items:flex-start; box-shadow:var(--shadow); }
   .row .main{ min-width:0; flex:1; }
   .row .name{ font-size:15.5px; font-weight:700; letter-spacing:-.1px; line-height:1.25; }
-  .row .sub{ margin-top:3px; font-size:12.5px; color:var(--muted); display:flex; flex-wrap:wrap; gap:4px 10px; }
+  .row .brandline{ margin-top:2px; font-size:13px; font-weight:600; color:var(--muted); }
+  .row .sub{ margin-top:5px; font-size:12.5px; color:var(--muted); display:flex; flex-wrap:wrap; gap:4px 10px; }
   .row .sub b{ color:var(--ink); font-weight:600; }
   .prices{ text-align:right; flex-shrink:0; }
   .sell{ font-size:16px; font-weight:800; letter-spacing:-.3px; }
@@ -270,10 +271,12 @@
   function matches(p, q){
     return (String(p.size||'')+' '+String(p.brand||'')+' '+String(p.type||'')+' '+String(p.location||'')+' '+String(p.ply||'')+' '+String(p.productCode||'')).toLowerCase().indexOf(q) !== -1;
   }
-  function primaryName(p){
-    var parts = [p.size, p.brand].filter(function(x){ return x && String(x).trim(); });
-    if (parts.length) return parts.join('  ·  ');
-    return p.productCode || p.type || 'Item';
+  function nameLines(p){
+    var size = (p.size && String(p.size).trim()) ? String(p.size).trim() : '';
+    var brand = (p.brand && String(p.brand).trim()) ? String(p.brand).trim() : '';
+    if (size) return { title: size, brand: brand };   // brand sits on its own line below the size
+    if (brand) return { title: brand, brand: '' };
+    return { title: p.productCode || p.type || 'Item', brand: '' };
   }
   function renderList(){
     var q = query.trim().toLowerCase();
@@ -289,13 +292,15 @@
     var html = '';
     shown.forEach(function(p){
       var out = (Number(p.qty)||0) <= 0;
+      var nm = nameLines(p);
       var subBits = [];
       if (p.ply) subBits.push('<b>' + esc(p.ply) + '</b> ply');
       if (p.location) subBits.push('📍 ' + esc(p.location));
       if (p.section) subBits.push(esc(p.section));
       if (p.productCode) subBits.push('#' + esc(p.productCode));
       html += '<div class="row">'
-        + '<div class="main"><div class="name">' + esc(primaryName(p)) + '</div>'
+        + '<div class="main"><div class="name">' + esc(nm.title) + '</div>'
+        + (nm.brand ? '<div class="brandline">' + esc(nm.brand) + '</div>' : '')
         + (subBits.length ? '<div class="sub">' + subBits.join('<span>·</span>') + '</div>' : '')
         + '</div>'
         + '<div class="prices"><div class="sell">' + money(p.sellPrice) + '</div>'
