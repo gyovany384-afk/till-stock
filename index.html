@@ -240,7 +240,9 @@
   // ---------- data ----------
   function loadStock(){
     showLoading();
-    return authedGet('/rest/v1/shop_data?id=eq.1&select=data,updated_at')
+    // Pull ONLY the inventory sub-field, never the whole shop blob — the phone
+    // never receives invoices, customers or financials, just stock.
+    return authedGet('/rest/v1/shop_data?id=eq.1&select=updated_at,products:data->products')
       .then(function(res){
         if (res.status === 401){ clearSession(); showLogin('Your session expired — sign in again.'); return; }
         if (!res.ok) throw new Error('read failed');
@@ -248,9 +250,9 @@
       })
       .then(function(rows){
         if (!rows) return;
-        var data = (rows[0] && rows[0].data) || {};
-        updatedAt = rows[0] && rows[0].updated_at;
-        products = Array.isArray(data.products) ? data.products.slice() : [];
+        var row = rows[0] || {};
+        updatedAt = row.updated_at;
+        products = Array.isArray(row.products) ? row.products.slice() : [];
         products.sort(function(a,b){ return String(a.size||'').localeCompare(String(b.size||''), undefined, {numeric:true}); });
         showApp();
         renderList();
