@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Till Stock</title>
+<meta name="theme-color" content="#2563eb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Till Stock">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  :root{
+    color-scheme: light dark;
+    --accent:#2563eb; --accent-deep:#1d4ed8;
+    --bg:#f4f5f7; --surface:#ffffff; --surface-2:#f0f1f4;
+    --ink:#15181d; --muted:rgba(0,0,0,.55); --faint:rgba(0,0,0,.4);
+    --line:rgba(0,0,0,.09); --line-strong:rgba(0,0,0,.14);
+    --good:#1a8a4c; --good-bg:#e7f5ec; --danger:#d0342c; --danger-bg:#fdecea;
+    --cost-bg:#eef1f5; --cost-ink:#41506a;
+    --shadow:0 1px 3px rgba(0,0,0,.06);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f1115; --surface:#191c22; --surface-2:#22262e;
+      --ink:#f2f4f7; --muted:rgba(255,255,255,.6); --faint:rgba(255,255,255,.42);
+      --line:rgba(255,255,255,.1); --line-strong:rgba(255,255,255,.16);
+      --accent:#3b82f6; --accent-deep:#2563eb;
+      --good:#4ade80; --good-bg:rgba(74,222,128,.15); --danger:#f87171; --danger-bg:rgba(248,113,113,.16);
+      --cost-bg:rgba(255,255,255,.07); --cost-ink:#aeb8c8;
+      --shadow:0 1px 3px rgba(0,0,0,.3);
+    }
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; height:100%; }
+  body{
+    font-family:var(--font); background:var(--bg); color:var(--ink);
+    -webkit-font-smoothing:antialiased; overscroll-behavior-y:contain;
+  }
+  button{ font-family:inherit; cursor:pointer; }
+  input{ font-family:inherit; }
+
+  /* ---------- Login ---------- */
+  .login{ min-height:100%; display:flex; flex-direction:column; justify-content:center;
+    padding:calc(24px + var(--safe-top)) 22px calc(24px + var(--safe-bottom)); gap:18px; max-width:440px; margin:0 auto; }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand-mark{ width:46px; height:46px; border-radius:13px; background:var(--accent); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:22px; }
+  .brand h1{ font-size:20px; margin:0; font-weight:700; letter-spacing:-.2px; }
+  .brand p{ margin:2px 0 0; font-size:13px; color:var(--muted); }
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); }
+  .login form{ padding:20px; display:flex; flex-direction:column; gap:14px; }
+  label{ font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  input[type=email],input[type=password]{
+    width:100%; padding:13px 14px; font-size:16px; border:1px solid var(--line-strong);
+    border-radius:11px; background:var(--surface-2); color:var(--ink);
+  }
+  input:focus{ outline:2px solid color-mix(in srgb, var(--accent) 40%, transparent); outline-offset:1px; border-color:var(--accent); }
+  .remember{ display:flex; align-items:center; gap:9px; font-size:14px; color:var(--muted); text-transform:none; letter-spacing:0; font-weight:500; }
+  .remember input{ width:18px; height:18px; accent-color:var(--accent); }
+  .btn{ width:100%; padding:14px; font-size:16px; font-weight:700; border:none; border-radius:12px;
+    background:var(--accent); color:#fff; }
+  .btn:active{ background:var(--accent-deep); }
+  .btn:disabled{ opacity:.6; }
+  .msg{ font-size:13.5px; padding:10px 12px; border-radius:10px; display:none; }
+  .msg.err{ display:block; background:var(--danger-bg); color:var(--danger); }
+  .hint{ font-size:12.5px; color:var(--faint); text-align:center; line-height:1.5; }
+
+  /* ---------- App ---------- */
+  .app{ display:none; flex-direction:column; height:100%; }
+  .topbar{ position:sticky; top:0; z-index:10; background:var(--surface); border-bottom:1px solid var(--line);
+    padding:calc(10px + var(--safe-top)) 14px 10px; }
+  .toprow{ display:flex; align-items:center; gap:10px; }
+  .toprow .title{ font-size:17px; font-weight:700; letter-spacing:-.2px; }
+  .toprow .spacer{ flex:1; }
+  .iconbtn{ width:38px; height:38px; border-radius:10px; border:1px solid var(--line); background:var(--surface-2);
+    color:var(--ink); display:flex; align-items:center; justify-content:center; }
+  .iconbtn:active{ background:var(--line); }
+  .iconbtn svg{ width:19px; height:19px; }
+  .search{ position:relative; margin-top:10px; }
+  .search svg{ position:absolute; left:12px; top:50%; transform:translateY(-50%); width:18px; height:18px; color:var(--faint); }
+  .search input{ width:100%; padding:12px 40px 12px 38px; font-size:16px; border:1px solid var(--line-strong);
+    border-radius:11px; background:var(--surface-2); color:var(--ink); }
+  .search .clr{ position:absolute; right:6px; top:50%; transform:translateY(-50%); width:30px; height:30px;
+    border:none; background:none; color:var(--faint); font-size:18px; display:none; }
+  .search.has .clr{ display:block; }
+  .statusline{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:8px;
+    font-size:12px; color:var(--faint); }
+  .statusline .fresh{ display:inline-flex; align-items:center; gap:5px; }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--good); }
+
+  .list{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    padding:10px 12px calc(24px + var(--safe-bottom)); display:flex; flex-direction:column; gap:8px; }
+  .row{ background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:12px 13px;
+    display:flex; gap:12px; align-items:flex-start; box-shadow:var(--shadow); }
+  .row .main{ min-width:0; flex:1; }
+  .row .name{ font-size:15.5px; font-weight:700; letter-spacing:-.1px; line-height:1.25; }
+  .row .sub{ margin-top:3px; font-size:12.5px; color:var(--muted); display:flex; flex-wrap:wrap; gap:4px 10px; }
+  .row .sub b{ color:var(--ink); font-weight:600; }
+  .prices{ text-align:right; flex-shrink:0; }
+  .sell{ font-size:16px; font-weight:800; letter-spacing:-.3px; }
+  .cost{ margin-top:3px; font-size:11.5px; color:var(--cost-ink); background:var(--cost-bg);
+    display:inline-block; padding:1px 7px; border-radius:6px; }
+  .count{ margin-top:6px; font-size:12px; font-weight:700; color:var(--good); background:var(--good-bg);
+    display:inline-block; padding:2px 8px; border-radius:20px; }
+  .count.out{ color:var(--danger); background:var(--danger-bg); }
+  .empty{ text-align:center; color:var(--faint); font-size:14px; padding:48px 20px; line-height:1.6; }
+  .empty svg{ width:34px; height:34px; margin-bottom:10px; opacity:.5; }
+
+  .banner{ background:color-mix(in srgb, var(--accent) 12%, var(--surface)); color:var(--accent);
+    font-size:11.5px; font-weight:600; text-align:center; padding:5px; }
+  .spin{ width:18px; height:18px; border:2px solid var(--line-strong); border-top-color:var(--accent);
+    border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .center{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:var(--muted); font-size:14px; }
+  @media (prefers-reduced-motion: reduce){ .spin{ animation:none; } }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div class="login" id="login">
+  <div class="brand">
+    <div class="brand-mark">T</div>
+    <div>
+      <h1>Till Stock</h1>
+      <p>Look up your rack from anywhere</p>
+    </div>
+  </div>
+  <div class="card">
+    <form id="loginForm">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="username" inputmode="email" autocapitalize="off" placeholder="you@email.com" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="Your Till password" required>
+      </div>
+      <label class="remember"><input type="checkbox" id="remember" checked> Keep me signed in</label>
+      <div class="msg" id="loginMsg"></div>
+      <button class="btn" id="loginBtn" type="submit">Sign in</button>
+    </form>
+  </div>
+  <p class="hint">Use the same email &amp; password as your Till cloud sign-in.<br>This window can only view stock — it can never change anything.</p>
+</div>
+
+<!-- ============ APP ============ -->
+<div class="app" id="app">
+  <div class="banner">Read-only · stock lookup</div>
+  <div class="topbar">
+    <div class="toprow">
+      <div class="title">Stock</div>
+      <div class="spacer"></div>
+      <button class="iconbtn" id="refreshBtn" aria-label="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
+      </button>
+      <button class="iconbtn" id="signOutBtn" aria-label="Sign out">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      </button>
+    </div>
+    <div class="search" id="searchWrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="q" type="search" enterkeyhint="search" autocapitalize="off" autocomplete="off" placeholder="Search size, brand, rack, code…" aria-label="Search stock">
+      <button class="clr" id="clrBtn" aria-label="Clear">&times;</button>
+    </div>
+    <div class="statusline">
+      <span id="countText">—</span>
+      <span class="fresh" id="freshText"></span>
+    </div>
+  </div>
+  <div class="list" id="list"></div>
+</div>
+
+<script>
+(function(){
+  // ---- Supabase (same project the Till desktop app syncs to) ----
+  var SUPA_URL = 'https://ozztakbcnmlwoyiexlkt.supabase.co';
+  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96enRha2Jjbm1sd295aWV4bGt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxNzcyNzIsImV4cCI6MjA5ODc1MzI3Mn0.U0JvmpqFXQsBRRMqsffHO5oVSn79IFANvJJ84oUV7vI';
+  var SESSION_KEY = 'till_stock_session';
+
+  var $ = function(id){ return document.getElementById(id); };
+  var session = null, products = [], updatedAt = null, query = '';
+
+  try { session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e){ session = null; }
+
+  // ---------- auth ----------
+  function saveSession(d, remember){
+    session = {
+      access_token: d.access_token,
+      refresh_token: d.refresh_token,
+      expires_at: Date.now() + ((d.expires_in || 3600) * 1000),
+      email: (d.user && d.user.email) || (session && session.email) || '',
+      remember: remember !== false
+    };
+    try { if (session.remember) localStorage.setItem(SESSION_KEY, JSON.stringify(session)); else localStorage.removeItem(SESSION_KEY); } catch(e){}
+  }
+  function clearSession(){ session = null; try { localStorage.removeItem(SESSION_KEY); } catch(e){} }
+
+  function login(email, password){
+    return fetch(SUPA_URL + '/auth/v1/token?grant_type=password', {
+      method:'POST', headers:{ 'apikey':ANON, 'Content-Type':'application/json' },
+      body: JSON.stringify({ email: email, password: password })
+    }).then(function(res){
+      if (!res.ok) return res.json().catch(function(){return {};}).then(function(j){
+        var m = j.error_description || j.msg || j.error || 'Sign-in failed';
+        throw { message: m, credential: (res.status===400||res.status===401||res.status===422) };
+      });
+      return res.json();
+    });
+  }
+  function refresh(){
+    if (!session || !session.refresh_token) return Promise.resolve(false);
+    return fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
+      method:'POST', headers:{ 'apikey':ANON, 'Content-Type':'application/json' },
+      body: JSON.stringify({ refresh_token: session.refresh_token })
+    }).then(function(res){
+      if (!res.ok){ clearSession(); return false; }
+      return res.json().then(function(d){ saveSession(d, session && session.remember); return true; });
+    }).catch(function(){ return false; });
+  }
+  function authedGet(path, retried){
+    var headers = { 'apikey':ANON };
+    if (session && session.access_token) headers['Authorization'] = 'Bearer ' + session.access_token;
+    return fetch(SUPA_URL + path, { headers: headers }).then(function(res){
+      if (res.status === 401 && !retried && session && session.refresh_token){
+        return refresh().then(function(ok){ return ok ? authedGet(path, true) : res; });
+      }
+      return res;
+    });
+  }
+
+  // ---------- data ----------
+  function loadStock(){
+    showLoading();
+    return authedGet('/rest/v1/shop_data?id=eq.1&select=data,updated_at')
+      .then(function(res){
+        if (res.status === 401){ clearSession(); showLogin('Your session expired — sign in again.'); return; }
+        if (!res.ok) throw new Error('read failed');
+        return res.json();
+      })
+      .then(function(rows){
+        if (!rows) return;
+        var data = (rows[0] && rows[0].data) || {};
+        updatedAt = rows[0] && rows[0].updated_at;
+        products = Array.isArray(data.products) ? data.products.slice() : [];
+        products.sort(function(a,b){ return String(a.size||'').localeCompare(String(b.size||''), undefined, {numeric:true}); });
+        showApp();
+        renderList();
+        renderFresh();
+      })
+      .catch(function(){
+        $('list').innerHTML = '<div class="center">Couldn’t load stock. Check your connection and tap refresh.</div>';
+        showApp();
+      });
+  }
+
+  // ---------- rendering ----------
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function money(n){ var v = Number(n)||0; return '$' + v.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2}); }
+  function matches(p, q){
+    return (String(p.size||'')+' '+String(p.brand||'')+' '+String(p.type||'')+' '+String(p.location||'')+' '+String(p.ply||'')+' '+String(p.productCode||'')).toLowerCase().indexOf(q) !== -1;
+  }
+  function primaryName(p){
+    var parts = [p.size, p.brand].filter(function(x){ return x && String(x).trim(); });
+    if (parts.length) return parts.join('  ·  ');
+    return p.productCode || p.type || 'Item';
+  }
+  function renderList(){
+    var q = query.trim().toLowerCase();
+    var shown = q ? products.filter(function(p){ return matches(p, q); }) : products;
+    $('countText').textContent = q
+      ? (shown.length ? shown.length + ' of ' + products.length : 'No matches')
+      : products.length + (products.length===1?' item':' items');
+    if (!products.length){
+      $('list').innerHTML = '<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7z"/><path d="M3 7l9 4.5L21 7M12 11.5V21"/></svg>No stock found yet.<br>Has your shop computer uploaded to the cloud?</div>';
+      return;
+    }
+    if (!shown.length){ $('list').innerHTML = '<div class="empty">No matches for “' + esc(query.trim()) + '”</div>'; return; }
+    var html = '';
+    shown.forEach(function(p){
+      var out = (Number(p.qty)||0) <= 0;
+      var subBits = [];
+      if (p.ply) subBits.push('<b>' + esc(p.ply) + '</b> ply');
+      if (p.location) subBits.push('📍 ' + esc(p.location));
+      if (p.section) subBits.push(esc(p.section));
+      if (p.productCode) subBits.push('#' + esc(p.productCode));
+      html += '<div class="row">'
+        + '<div class="main"><div class="name">' + esc(primaryName(p)) + '</div>'
+        + (subBits.length ? '<div class="sub">' + subBits.join('<span>·</span>') + '</div>' : '')
+        + '</div>'
+        + '<div class="prices"><div class="sell">' + money(p.sellPrice) + '</div>'
+        + '<div class="cost">cost ' + money(p.buyPrice) + '</div>'
+        + '<div class="count' + (out?' out':'') + '">' + (Number(p.qty)||0) + (out?' out':' in stock') + '</div>'
+        + '</div></div>';
+    });
+    $('list').innerHTML = html;
+  }
+  function renderFresh(){
+    if (!updatedAt){ $('freshText').textContent = ''; return; }
+    var d = new Date(updatedAt), now = new Date();
+    var mins = Math.round((now - d)/60000);
+    var t;
+    if (mins < 1) t = 'just now';
+    else if (mins < 60) t = mins + ' min ago';
+    else if (mins < 60*24 && d.toDateString()===now.toDateString()) t = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    else t = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    $('freshText').innerHTML = '<span class="dot"></span>updated ' + t;
+  }
+
+  // ---------- view switches ----------
+  function showLogin(msg){
+    $('app').style.display = 'none';
+    $('login').style.display = 'flex';
+    if (msg){ var m = $('loginMsg'); m.textContent = msg; m.className = 'msg err'; }
+  }
+  function showApp(){ $('login').style.display = 'none'; $('app').style.display = 'flex'; }
+  function showLoading(){
+    $('app').style.display = 'flex'; $('login').style.display = 'none';
+    if (!products.length) $('list').innerHTML = '<div class="center"><div class="spin"></div>Loading stock…</div>';
+  }
+
+  // ---------- events ----------
+  $('loginForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var btn = $('loginBtn'), msg = $('loginMsg');
+    msg.className = 'msg';
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    login($('email').value.trim(), $('password').value)
+      .then(function(d){ saveSession(d, $('remember').checked); return loadStock(); })
+      .catch(function(err){
+        msg.textContent = (err && err.message) || 'Sign-in failed'; msg.className = 'msg err';
+      })
+      .then(function(){ btn.disabled = false; btn.textContent = 'Sign in'; });
+  });
+  $('signOutBtn').addEventListener('click', function(){
+    clearSession(); products = []; $('q').value = ''; query = '';
+    $('searchWrap').classList.remove('has');
+    showLogin(); document.getElementById('loginMsg').className = 'msg';
+  });
+  $('refreshBtn').addEventListener('click', function(){ if (session) loadStock(); });
+  $('q').addEventListener('input', function(){
+    query = this.value;
+    $('searchWrap').classList.toggle('has', !!query);
+    renderList();
+  });
+  $('clrBtn').addEventListener('click', function(){ $('q').value=''; query=''; $('searchWrap').classList.remove('has'); renderList(); $('q').focus(); });
+  // Coming back to the tab after a while → refresh so stock is current.
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'visible' && session && products.length) loadStock();
+  });
+
+  // ---------- boot ----------
+  if (session && (session.access_token || session.refresh_token)) loadStock();
+  else showLogin();
+})();
+</script>
+</body>
+</html>
