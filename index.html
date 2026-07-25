@@ -700,8 +700,11 @@
 
   function renderSales(){
     $('salesSeg').innerHTML = SALES_SEGS.map(function(s){
+      // Escape the quotes so they don't close the double-quoted onclick early —
+      // same guard the rack filter uses. Without it the handler never fires and
+      // the view is stuck on Day.
       return '<button class="seg' + (salesGroupBy === s[0] ? ' on' : '') + '" '
-        + 'onclick="tsSalesGroup(' + JSON.stringify(s[0]) + ')">' + s[1] + '</button>';
+        + 'onclick="tsSalesGroup(' + JSON.stringify(s[0]).replace(/"/g, '&quot;') + ')">' + s[1] + '</button>';
     }).join('');
 
     var q = salesQuery.trim().toLowerCase();
