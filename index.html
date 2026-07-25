@@ -98,11 +98,23 @@
   @media (prefers-reduced-motion: reduce){ #refreshBtn.spinning svg{ animation:none; } }
   .search{ position:relative; margin-top:10px; }
   .search svg{ position:absolute; left:12px; top:50%; transform:translateY(-50%); width:18px; height:18px; color:var(--faint); }
-  .search input{ width:100%; padding:12px 40px 12px 38px; font-size:16px; border:1px solid var(--line-strong);
+  .search input{ width:100%; padding:12px 48px 12px 38px; font-size:16px; border:1px solid var(--line-strong);
     border-radius:11px; background:var(--surface-2); color:var(--ink); }
-  .search .clr{ position:absolute; right:6px; top:50%; transform:translateY(-50%); width:30px; height:30px;
-    border:none; background:none; color:var(--faint); font-size:18px; display:none; }
-  .search.has .clr{ display:block; }
+  /* type="search" adds a NATIVE grey × on WebKit/Chromium that overlaps our own
+     clear button — two ×'s fighting for the same tap is why it felt finicky.
+     Remove the native one so only our button is there. */
+  .search input::-webkit-search-cancel-button,
+  .search input::-webkit-search-decoration{ -webkit-appearance:none; appearance:none; }
+  /* Full-height, glyph-centred tap target sitting ON TOP of the input's right
+     padding. The old 30px box held a top-aligned × and was an ambiguous target
+     right next to the input — on a phone iOS often caught the input instead, so
+     you had to jab dead-centre. z-index keeps it above the input; flex centres
+     the × so the visible mark IS the hit centre; :active is a visible tap. */
+  .search .clr{ position:absolute; right:4px; top:50%; transform:translateY(-50%); width:42px; height:42px;
+    display:none; align-items:center; justify-content:center; border:none; background:none;
+    color:var(--faint); font-size:22px; line-height:1; padding:0; border-radius:10px; z-index:2; }
+  .search.has .clr{ display:flex; }
+  .search .clr:active{ background:var(--line); color:var(--muted); }
   .statusline{ display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:8px;
     font-size:12px; color:var(--faint); }
   .statusline .fresh{ display:inline-flex; align-items:center; gap:5px; }
@@ -291,7 +303,7 @@
     <div class="search" id="searchWrap">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="q" type="search" enterkeyhint="search" autocapitalize="off" autocomplete="off" placeholder="Search size, brand, rack, code…" aria-label="Search stock">
-      <button class="clr" id="clrBtn" aria-label="Clear">&times;</button>
+      <button type="button" class="clr" id="clrBtn" aria-label="Clear search">&times;</button>
     </div>
     <div class="statusline">
       <span class="fresh" id="freshText"></span>
@@ -316,7 +328,7 @@
     <div class="search" id="countSearchWrap">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="cq" type="search" enterkeyhint="search" autocapitalize="off" autocomplete="off" placeholder="Jump to a size or brand…" aria-label="Find a tire to count">
-      <button class="clr" id="cClrBtn" aria-label="Clear">&times;</button>
+      <button type="button" class="clr" id="cClrBtn" aria-label="Clear search">&times;</button>
     </div>
   </div>
   <div class="list" id="countList"></div>
@@ -339,7 +351,7 @@
     <div class="search" id="salesSearchWrap">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="sq" type="search" enterkeyhint="search" autocapitalize="off" autocomplete="off" placeholder="Search size or brand…" aria-label="Search sales">
-      <button class="clr" id="sClrBtn" aria-label="Clear">&times;</button>
+      <button type="button" class="clr" id="sClrBtn" aria-label="Clear search">&times;</button>
     </div>
     <div class="segrow" id="salesSeg"></div>
   </div>
@@ -864,7 +876,7 @@
   $('sClrBtn').addEventListener('click', function(){
     $('sq').value = ''; salesQuery = '';
     $('salesSearchWrap').classList.remove('has');
-    renderSales(); $('sq').focus();
+    renderSales();
   });
 
   $('countBtn').addEventListener('click', function(){ if (products.length) showCount(); });
@@ -883,14 +895,21 @@
   $('cClrBtn').addEventListener('click', function(){
     $('cq').value = ''; countQuery = '';
     $('countSearchWrap').classList.remove('has');
-    renderCount(); $('cq').focus();
+    renderCount();
   });
   $('q').addEventListener('input', function(){
     query = this.value;
     $('searchWrap').classList.toggle('has', !!query);
     renderList();
   });
-  $('clrBtn').addEventListener('click', function(){ $('q').value=''; query=''; $('searchWrap').classList.remove('has'); renderList(); $('q').focus(); });
+  $('clrBtn').addEventListener('click', function(){ $('q').value=''; query=''; $('searchWrap').classList.remove('has'); renderList(); });
+  // A tap on a clear button must NOT pull focus off the search input — if it
+  // does, the phone keyboard drops and springs back, which reads as a jarring
+  // shift. Cancelling the press's default focus-steal keeps the input (and the
+  // keyboard) put; the click still fires and clears the text.
+  ['clrBtn', 'cClrBtn', 'sClrBtn'].forEach(function(id){
+    $(id).addEventListener('mousedown', function(e){ e.preventDefault(); });
+  });
   // Coming back to the tab after a while → refresh so stock is current.
   document.addEventListener('visibilitychange', function(){
     if (document.visibilityState === 'visible' && session && products.length) loadStock();
