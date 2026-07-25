@@ -226,6 +226,17 @@
   .srow .ftr .cost{ margin-top:0; }
   .srow .work{ margin-left:auto; font-weight:800; color:var(--good); }
   .srow .work.neg{ color:var(--danger); }
+
+  /* True-profit slider — sits next to the title. Off shows the recorded profit
+     (COGS rounded up); on shows profit against exact, unrounded cost. */
+  .tptoggle{ display:inline-flex; align-items:center; gap:8px; border:none; background:none; padding:6px 2px; margin:0;
+    color:var(--muted); font-size:12px; font-weight:700; white-space:nowrap; }
+  .tpswitch{ width:40px; height:23px; border-radius:999px; background:var(--line-strong); position:relative; transition:background .16s; flex:0 0 auto; }
+  .tpknob{ position:absolute; top:2px; left:2px; width:19px; height:19px; border-radius:50%; background:#fff;
+    box-shadow:0 1px 2px rgba(0,0,0,.3); transition:transform .16s; }
+  .tptoggle.on{ color:var(--accent); }
+  .tptoggle.on .tpswitch{ background:var(--accent); }
+  .tptoggle.on .tpknob{ transform:translateX(17px); }
 </style>
 </head>
 <body>
@@ -319,6 +330,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
       </button>
       <div class="title">Sales log</div>
+      <button class="tptoggle" id="trueProfitBtn" role="switch" aria-checked="false" aria-label="Show true (unrounded) profit" title="Show true (unrounded) profit">
+        <span>True profit</span>
+        <span class="tpswitch"><span class="tpknob"></span></span>
+      </button>
       <div class="spacer"></div>
     </div>
     <div class="search" id="salesSearchWrap">
@@ -354,7 +369,7 @@
 
   var $ = function(id){ return document.getElementById(id); };
   var session = null, products = [], updatedAt = null, query = '';
-  var salesLog = [], salesGroupBy = 'day', salesQuery = '';
+  var salesLog = [], salesGroupBy = 'day', salesQuery = '', salesTrueProfit = false;
 
   try { session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e){ session = null; }
 
@@ -667,6 +682,7 @@
   var SALES_SEGS = [['day','Day'],['week','Week'],['month','Month'],['all','All']];
 
   function pad2(n){ return (n < 10 ? '0' : '') + n; }
+  function round2(n){ return Math.round((Number(n) || 0) * 100) / 100; }
   function signedMoney(n){ var v = Number(n) || 0; return (v < 0 ? '-' : '') + money(Math.abs(v)); }
   function fmtSaleDate(iso){
     // iso is a local YYYY-MM-DD string from the shop — parse the parts by hand so
@@ -713,13 +729,15 @@
     });
     var entries = q ? all.filter(function(e){ return saleMatches(e, q); }) : all;
 
-    // Totals follow what's on screen (so a search narrows the totals too).
+    // Totals follow what's on screen (so a search narrows the totals too), and
+    // follow the True-profit toggle: recorded work, or Sale minus exact cost.
     var units = 0, sales = 0, work = 0;
     entries.forEach(function(e){
       var qty = Number(e.qty) || 0;
+      var sale = (Number(e.sellPrice) || 0) * qty;
       units += qty;
-      sales += (Number(e.sellPrice) || 0) * qty;
-      work  += Number(e.work) || 0;
+      sales += sale;
+      work  += salesTrueProfit ? (sale - (Number(e.cost) || 0) * qty) : (Number(e.work) || 0);
     });
 
     var html = '<div class="kpis">'
@@ -751,7 +769,12 @@
       html += '<div class="grouphead">' + esc(g.label) + '<span>' + money(g.sales) + '</span></div>';
       g.items.forEach(function(e){
         var qty = Number(e.qty) || 0, unit = Number(e.sellPrice) || 0, sale = unit * qty;
-        var w = Number(e.work) || 0, cogs = sale - w;          // Sale = COGS + Work, by construction on the desktop
+        // Recorded: COGS is rounded up, so work = e.work and cogs = sale - work.
+        // True profit: cost is the exact per-tire cost, unrounded, so the padding
+        // the round-up added drops out of both the cost and the profit.
+        var w, cogs;
+        if (salesTrueProfit) { cogs = round2((Number(e.cost) || 0) * qty); w = round2(sale - cogs); }
+        else { w = Number(e.work) || 0; cogs = sale - w; }
         var used = e.condition === 'used';
         var size = String(e.size || '').trim(), brand = String(e.brand || '').trim();
         var title = size || brand || 'Tire';
@@ -827,6 +850,12 @@
 
   $('salesBtn').addEventListener('click', showSales);
   $('salesBackBtn').addEventListener('click', showApp);
+  $('trueProfitBtn').addEventListener('click', function(){
+    salesTrueProfit = !salesTrueProfit;
+    this.classList.toggle('on', salesTrueProfit);
+    this.setAttribute('aria-checked', salesTrueProfit ? 'true' : 'false');
+    renderSales();
+  });
   $('sq').addEventListener('input', function(){
     salesQuery = this.value;
     $('salesSearchWrap').classList.toggle('has', !!salesQuery);
