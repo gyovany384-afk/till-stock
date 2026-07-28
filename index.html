@@ -556,6 +556,20 @@
       });
   }
 
+  // Marking the computer's request as answered once the count goes back. Same
+  // token-refresh behaviour as the two above.
+  function authedPatch(path, body, retried){
+    var headers = { 'apikey':ANON, 'Content-Type':'application/json', 'Prefer':'return=minimal' };
+    if (session && session.access_token) headers['Authorization'] = 'Bearer ' + session.access_token;
+    return fetch(SUPA_URL + path, { method:'PATCH', headers: headers, body: JSON.stringify(body) })
+      .then(function(res){
+        if (res.status === 401 && !retried && session && session.refresh_token){
+          return refresh().then(function(ok){ return ok ? authedPatch(path, body, true) : res; });
+        }
+        return res;
+      });
+  }
+
   // ---------- data ----------
   function loadStock(){
     showLoading();
@@ -578,11 +592,34 @@
         showApp();
         renderList();
         renderFresh();
+        loadRequest();
       })
       .catch(function(){
         $('list').innerHTML = '<div class="center">Couldn’t load stock. Check your connection and tap refresh.</div>';
         showApp();
       });
+  }
+
+  // What the computer is asking for, read every time stock is. Any failure — no
+  // table yet, no connection, an empty mailbox — reads as "nothing asked for",
+  // which is the honest answer: this device never decides for itself what to
+  // count, so not knowing and not being asked look the same from here.
+  function loadRequest(){
+    return authedGet('/rest/v1/count_requests?status=eq.open&select=id,created_at,note,racks&order=created_at.desc&limit=1')
+      .then(function(res){ return res.ok ? res.json() : null; })
+      .then(function(rows){
+        // A count already open is never re-scoped underneath the counter. The
+        // racks it started on are the racks it finishes on — swapping them out
+        // mid-walk would silently drop tires already counted from the report.
+        if (startedAt) return;
+        var row = (Array.isArray(rows) && rows.length) ? rows[0] : null;
+        request = (row && Array.isArray(row.racks) && row.racks.length)
+          ? { id: row.id, at: row.created_at, note: row.note || '', racks: row.racks.slice() }
+          : null;
+        saveRequest();
+        renderCount();
+      })
+      .catch(function(){});
   }
 
   // ---------- rendering ----------
@@ -770,7 +807,16 @@
   function diffOf(p){ return isCounted(p) ? counted[pid(p)] - onFile(p) : 0; }
   function countedProducts(){ return products.filter(isCounted); }
   function differences(){ return products.filter(function(p){ return isCounted(p) && diffOf(p) !== 0; }); }
-  function rackOf(p){ return (p.location && String(p.location).trim()) || 'No rack'; }
+  // The rack a tire counts under. `location` is the computer's DISPLAY label and
+  // can carry a shelf and a spillover marker — "RACK 1 · A +2". The computer
+  // asks for PLACES ("RACK 1"), so the place is what has to be matched on, or
+  // every request it sends would come back matching nothing and the screen would
+  // say no count is needed. The full label still shows on the row; it just isn't
+  // what does the grouping.
+  function placeOf(loc){
+    return String(loc == null ? '' : loc).split('·')[0].replace(/\s*\+\d+\s*$/, '').trim();
+  }
+  function rackOf(p){ return placeOf(p.location) || 'No rack'; }
   function racks(){
     var seen = [];
     products.forEach(function(p){ if (seen.indexOf(rackOf(p)) === -1) seen.push(rackOf(p)); });
@@ -1102,11 +1148,18 @@
     if (sending) return;
     var lines = countPayload();
     if (!lines.length) return;
+    // Captured before the send, because finishing a count clears the request:
+    // `racks` is what was actually WALKED, which the computer needs to mark a
+    // rack as counted even when it held nothing worth a line. Without it a rack
+    // walked and found empty would read as never counted, forever.
+    var walked = requestedRacks();
+    var reqId = request && request.id;
     sending = true; renderReview();
     authedPost('/rest/v1/stock_counts', {
       name: (countName || '').trim() || defaultCountName(),
       device: deviceLabel(),
       status: 'pending',
+      racks: walked,
       lines: lines
     }).then(function(res){
       sending = false;
@@ -1120,6 +1173,12 @@
         return;
       }
       countSent = true; countError = '';
+      // The request has been answered. Best-effort on purpose: the count is
+      // safely in the mailbox either way, and a request left open only means the
+      // computer shows it as still out — annoying, not wrong. Never turn this
+      // into an error the counter has to think about.
+      if (reqId != null) authedPatch('/rest/v1/count_requests?id=eq.' + encodeURIComponent(reqId),
+        { status:'answered', answered_at: new Date().toISOString() }).catch(function(){});
       renderReview();
     }).catch(function(){
       sending = false;
