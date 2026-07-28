@@ -170,6 +170,32 @@
   .qty.untouched{ color:var(--faint); }
   .qty:focus{ border-color:var(--accent); background:var(--surface); }
 
+  /* Where the tire actually is. Appears only once a line is counted — that's the
+     moment you're stood in front of it. A tire with nothing on file gets a
+     dashed box, because most of the catalog has no location yet and this is the
+     one pass that can fill them in. */
+  .whererow{ margin-top:8px; }
+  .where{ width:100%; height:38px; padding:0 12px; border-radius:11px; font-size:13.5px; font-weight:600;
+    border:1px solid var(--line-strong); background:var(--surface-2); color:var(--ink); outline:none; }
+  .where::placeholder{ color:var(--faint); font-weight:600; }
+  .where:focus{ border-color:var(--accent); background:var(--surface); }
+  .whererow.missing .where{ border-style:dashed; }
+
+  .sendbox{ margin-top:14px; display:flex; flex-direction:column; gap:9px; }
+  .slab{ font-size:11.5px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; }
+  .cname{ width:100%; height:46px; padding:0 13px; border-radius:12px; font-size:15px; font-weight:700;
+    border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); outline:none; }
+  .cname:focus{ border-color:var(--accent); }
+  .serr{ font-size:13px; font-weight:600; padding:10px 12px; border-radius:10px;
+    background:var(--danger-bg); color:var(--danger); line-height:1.45; }
+  .btn.ghost{ background:var(--surface); color:var(--ink); border:1px solid var(--line-strong); }
+  .sent{ margin-top:14px; display:flex; flex-direction:column; gap:8px; text-align:center;
+    padding:22px 16px; border-radius:14px; background:var(--good-bg);
+    border:1px solid color-mix(in srgb, var(--good) 40%, transparent); }
+  .sent b{ font-size:17px; color:var(--good); }
+  .sent span{ font-size:13px; color:var(--muted); line-height:1.55; }
+  .sent .btn{ margin-top:6px; }
+
   .foot{ position:sticky; bottom:0; padding:12px 0 calc(8px + var(--safe-bottom));
     background:linear-gradient(to top, var(--bg) 72%, transparent); }
   .summary{ border-radius:14px; padding:14px 15px; background:var(--ink); color:#fff; }
@@ -249,6 +275,34 @@
   .tptoggle.on{ color:var(--accent); }
   .tptoggle.on .tpswitch{ background:var(--accent); }
   .tptoggle.on .tpknob{ transform:translateX(17px); }
+
+  /* ---------- tablet ----------
+     Counting is the screen that actually changes shape. On a tablet you're
+     walking the racks with both hands, so tires go two-up and the rack strip and
+     progress bar stay full width above them — more of a rack visible per glance,
+     which is the whole reason to carry the bigger device.
+     Everything else simply stops stretching: a lookup list 1000px wide is harder
+     to read, not easier. Tap targets grow rather than shrink. */
+  @media (min-width: 820px){
+    .app{ max-width:1080px; margin:0 auto; width:100%; }
+    .list{ padding-left:20px; padding-right:20px; }
+    .racks{ margin-left:-20px; margin-right:-20px; padding-left:20px; padding-right:20px; }
+
+    #countList{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; align-content:start; }
+    #countList > .prog,
+    #countList > .racks,
+    #countList > .grouphead,
+    #countList > .foot,
+    #countList > .empty{ grid-column:1 / -1; }
+
+    .crow{ padding:13px 15px; }
+    .step{ width:50px; height:50px; }
+    .qty{ height:50px; font-size:20px; }
+    .where{ height:42px; }
+
+    /* Reading a variance is a column-of-numbers job — keep it narrow. */
+    #reviewList, #salesList{ max-width:760px; margin:0 auto; width:100%; }
+  }
 </style>
 </head>
 <body>
@@ -430,6 +484,21 @@
       return res;
     });
   }
+  // The ONE write this device is allowed to make, and it doesn't go anywhere near
+  // the shop data: it posts a finished count into the stock_counts mailbox, where
+  // it waits for the shop computer to review it. Same token-refresh behaviour as
+  // the read above.
+  function authedPost(path, body, retried){
+    var headers = { 'apikey':ANON, 'Content-Type':'application/json', 'Prefer':'return=minimal' };
+    if (session && session.access_token) headers['Authorization'] = 'Bearer ' + session.access_token;
+    return fetch(SUPA_URL + path, { method:'POST', headers: headers, body: JSON.stringify(body) })
+      .then(function(res){
+        if (res.status === 401 && !retried && session && session.refresh_token){
+          return refresh().then(function(ok){ return ok ? authedPost(path, body, true) : res; });
+        }
+        return res;
+      });
+  }
 
   // ---------- data ----------
   function loadStock(){
@@ -515,16 +584,53 @@
   }
 
   // ---------- count stock ----------
-  // A stock count lives ONLY on this phone. The page stays read-only: it never
-  // writes the new numbers back to the cloud. What it gives you is the list of
-  // what's off, on the rack, so it can be corrected on the shop computer.
-  var COUNT_KEY = 'till_stock_count';
+  // A count is walked here and SENT to the shop computer, which is the only
+  // thing that ever changes stock. This device still cannot touch inventory: it
+  // posts the count into its own mailbox table (stock_counts) where it waits to
+  // be reviewed. Nothing it sends takes effect on its own.
+  //
+  // Three things are remembered per tire, and the second one is the important one:
+  //   counted[id]    what was physically found
+  //   expectedAt[id] what Till said AT THE MOMENT it was counted
+  //   foundAt[id]    where it was found, if the counter said
+  // The computer applies (counted - expectedAt) to whatever the number is when
+  // it's reviewed — so a tire that sells an hour after being counted doesn't
+  // come back as a shortage. Sending only `counted` would make that impossible.
+  var COUNT_KEY  = 'till_stock_count';
+  var EXPECT_KEY = 'till_stock_count_expected';
+  var FOUND_KEY  = 'till_stock_count_found';
+  var NAME_KEY   = 'till_stock_count_name';
   var counted = {};      // { productId: number the owner keyed in }
+  var expectedAt = {};   // { productId: on-file qty when it was counted }
+  var foundAt = {};      // { productId: location typed while counting }
+  var countName = '';
   var rackFilter = 'All';
   var countQuery = '';
+  var sending = false;
 
   try { counted = JSON.parse(localStorage.getItem(COUNT_KEY) || '{}') || {}; } catch(e){ counted = {}; }
-  function saveCount(){ try { localStorage.setItem(COUNT_KEY, JSON.stringify(counted)); } catch(e){} }
+  try { expectedAt = JSON.parse(localStorage.getItem(EXPECT_KEY) || '{}') || {}; } catch(e){ expectedAt = {}; }
+  try { foundAt = JSON.parse(localStorage.getItem(FOUND_KEY) || '{}') || {}; } catch(e){ foundAt = {}; }
+  try { countName = localStorage.getItem(NAME_KEY) || ''; } catch(e){ countName = ''; }
+
+  function saveCount(){
+    try {
+      localStorage.setItem(COUNT_KEY, JSON.stringify(counted));
+      localStorage.setItem(EXPECT_KEY, JSON.stringify(expectedAt));
+      localStorage.setItem(FOUND_KEY, JSON.stringify(foundAt));
+      localStorage.setItem(NAME_KEY, countName);
+    } catch(e){}
+  }
+  function clearCount(){
+    counted = {}; expectedAt = {}; foundAt = {}; countName = '';
+    saveCount();
+  }
+  // Pin what Till said the instant a tire is first counted. Only the FIRST entry
+  // sets it — nudging the stepper afterwards must not move the baseline, or the
+  // variance quietly rewrites itself as you correct a typo.
+  function pinExpected(id, p){
+    if (expectedAt[id] === undefined) expectedAt[id] = onFile(p);
+  }
 
   function pid(p){ return String(p.id != null ? p.id : (p.productCode || p.size + '|' + p.brand)); }
   function isCounted(p){ return counted[pid(p)] !== undefined; }
@@ -543,23 +649,45 @@
     var p = products.filter(function(x){ return pid(x) === id; })[0];
     if (!p) return;
     var now = isCounted(p) ? counted[id] : onFile(p);   // first tap starts from what's on file
+    pinExpected(id, p);
     counted[id] = Math.max(0, now + by);
     saveCount(); renderCount();
   }
   function typeQty(id, v){
+    var p = products.filter(function(x){ return pid(x) === id; })[0];
     var s = String(v).trim();
-    if (s === '') delete counted[id];
-    else counted[id] = Math.max(0, Math.floor(Number(s) || 0));
+    // Emptying the box un-counts the line — it goes back to "not counted yet",
+    // which is a different thing from counting zero. The baseline goes with it.
+    if (s === ''){ delete counted[id]; delete expectedAt[id]; }
+    else {
+      if (p) pinExpected(id, p);
+      counted[id] = Math.max(0, Math.floor(Number(s) || 0));
+    }
     saveCount(); renderCount(true);
   }
   function markSame(id){
     var p = products.filter(function(x){ return pid(x) === id; })[0];
     if (!p) return;
+    pinExpected(id, p);
     counted[id] = onFile(p);
     saveCount(); renderCount();
   }
+  // Where the tire actually is. Most of the catalog has no location on file, so
+  // the first proper walk of the racks is also what fills them in — you're stood
+  // in front of the tire, which is the only time anyone knows.
+  // Deliberately does NOT re-render. A rack can hold hundreds of rows and the
+  // list is rebuilt as one string, so re-rendering per keystroke turns typing a
+  // location into a stutter. Nothing on screen depends on this value as you
+  // type — it's read back from foundAt on the next real render.
+  function setFound(id, v){
+    var s = String(v == null ? '' : v).trim();
+    if (s === '') delete foundAt[id]; else foundAt[id] = s;
+    saveCount();
+  }
   function setRack(r){ rackFilter = r; renderCount(); }
-  window.tsBump = bump; window.tsType = typeQty; window.tsSame = markSame; window.tsRack = setRack;
+  function setCountName(v){ countName = String(v == null ? '' : v); saveCount(); }
+  window.tsBump = bump; window.tsType = typeQty; window.tsSame = markSame;
+  window.tsRack = setRack; window.tsFound = setFound; window.tsName = setCountName;
 
   function renderCount(keepFocus){
     var focusId = keepFocus && document.activeElement ? document.activeElement.id : null;
@@ -620,7 +748,16 @@
           + 'oninput="tsType(' + js + ', this.value)" aria-label="Counted quantity">'
           + '<button class="step" onclick="tsBump(' + js + ',1)" aria-label="One more">+</button>'
           + (on ? '' : '<button class="step same" onclick="tsSame(' + js + ')">Same</button>')
-          + '</div></div>';
+          + '</div>'
+          // The location box only appears once a line is counted — that's the
+          // moment you're stood in front of the tire and actually know.
+          + (on ? '<div class="whererow' + (p.location ? '' : ' missing') + '">'
+              + '<input class="where" id="w_' + esc(id) + '" value="' + esc(foundAt[id] || '') + '" '
+              + 'placeholder="' + (p.location ? esc(p.location) : 'Where is it?') + '" '
+              + 'autocapitalize="characters" autocomplete="off" '
+              + 'oninput="tsFound(' + js + ', this.value)" aria-label="Where you found this tire">'
+              + '</div>' : '')
+          + '</div>';
       });
     }
 
@@ -643,12 +780,41 @@
     }
   }
 
+  // Name, send button, and whatever state the send is in. Shown whether or not
+  // anything differs — a rack counted and found correct is a real result, and
+  // any locations stamped along the way still need to travel.
+  function sendBlockHtml(){
+    var n = countedProducts().length;
+    if (countSent){
+      return '<div class="sent"><b>Sent to the computer</b>'
+        + '<span>' + n + ' counted. Open Till on the shop computer to review it. Nothing has changed yet.</span>'
+        + '<button class="btn ghost" onclick="tsNewCount()">Start a new count</button></div>';
+    }
+    var stamps = countedProducts().filter(function(p){ return foundAt[pid(p)]; }).length;
+    return '<div class="sendbox">'
+      + '<label class="slab" for="cname">Name this count</label>'
+      + '<input id="cname" class="cname" value="' + esc(countName) + '" placeholder="' + esc(defaultCountName()) + '" '
+      + 'autocomplete="off" oninput="tsName(this.value)" aria-label="Name this count">'
+      + (countError ? '<div class="serr">' + esc(countError) + '</div>' : '')
+      + '<button class="btn" onclick="tsSend()"' + (sending ? ' disabled' : '') + '>'
+      + (sending ? 'Sending…' : 'Send ' + n + ' counted tire' + (n === 1 ? '' : 's') + ' to the computer')
+      + '</button>'
+      + '<p class="note">This device can’t change stock. Sending puts the count in front of Till on the shop '
+      + 'computer, where you review it and decide. '
+      + (stamps ? stamps + ' location' + (stamps === 1 ? '' : 's') + ' will be set too. ' : '')
+      + 'Your numbers stay here until you start a new count.</p></div>';
+  }
+
   function renderReview(){
     var diffs = differences();
+    if (!countedProducts().length){
+      $('reviewList').innerHTML = '<div class="empty"><b>Nothing counted yet</b>'
+        + 'Count some tires first — then you can send them over.</div>';
+      return;
+    }
     if (!diffs.length){
-      $('reviewList').innerHTML = '<div class="empty"><b>Nothing to fix</b>'
-        + (countedProducts().length ? 'Everything you counted matches what Till already has.' : 'Count some tires first.')
-        + '</div>';
+      $('reviewList').innerHTML = '<div class="empty"><b>Everything matched</b>All '
+        + countedProducts().length + ' tires you counted agree with Till.</div>' + sendBlockHtml();
       return;
     }
     var units = 0, value = 0, short = 0, over = 0;
@@ -679,10 +845,72 @@
         + (d < 0 ? '-' : '') + '$' + Math.abs(Math.round(d * (Number(p.buyPrice) || 0))).toLocaleString() + '</span></div>'
         + '</div>';
     });
-    html += '<p class="note">This phone can only look — it can\'t change stock. Correct these counts on the shop computer;'
-      + ' the list stays here until you start over.</p>';
+    html += sendBlockHtml();
     $('reviewList').innerHTML = html;
   }
+
+  // ---------- sending a count to the computer ----------
+  // Every line that was actually counted goes, not just the ones that differ: a
+  // rack the computer can see was counted and matched is worth as much as a
+  // correction, and it's what lets the computer show "312 counted, 4 different".
+  function countPayload(){
+    return countedProducts().map(function(p){
+      var id = pid(p);
+      return {
+        id: id,
+        counted: counted[id],
+        expected: expectedAt[id] !== undefined ? expectedAt[id] : onFile(p),
+        location: foundAt[id] || ''
+      };
+    });
+  }
+  function defaultCountName(){
+    return 'Count · ' + new Date().toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  }
+  function deviceLabel(){
+    // Enough to tell the tablet from the phone in the computer's list, without
+    // getting clever about device fingerprinting.
+    var w = Math.max(screen.width || 0, screen.height || 0);
+    return w >= 900 ? 'Tablet' : 'Phone';
+  }
+
+  function sendCount(){
+    if (sending) return;
+    var lines = countPayload();
+    if (!lines.length) return;
+    sending = true; renderReview();
+    authedPost('/rest/v1/stock_counts', {
+      name: (countName || '').trim() || defaultCountName(),
+      device: deviceLabel(),
+      status: 'pending',
+      lines: lines
+    }).then(function(res){
+      sending = false;
+      if (!res.ok){
+        // 404 means the mailbox table isn't there yet — worth saying plainly,
+        // because it's a one-time setup step and not something the counter did.
+        countError = res.status === 404
+          ? 'The computer isn’t set up to receive counts yet. Your count is safe on this device.'
+          : 'Couldn’t send — your count is still here. Check the connection and try again.';
+        renderReview();
+        return;
+      }
+      countSent = true; countError = '';
+      renderReview();
+    }).catch(function(){
+      sending = false;
+      countError = 'Couldn’t send — your count is still here. Check the connection and try again.';
+      renderReview();
+    });
+  }
+  var countSent = false, countError = '';
+  window.tsSend = sendCount;
+  window.tsNewCount = function(){
+    clearCount(); countSent = false; countError = '';
+    rackFilter = 'All'; countQuery = '';
+    var cq = $('cq'); if (cq){ cq.value = ''; $('countSearchWrap').classList.remove('has'); }
+    showCount();
+  };
 
   // ---------- sales log ----------
   // A read-only mirror of the desktop Sales log: the same Day / Week / Month / All
@@ -885,7 +1113,7 @@
   $('countClearBtn').addEventListener('click', function(){
     if (!Object.keys(counted).length) return;
     if (!confirm('Start this count over? The numbers you\'ve entered are cleared. Nothing in Till changes.')) return;
-    counted = {}; saveCount(); renderCount();
+    clearCount(); countSent = false; countError = ''; renderCount();
   });
   $('cq').addEventListener('input', function(){
     countQuery = this.value;
