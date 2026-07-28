@@ -94,8 +94,8 @@
   /* A refresh that returns identical data looks like nothing happened. One full
      turn on press is the receipt that the tap registered. */
   @keyframes spinOnce{ to{ transform:rotate(360deg); } }
-  #refreshBtn.spinning svg{ animation:spinOnce .6s cubic-bezier(.34,.9,.3,1); }
-  @media (prefers-reduced-motion: reduce){ #refreshBtn.spinning svg{ animation:none; } }
+  .spinning svg{ animation:spinOnce .6s cubic-bezier(.34,.9,.3,1); }
+  @media (prefers-reduced-motion: reduce){ .spinning svg{ animation:none; } }
   .search{ position:relative; margin-top:10px; }
   .search svg{ position:absolute; left:12px; top:50%; transform:translateY(-50%); width:18px; height:18px; color:var(--faint); }
   .search input{ width:100%; padding:12px 48px 12px 38px; font-size:16px; border:1px solid var(--line-strong);
@@ -431,6 +431,9 @@
       </button>
       <div class="title">Count stock</div>
       <div class="spacer"></div>
+      <button class="iconbtn" id="countRefreshBtn" aria-label="Check for a count" title="Check for a count">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
+      </button>
       <button class="iconbtn" id="countClearBtn" aria-label="Start over" title="Start over">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
       </button>
@@ -571,8 +574,12 @@
   }
 
   // ---------- data ----------
-  function loadStock(){
-    showLoading();
+  // `keepView` means "re-read everything but leave me where I am". The count
+  // screen refreshes with it: someone stood at a rack pressing refresh to see
+  // whether a count has been sent over must not be thrown back to the stock list
+  // — especially not mid-count, where the screen IS the work.
+  function loadStock(keepView){
+    if (!keepView) showLoading();
     // Pull ONLY the stock + sales-log sub-fields, never the whole shop blob — the
     // phone never receives invoices, customers, bills or cash totals, just the two
     // read-only lookups it shows (stock on hand, and what tires have sold).
@@ -589,12 +596,19 @@
         products = Array.isArray(row.products) ? row.products.slice() : [];
         products.sort(function(a,b){ return String(a.size||'').localeCompare(String(b.size||''), undefined, {numeric:true}); });
         salesLog = Array.isArray(row.salesLog) ? row.salesLog.slice() : [];
-        showApp();
+        if (!keepView) showApp();
         renderList();
         renderFresh();
+        // Repaint the count screen too when we never left it — the numbers on
+        // file may have moved, and the request may have only just arrived.
+        if (keepView) renderCount();
         loadRequest();
       })
       .catch(function(){
+        // Failing quietly is right on the count screen: a dropped connection
+        // must never wipe what's on it. The stock list can say so, since there's
+        // nothing there to lose.
+        if (keepView) return;
         $('list').innerHTML = '<div class="center">Couldn’t load stock. Check your connection and tap refresh.</div>';
         showApp();
       });
@@ -1370,6 +1384,19 @@
     if (session) loadStock();
   });
   $('refreshBtn').addEventListener('animationend', function(){ this.classList.remove('spinning'); }, true);
+
+  // The same receipt, on the count screen. This is the button that matters most
+  // now the computer sends the work over: when a request goes out mid-shift, the
+  // counter needs a way to go and look for it without backing out of the screen
+  // they're standing in. Re-pulls the stock AND the request together.
+  $('countRefreshBtn').addEventListener('click', function(){
+    var btn = this;
+    btn.classList.remove('spinning');
+    void btn.offsetWidth;
+    btn.classList.add('spinning');
+    if (session) loadStock(true);          // true = stay on this screen
+  });
+  $('countRefreshBtn').addEventListener('animationend', function(){ this.classList.remove('spinning'); }, true);
 
   $('salesBtn').addEventListener('click', showSales);
   $('salesBackBtn').addEventListener('click', showApp);
