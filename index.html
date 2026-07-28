@@ -276,6 +276,26 @@
   .tptoggle.on .tpswitch{ background:var(--accent); }
   .tptoggle.on .tpknob{ transform:translateX(17px); }
 
+  /* ---------- the count session ---------- */
+  .startcount{ display:block; width:100%; min-height:58px; margin:0 0 12px; border:none; border-radius:12px;
+    background:var(--ink); color:var(--bg); font-family:inherit; font-size:16px; font-weight:800; cursor:pointer; }
+  .grouphead{ align-items:center; }
+  .sessbar{ display:flex; align-items:center; gap:12px; margin:0 0 12px; padding:13px 16px; border-radius:12px;
+    background:var(--accent); color:#fff; }
+  .sessbar .dot{ width:9px; height:9px; border-radius:50%; background:#fff; opacity:.9; flex:0 0 9px; }
+  .sessbar b{ display:block; font-size:15px; font-weight:800; }
+  .sessbar span:not(.dot){ display:block; font-size:12px; opacity:.85; margin-top:1px; }
+  .reqbanner{ margin:0 0 10px; padding:13px 16px; border-radius:12px; border:1px dashed var(--accent);
+    background:rgba(37,99,235,.07); }
+  .reqbanner b{ display:block; font-size:14.5px; color:var(--accent); }
+  .reqbanner span{ display:block; font-size:12.5px; color:var(--muted); margin-top:2px; }
+  .rdone{ margin-left:auto; min-height:34px; padding:0 12px; border-radius:9px; cursor:pointer; font-family:inherit;
+    font-size:12px; font-weight:700; background:transparent; border:1px solid var(--good); color:var(--good); }
+  .rdone.on{ background:var(--good); border-color:var(--good); color:#fff; }
+  /* Phone is stock + sales lookups for now — counting is the tablet's job, so the
+     entry point simply isn't offered on a small screen. One rule to undo. */
+  @media (max-width: 699px){ #countBtn{ display:none; } }
+
   /* ---------- tablet ----------
      Counting is the screen that actually changes shape. On a tablet you're
      walking the racks with both hands, so tires go two-up and the rack strip and
@@ -610,9 +630,15 @@
   var EXPECT_KEY = 'till_stock_count_expected';
   var FOUND_KEY  = 'till_stock_count_found';
   var NAME_KEY   = 'till_stock_count_name';
+  // A count is a SESSION, not a pile of numbers. It is started deliberately, and
+  // the only way out is submitting it — there is no stop button, because a count
+  // half-abandoned on a shelf is worse than one that is still obviously open.
+  var SESS_KEY = 'till_stock_count_session';
   var counted = {};      // { productId: number the owner keyed in }
   var expectedAt = {};   // { productId: on-file qty when it was counted }
   var foundAt = {};      // { productId: location typed while counting }
+  var startedAt = null;  // ISO stamp — its presence IS "a count is open"
+  var rackDone = {};     // { rackName: true } — marked complete by hand, independent of progress
   var countName = '';
   var rackFilter = 'All';
   var countQuery = '';
@@ -622,6 +648,17 @@
   try { expectedAt = JSON.parse(localStorage.getItem(EXPECT_KEY) || '{}') || {}; } catch(e){ expectedAt = {}; }
   try { foundAt = JSON.parse(localStorage.getItem(FOUND_KEY) || '{}') || {}; } catch(e){ foundAt = {}; }
   try { countName = localStorage.getItem(NAME_KEY) || ''; } catch(e){ countName = ''; }
+  // The memory. Counting a rack is interrupted constantly — a customer walks in,
+  // the tablet sleeps, someone closes the tab. Every one of those has to be
+  // survivable, so the session is read back off the device on load and the count
+  // carries on exactly where it was left.
+  try {
+    var __s = JSON.parse(localStorage.getItem(SESS_KEY) || 'null');
+    if (__s){ startedAt = __s.startedAt || null; rackDone = __s.rackDone || {}; }
+  } catch(e){ startedAt = null; rackDone = {}; }
+  // Counts written before sessions existed: adopt them rather than stranding the
+  // numbers behind a Start button that would wipe them.
+  if (!startedAt && Object.keys(counted).length) startedAt = new Date().toISOString();
 
   function saveCount(){
     try {
@@ -629,12 +666,33 @@
       localStorage.setItem(EXPECT_KEY, JSON.stringify(expectedAt));
       localStorage.setItem(FOUND_KEY, JSON.stringify(foundAt));
       localStorage.setItem(NAME_KEY, countName);
+      localStorage.setItem(SESS_KEY, JSON.stringify({ startedAt: startedAt, rackDone: rackDone }));
     } catch(e){}
   }
   function clearCount(){
     counted = {}; expectedAt = {}; foundAt = {}; countName = '';
+    startedAt = null; rackDone = {};
     saveCount();
   }
+  function countOpen(){ return !!startedAt; }
+  // Starting is one-way. There is no matching stop: the button becomes a state
+  // once pressed, and the session ends by being submitted.
+  function startCount(){
+    if (countOpen()) return;
+    startedAt = new Date().toISOString();
+    saveCount(); renderCount();
+  }
+  function toggleRackDone(r){
+    if (rackDone[r]) delete rackDone[r]; else rackDone[r] = true;
+    saveCount(); renderCount();
+  }
+  function startedText(){
+    if (!startedAt) return '';
+    var d = new Date(startedAt);
+    return d.toLocaleDateString('en-US', { month:'short', day:'numeric' })
+      + ' · ' + d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+  }
+  window.tsStart = startCount; window.tsRackDone = toggleRackDone;
   // Pin what Till said the instant a tire is first counted. Only the FIRST entry
   // sets it — nudging the stepper afterwards must not move the baseline, or the
   // variance quietly rewrites itself as you correct a typo.
@@ -707,9 +765,29 @@
     var scopeDone = scope.filter(isCounted).length;
     var scopeDiffs = scope.filter(function(p){ return isCounted(p) && diffOf(p) !== 0; }).length;
 
+    // The session bar. Before a count is started it is the one thing to press;
+    // afterwards it stops being a button at all and just says what is going on,
+    // including when it was started — which is what tells you this is the count
+    // you walked away from rather than a fresh one.
+    //
+    // (When the desktop's recount request lands it renders here too, and it must
+    // NOT show once a count is open: the request is the reason you started, and
+    // repeating it while you work is just noise. `request` stays null until the
+    // desktop side exists.)
+    var request = null;
+    var html = '';
+    if (!countOpen()){
+      if (request) html += '<div class="reqbanner"><b>Recount requested · ' + esc(request.racks.join(', ')) + '</b>'
+        + '<span>' + esc(request.note || '') + '</span></div>';
+      html += '<button class="startcount" onclick="tsStart()">Start count</button>';
+    } else {
+      html += '<div class="sessbar"><span class="dot"></span><div><b>Count in progress</b>'
+        + '<span>Started ' + esc(startedText()) + ' · submit it to finish</span></div></div>';
+    }
+
     // Progress follows the rack you're standing at — finishing a rack should
     // read as finished, not as 6 of 312.
-    var html = '<div class="prog"><div class="prog-top">'
+    html += '<div class="prog"><div class="prog-top">'
       + '<span><b>' + scopeDone + '</b> of ' + scope.length + ' counted'
       + (rackFilter === 'All' ? '' : ' in ' + esc(rackFilter)) + '</span>'
       + '<span>' + (scopeDiffs ? scopeDiffs + ' difference' + (scopeDiffs===1?'':'s')
@@ -753,7 +831,17 @@
         if (r !== lastRack){
           lastRack = r;
           var here = list.filter(function(x){ return rackOf(x) === r; });
-          html += '<div class="grouphead">' + esc(r) + '<span>' + here.filter(isCounted).length + '/' + here.length + ' counted</span></div>';
+          // Marking a rack complete is the counter's own call, deliberately
+          // independent of how many lines have numbers in them: a rack can be
+          // finished with sizes left uncounted (they weren't there), and the
+          // report flags those rather than pretending they were zero.
+          var rdone = !!rackDone[r];
+          html += '<div class="grouphead">' + esc(r)
+            + '<span>' + here.filter(isCounted).length + '/' + here.length + ' counted</span>'
+            + (countOpen() ? '<button class="rdone' + (rdone ? ' on' : '') + '"'
+                + ' onclick="tsRackDone(' + JSON.stringify(r).replace(/"/g,'&quot;') + ')">'
+                + (rdone ? '✓ Rack done' : 'Mark rack done') + '</button>' : '')
+            + '</div>';
         }
         var id = pid(p), on = isCounted(p), d = diffOf(p), nm = nameLines(p);
         var tag = !on ? '<span class="tag none">Not counted</span>'
