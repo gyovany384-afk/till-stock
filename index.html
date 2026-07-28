@@ -289,6 +289,25 @@
     background:rgba(37,99,235,.07); }
   .reqbanner b{ display:block; font-size:14.5px; color:var(--accent); }
   .reqbanner span{ display:block; font-size:12.5px; color:var(--muted); margin-top:2px; }
+  .empty b{ display:block; color:var(--ink); font-size:16px; margin-bottom:6px; }
+  /* rack home — one card per requested location, tap to open it */
+  .rackcards{ display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:10px; }
+  .rcard{ display:flex; flex-direction:column; gap:5px; text-align:left; font-family:inherit; cursor:pointer;
+    min-height:116px; padding:14px 16px; border-radius:12px; background:var(--surface);
+    border:1px solid var(--line); border-left:5px solid var(--accent); }
+  .rcard.done{ border-left-color:var(--good); }
+  .rc-top{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .rc-l{ font-size:19px; font-weight:800; color:var(--accent); }
+  .rc-p{ font-size:13px; font-weight:700; color:var(--accent); }
+  .rcard.done .rc-l, .rcard.done .rc-p{ color:var(--good); }
+  .rc-s{ font-size:10px; font-weight:800; letter-spacing:.09em; color:var(--accent); }
+  .rcard.done .rc-s{ color:var(--good); }
+  .rc-m{ font-size:13px; color:var(--muted); margin-top:auto; }
+  /* inside a rack */
+  .rackhead{ display:flex; align-items:center; gap:12px; margin:0 0 10px; }
+  .rhback{ width:42px; height:42px; flex:0 0 42px; border-radius:10px; border:1px solid var(--line);
+    background:var(--surface); color:var(--ink); font-size:20px; line-height:1; cursor:pointer; font-family:inherit; }
+  .rh-t{ font-size:19px; font-weight:800; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .rdone{ margin-left:auto; min-height:34px; padding:0 12px; border-radius:9px; cursor:pointer; font-family:inherit;
     font-size:12px; font-weight:700; background:transparent; border:1px solid var(--good); color:var(--good); }
   .rdone.on{ background:var(--good); border-color:var(--good); color:#fff; }
@@ -320,6 +339,13 @@
     #countList > .grouphead,
     #countList > .foot,
     #countList > .empty,
+    /* The session bar, the request, the rack home and a rack's own header all
+       span the whole width — they're chrome for the page, not one of the tiles. */
+    #countList > .startcount,
+    #countList > .sessbar,
+    #countList > .reqbanner,
+    #countList > .rackcards,
+    #countList > .rackhead,
     #list > .grouphead,
     #list > .empty,
     #list > .center{ grid-column:1 / -1; }
@@ -634,6 +660,41 @@
   // the only way out is submitting it — there is no stop button, because a count
   // half-abandoned on a shelf is worse than one that is still obviously open.
   var SESS_KEY = 'till_stock_count_session';
+  // What the computer asked for. This device never decides what to count — the
+  // shop picks the locations and sends them over, and this is that list. No
+  // request means no count is needed, and the screen says exactly that rather
+  // than offering 300 tires and leaving the counter to guess which matter.
+  //   { at: ISO, note: string, racks: ['B1','C1'] }
+  var REQ_KEY = 'till_stock_count_request';
+  var request = null;
+  try { request = JSON.parse(localStorage.getItem(REQ_KEY) || 'null'); } catch(e){ request = null; }
+  function saveRequest(){
+    try {
+      if (request) localStorage.setItem(REQ_KEY, JSON.stringify(request));
+      else localStorage.removeItem(REQ_KEY);
+    } catch(e){}
+  }
+  // The hook the desktop sync will call once that side exists; also how a request
+  // is put in place for testing. Passing null clears it.
+  function setCountRequest(r){
+    request = (r && r.racks && r.racks.length) ? r : null;
+    saveRequest(); renderCount();
+  }
+  // Only the locations the computer named, and only ones we actually hold stock
+  // for — a rack that has since been emptied isn't worth walking to.
+  function requestedRacks(){
+    if (!request || !request.racks) return [];
+    var have = racks();
+    return request.racks.filter(function(r){ return have.indexOf(r) !== -1; });
+  }
+  function requestOpen(){ return requestedRacks().length > 0; }
+  // Everything the count is allowed to touch. Scoped to the request, so progress,
+  // search and what gets sent back all agree on what "the count" is.
+  function countables(){
+    var want = requestedRacks();
+    return products.filter(function(p){ return want.indexOf(rackOf(p)) !== -1; });
+  }
+  window.tsSetRequest = setCountRequest;
   var counted = {};      // { productId: number the owner keyed in }
   var expectedAt = {};   // { productId: on-file qty when it was counted }
   var foundAt = {};      // { productId: location typed while counting }
@@ -672,6 +733,9 @@
   function clearCount(){
     counted = {}; expectedAt = {}; foundAt = {}; countName = '';
     startedAt = null; rackDone = {};
+    // The request is answered once the report goes back, so it goes with the
+    // count. Leaving it would keep asking for a walk that has already been done.
+    request = null; saveRequest();
     saveCount();
   }
   function countOpen(){ return !!startedAt; }
@@ -761,7 +825,21 @@
     var focusId = keepFocus && document.activeElement ? document.activeElement.id : null;
     var caret = focusId ? document.activeElement.selectionStart : null;
 
-    var scope = rackFilter === 'All' ? products : products.filter(function(p){ return rackOf(p) === rackFilter; });
+    // Racks are PAGES, not filters. Home lists the racks and nothing else;
+    // tapping one opens just that rack's sizes. You count a rack at a time
+    // standing in front of it, so one rack is all that should ever be on screen —
+    // a single list of every size in the shop with headers down it was a list you
+    // had to keep finding your place in.
+    //
+    // A search overrides both: when you're hunting one tire you don't know which
+    // rack it's on, so it looks across all of them and each row says where it is.
+    var cq = countQuery.trim().toLowerCase();
+    var searching = cq !== '';
+    var onHome = !searching && rackFilter === 'All';
+    var pool = countables();          // the requested locations, and only those
+    var scope = searching ? pool.filter(function(p){ return matches(p, cq); })
+              : rackFilter === 'All' ? pool
+              : pool.filter(function(p){ return rackOf(p) === rackFilter; });
     var scopeDone = scope.filter(isCounted).length;
     var scopeDiffs = scope.filter(function(p){ return isCounted(p) && diffOf(p) !== 0; }).length;
 
@@ -774,13 +852,22 @@
     // NOT show once a count is open: the request is the reason you started, and
     // repeating it while you work is just noise. `request` stays null until the
     // desktop side exists.)
-    var request = null;
     var html = '';
+    // Nothing asked for = nothing to do. Said plainly and finished with, rather
+    // than dressed up as an error or left as a blank screen.
+    if (!requestOpen()){
+      $('countList').innerHTML =
+        '<div class="empty"><b>No count needed</b>'
+        + 'The computer hasn’t asked for one. When the shop sends a recount over, '
+        + 'the locations it wants show up here.</div>';
+      return;
+    }
     if (!countOpen()){
-      if (request) html += '<div class="reqbanner"><b>Recount requested · ' + esc(request.racks.join(', ')) + '</b>'
-        + '<span>' + esc(request.note || '') + '</span></div>';
+      html += '<div class="reqbanner"><b>Recount requested · ' + esc(requestedRacks().join(', ')) + '</b>'
+        + (request.note ? '<span>' + esc(request.note) + '</span>' : '') + '</div>';
       html += '<button class="startcount" onclick="tsStart()">Start count</button>';
     } else {
+      // The request is why you started; repeating it while you work is noise.
       html += '<div class="sessbar"><span class="dot"></span><div><b>Count in progress</b>'
         + '<span>Started ' + esc(startedText()) + ' · submit it to finish</span></div></div>';
     }
@@ -794,18 +881,42 @@
                                : (scopeDone ? 'all matching' : '—')) + '</span>'
       + '</div><div class="bar"><div style="width:' + Math.round(scopeDone / Math.max(1, scope.length) * 100) + '%"></div></div></div>';
 
-    var all = ['All'].concat(racks());
-    html += '<div class="racks" id="rackStrip">' + all.map(function(r){
-      var set = r === 'All' ? products : products.filter(function(p){ return rackOf(p) === r; });
-      var doneHere = set.filter(isCounted).length;
-      return '<button class="rack' + (rackFilter === r ? ' on' : '') + (set.length && doneHere === set.length ? ' full' : '') + '"'
-        + ' onclick="tsRack(' + JSON.stringify(r).replace(/"/g,'&quot;') + ')">'
-        + '<span class="d"></span>' + (r === 'All' ? 'All racks' : esc(r))
-        + '<span class="n">' + doneHere + '/' + set.length + '</span></button>';
-    }).join('') + '</div>';
+    if (onHome){
+      // The rack home. One card per rack: how far through it you are, whether
+      // you've called it done, and how much is meant to be on it.
+      html += '<div class="rackcards">' + requestedRacks().map(function(r){
+        var set = pool.filter(function(p){ return rackOf(p) === r; });
+        var doneHere = set.filter(isCounted).length;
+        var tires = set.reduce(function(s,p){ return s + onFile(p); }, 0);
+        var isDone = !!rackDone[r];
+        var word = isDone ? 'DONE' : doneHere ? 'IN PROGRESS' : 'NOT COUNTED';
+        return '<button class="rcard' + (isDone ? ' done' : '') + '"'
+          + ' onclick="tsRack(' + JSON.stringify(r).replace(/"/g,'&quot;') + ')">'
+          + '<div class="rc-top"><span class="rc-l">' + esc(r) + '</span>'
+          + '<span class="rc-p">' + doneHere + '/' + set.length + '</span></div>'
+          + '<div class="rc-s">' + word + '</div>'
+          + '<div class="rc-m">' + set.length + ' size' + (set.length === 1 ? '' : 's')
+          + ' · ' + tires + ' tire' + (tires === 1 ? '' : 's') + '</div>'
+          + '</button>';
+      }).join('') + '</div>';
+    } else {
+      // Inside a rack (or looking at search results): a way back, and the one
+      // rack's own "done" toggle sitting with its name rather than buried in a
+      // header halfway down a list.
+      var title = searching ? 'Matches for “' + esc(countQuery.trim()) + '”' : esc(rackFilter);
+      var rdoneNow = !searching && !!rackDone[rackFilter];
+      html += '<div class="rackhead">'
+        + '<button class="rhback" onclick="tsRack(&quot;All&quot;)" aria-label="Back to racks">‹</button>'
+        + '<div class="rh-t">' + title + '</div>'
+        + (!searching && countOpen()
+            ? '<button class="rdone' + (rdoneNow ? ' on' : '') + '"'
+              + ' onclick="tsRackDone(' + JSON.stringify(rackFilter).replace(/"/g,'&quot;') + ')">'
+              + (rdoneNow ? '✓ Rack done' : 'Mark rack done') + '</button>'
+            : '')
+        + '</div>';
+    }
 
-    var cq = countQuery.trim().toLowerCase();
-    var list = cq ? scope.filter(function(p){ return matches(p, cq); }) : scope;
+    var list = scope;
 
     // Group by rack BEFORE listing. The catalog is sorted by size for the lookup
     // screen, and counting inherited that order — which meant the rack changed on
@@ -822,26 +933,21 @@
       return String(a.size||'').localeCompare(String(b.size||''), undefined, { numeric:true });
     });
 
-    if (!list.length){
-      html += '<div class="empty">' + (cq ? 'No matches for “' + esc(countQuery.trim()) + '”' : 'Nothing on this rack.') + '</div>';
+    if (onHome){
+      /* the rack cards above are the whole page */
+    } else if (!list.length){
+      html += '<div class="empty">' + (searching ? 'No matches for “' + esc(countQuery.trim()) + '”' : 'Nothing on this rack.') + '</div>';
     } else {
       var lastRack = null;
       list.forEach(function(p){
         var r = rackOf(p);
-        if (r !== lastRack){
+        // Only search results need telling apart — inside a rack every row is on
+        // the rack already named at the top of the page.
+        if (searching && r !== lastRack){
           lastRack = r;
           var here = list.filter(function(x){ return rackOf(x) === r; });
-          // Marking a rack complete is the counter's own call, deliberately
-          // independent of how many lines have numbers in them: a rack can be
-          // finished with sizes left uncounted (they weren't there), and the
-          // report flags those rather than pretending they were zero.
-          var rdone = !!rackDone[r];
           html += '<div class="grouphead">' + esc(r)
-            + '<span>' + here.filter(isCounted).length + '/' + here.length + ' counted</span>'
-            + (countOpen() ? '<button class="rdone' + (rdone ? ' on' : '') + '"'
-                + ' onclick="tsRackDone(' + JSON.stringify(r).replace(/"/g,'&quot;') + ')">'
-                + (rdone ? '✓ Rack done' : 'Mark rack done') + '</button>' : '')
-            + '</div>';
+            + '<span>' + here.filter(isCounted).length + '/' + here.length + ' counted</span></div>';
         }
         var id = pid(p), on = isCounted(p), d = diffOf(p), nm = nameLines(p);
         var tag = !on ? '<span class="tag none">Not counted</span>'
@@ -874,11 +980,16 @@
       });
     }
 
-    var diffs = differences().length, done = countedProducts().length;
-    html += '<div class="foot"><button class="btn" id="toReviewBtn"' + (done ? '' : ' disabled') + '>'
-      + (diffs ? 'See ' + diffs + ' difference' + (diffs===1?'':'s')
-               : (done && done === products.length ? 'Everything matched' : 'See what\'s different'))
-      + '</button></div>';
+    // Submitting belongs on the rack home, not inside a rack: finishing one rack
+    // isn't finishing the count, and a Submit button sitting under the last size
+    // of rack B invites exactly that mistake.
+    if (onHome){
+      var diffs = differences().length, done = countedProducts().length;
+      html += '<div class="foot"><button class="btn" id="toReviewBtn"' + (done ? '' : ' disabled') + '>'
+        + (diffs ? 'See ' + diffs + ' difference' + (diffs===1?'':'s')
+                 : (done && done === pool.length ? 'Everything matched' : 'See what\'s different'))
+        + '</button></div>';
+    }
 
     $('countList').innerHTML = html;
     var strip = $('rackStrip');
