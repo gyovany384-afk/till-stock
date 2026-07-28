@@ -283,22 +283,32 @@
      which is the whole reason to carry the bigger device.
      Everything else simply stops stretching: a lookup list 1000px wide is harder
      to read, not easier. Tap targets grow rather than shrink. */
-  @media (min-width: 820px){
-    .app{ max-width:1080px; margin:0 auto; width:100%; }
+  /* 700px, not 820: an iPad in PORTRAIT is 744-820px wide depending on the model
+     (mini 744, 10.2" 810, Air 820), so a higher breakpoint leaves most tablets
+     held upright looking exactly like a phone. Columns come from auto-fill
+     rather than a fixed 2, so portrait gets two and landscape gets three
+     without a second breakpoint guessing at model widths. */
+  @media (min-width: 700px){
+    .app{ max-width:1180px; margin:0 auto; width:100%; }
     .list{ padding-left:20px; padding-right:20px; }
     .racks{ margin-left:-20px; margin-right:-20px; padding-left:20px; padding-right:20px; }
 
-    #countList{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; align-content:start; }
+    #countList, #list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(310px, 1fr));
+      gap:10px; align-content:start; }
     #countList > .prog,
     #countList > .racks,
     #countList > .grouphead,
     #countList > .foot,
-    #countList > .empty{ grid-column:1 / -1; }
+    #countList > .empty,
+    #list > .grouphead,
+    #list > .empty,
+    #list > .center{ grid-column:1 / -1; }
 
     .crow{ padding:13px 15px; }
     .step{ width:50px; height:50px; }
     .qty{ height:50px; font-size:20px; }
     .where{ height:42px; }
+    .rack{ font-size:14px; padding:10px 16px; }
 
     /* Reading a variance is a column-of-numbers job — keep it narrow. */
     #reviewList, #salesList{ max-width:760px; margin:0 auto; width:100%; }
@@ -718,6 +728,21 @@
 
     var cq = countQuery.trim().toLowerCase();
     var list = cq ? scope.filter(function(p){ return matches(p, cq); }) : scope;
+
+    // Group by rack BEFORE listing. The catalog is sorted by size for the lookup
+    // screen, and counting inherited that order — which meant the rack changed on
+    // almost every line and the list came out as header, tire, header, tire.
+    // Counting is walked rack by rack, so the rack is what orders it, size within.
+    // "No rack" sits at the end: it's the leftovers pile, not a place.
+    list = list.slice().sort(function(a, b){
+      var ra = rackOf(a), rb = rackOf(b);
+      if (ra !== rb){
+        if (ra === 'No rack') return 1;
+        if (rb === 'No rack') return -1;
+        return ra.localeCompare(rb, undefined, { numeric:true });
+      }
+      return String(a.size||'').localeCompare(String(b.size||''), undefined, { numeric:true });
+    });
 
     if (!list.length){
       html += '<div class="empty">' + (cq ? 'No matches for “' + esc(countQuery.trim()) + '”' : 'Nothing on this rack.') + '</div>';
