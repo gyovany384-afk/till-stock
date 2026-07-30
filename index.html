@@ -347,6 +347,11 @@
      has gone wrong and nothing is lost — the job was simply cancelled. */
   .reqbanner.off{ border-color:var(--warn); background:color-mix(in srgb, var(--warn) 8%, var(--surface)); }
   .reqbanner.off b{ color:var(--warn); }
+  /* Already sent. Green: the job is done and correct, it just isn't finished
+     being reviewed at the other end. */
+  .reqbanner.done{ border-style:solid; border-color:color-mix(in srgb, var(--good) 45%, transparent);
+    background:var(--good-bg); }
+  .reqbanner.done b{ color:var(--good); }
   .offacts{ display:flex; gap:8px; margin-top:11px; flex-wrap:wrap; }
   .offbtn{ flex:1 1 auto; min-height:42px; padding:0 14px; border-radius:10px; font-family:inherit;
     font-size:13.5px; font-weight:750; border:1px solid var(--line-strong);
@@ -842,6 +847,13 @@
   // like the rest of the session: the counter may not be looking at the tablet
   // when it lands, and it must still be there when they pick it back up.
   var calledOff = false;
+  // Whether this count has already gone to the computer. Also part of the saved
+  // session, and for a sharper reason than tidiness: sending ANSWERS the request,
+  // so the mailbox legitimately goes empty afterwards. A tablet that slept and
+  // woke with this forgotten would see a started count with no open request and
+  // conclude the shop had called it off — telling the counter their finished,
+  // successfully-sent walk had been cancelled.
+  var countSent = false;
   var countName = '';
   var rackFilter = 'All';
   var countQuery = '';
@@ -859,8 +871,9 @@
   // carries on exactly where it was left.
   try {
     var __s = JSON.parse(localStorage.getItem(SESS_KEY) || 'null');
-    if (__s){ startedAt = __s.startedAt || null; rackDone = __s.rackDone || {}; calledOff = !!__s.calledOff; }
-  } catch(e){ startedAt = null; rackDone = {}; calledOff = false; }
+    if (__s){ startedAt = __s.startedAt || null; rackDone = __s.rackDone || {};
+              calledOff = !!__s.calledOff; countSent = !!__s.countSent; }
+  } catch(e){ startedAt = null; rackDone = {}; calledOff = false; countSent = false; }
   // Counts written before sessions existed: adopt them rather than stranding the
   // numbers behind a Start button that would wipe them.
   if (!startedAt && Object.keys(counted).length) startedAt = new Date().toISOString();
@@ -872,13 +885,14 @@
       localStorage.setItem(FOUND_KEY, JSON.stringify(foundAt));
       localStorage.setItem(EXTRA_KEY, JSON.stringify(extras));
       localStorage.setItem(NAME_KEY, countName);
-      localStorage.setItem(SESS_KEY, JSON.stringify({ startedAt: startedAt, rackDone: rackDone, calledOff: calledOff }));
+      localStorage.setItem(SESS_KEY, JSON.stringify({ startedAt: startedAt, rackDone: rackDone,
+        calledOff: calledOff, countSent: countSent }));
     } catch(e){}
   }
   function clearCount(){
     counted = {}; expectedAt = {}; foundAt = {}; countName = '';
     extras = []; addSheet = null;
-    startedAt = null; rackDone = {}; calledOff = false;
+    startedAt = null; rackDone = {}; calledOff = false; countSent = false;
     // The request is answered once the report goes back, so it goes with the
     // count. Leaving it would keep asking for a walk that has already been done.
     request = null; saveRequest();
@@ -1225,6 +1239,17 @@
       html += '<div class="reqbanner"><b>Recount requested · ' + esc(requestedRacks().join(', ')) + '</b>'
         + (request.note ? '<span>' + esc(request.note) + '</span>' : '') + '</div>';
       html += '<button class="startcount" onclick="tsStart()">Start count</button>';
+    } else if (countSent){
+      // Already gone to the computer. Only the review screen used to know that —
+      // step back to the count and it carried on insisting a finished walk was
+      // "in progress", with a Call it off button on a count that had already been
+      // sent. The numbers stay visible on purpose (they are what was sent, and
+      // worth being able to look back over); they just aren't a job any more.
+      html += '<div class="reqbanner done"><b>Sent to the computer</b>'
+        + '<span>Nothing changes in Till until it is reviewed there. These numbers stay here '
+        + 'until you start a new count.</span>'
+        + '<div class="offacts"><button class="offbtn go" onclick="tsNewCount()">Start a new count</button></div>'
+        + '</div>';
     } else if (calledOff){
       // Called off from the shop computer mid-walk. The numbers are NOT thrown
       // away on their behalf — someone walked those racks, and a count already
@@ -1577,6 +1602,7 @@
         return;
       }
       countSent = true; countError = '';
+      saveCount();   // sent-ness belongs to the session, not just this page view
       // The request has been answered. Best-effort on purpose: the count is
       // safely in the mailbox either way, and a request left open only means the
       // computer shows it as still out — annoying, not wrong. Never turn this
@@ -1590,7 +1616,7 @@
       renderReview();
     });
   }
-  var countSent = false, countError = '';
+  var countError = '';   // countSent is declared with the session state above
 
   // ---------- calling a count off ----------
   // Starting was one-way by design: a count half-abandoned on a shelf is worse
@@ -1599,7 +1625,10 @@
   // moved) needs a door, and it has to tell the computer, or the shop sits
   // waiting for a walk nobody is doing.
   function callOffCount(){
-    if (!countOpen() || sending) return;
+    // Nothing to call off once it has gone: the request is already answered, and
+    // patching it to 'cancelled' would tell the computer to ignore a count that
+    // is sat in its inbox waiting to be applied.
+    if (!countOpen() || sending || countSent) return;
     var n = countedProducts().length + extras.length;
     if (!confirm(n
       ? 'Call off this count?\n\nThe ' + n + ' line' + (n === 1 ? '' : 's') + ' entered here are thrown away, and the computer stops waiting for it. Nothing in Till changes.'

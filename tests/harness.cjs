@@ -68,8 +68,12 @@ function reply(body, status = 200) {
  *
  * Returns { w, state } where state.requestOpen is the computer's side of the
  * mailbox: flipping it to false IS the desktop calling a count off.
+ *
+ * `seed` is extra localStorage to plant BEFORE the page runs — how you stand up a
+ * tablet that already has a count on it. Setting those keys after boot proves
+ * nothing: the app reads them once, at load.
  */
-function tablet(products = PRODUCTS) {
+function tablet(products = PRODUCTS, seed = null) {
   const state = { requestOpen: true, patched: [], posted: null, products };
   function stub(url, opts) {
     const u = String(url), method = (opts && opts.method) || 'GET';
@@ -94,6 +98,7 @@ function tablet(products = PRODUCTS) {
     beforeParse(win) {
       win.localStorage.setItem('till_stock_session',
         JSON.stringify({ access_token: 'tok', refresh_token: 'ref', remember: true }));
+      if (seed) Object.keys(seed).forEach(k => win.localStorage.setItem(k, seed[k]));
       win.fetch = stub;
       win.confirm = () => true;     // prompts are accepted; refusing is tested by not calling
     },

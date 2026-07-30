@@ -111,6 +111,57 @@ const { tablet, ok, finish, wait, screen, stored, startWalking } = require('./ha
     w.document.getElementById('countRefreshBtn').click();
     await wait(300);
     ok('no false call-off notice', stored(w, 'till_stock_count_session', '{}').calledOff !== true);
+
+    // The count screen used to know nothing about the send — only the review did —
+    // so stepping back to it found a finished walk still calling itself "in
+    // progress", with a Call it off button on a count already in the inbox.
+    w.showCount ? w.showCount() : w.document.getElementById('reviewBackBtn').click();
+    await wait(150);
+    ok('the count screen says it was sent', screen(w).indexOf('Sent to the computer') !== -1);
+    ok('...not that it is still in progress', screen(w).indexOf('Count in progress') === -1);
+    ok('...and offers a fresh start', screen(w).indexOf('tsNewCount()') !== -1);
+    ok('...with no way to call off something already sent', screen(w).indexOf('tsCallOff()') === -1);
+
+    // The sharp one: sent-ness has to survive the tablet sleeping. Forgotten, a
+    // woken tablet sees a started count with no open request and calls it
+    // cancelled — telling the counter their successful walk was thrown away.
+    ok('being sent is remembered on the device',
+       stored(w, 'till_stock_count_session', '{}').countSent === true);
+  }
+
+  // ---------------------------------------------------------------
+  console.log('\na sent count survives the tablet sleeping\n');
+  {
+    const { w, state } = tablet();
+    await wait(400);
+    startWalking(w);
+    w.tsSame('p1');
+    w.tsSend();
+    await wait(250);
+    // Everything the device would still be holding — including the request, which
+    // survives on disk until a new count is started.
+    const carried = {};
+    ['till_stock_count_session', 'till_stock_count', 'till_stock_count_expected',
+     'till_stock_count_found', 'till_stock_count_extra', 'till_stock_count_request',
+     'till_stock_count_name'].forEach(k => {
+      const v = w.localStorage.getItem(k);
+      if (v !== null) carried[k] = v;
+    });
+    ok('the session it carries knows it was sent',
+       JSON.parse(carried.till_stock_count_session).countSent === true, carried.till_stock_count_session);
+
+    // Same device, reopened onto that session. The request is answered by now, so
+    // the mailbox is legitimately empty — which is exactly the shape of a call-off.
+    const again = tablet(undefined, carried);
+    again.state.requestOpen = false;
+    await wait(400);
+    again.w.tsRack && again.w.tsRack('All');
+    again.w.document.getElementById('countRefreshBtn').click();
+    await wait(300);
+    ok('it does not claim the shop called it off',
+       stored(again.w, 'till_stock_count_session', '{}').calledOff !== true,
+       stored(again.w, 'till_stock_count_session', '{}'));
+    ok('it still reads as sent', screen(again.w).indexOf('Sent to the computer') !== -1);
   }
 
   finish('CALL-OFF');
