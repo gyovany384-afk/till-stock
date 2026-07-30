@@ -181,6 +181,60 @@
   .where:focus{ border-color:var(--accent); background:var(--surface); }
   .whererow.missing .where{ border-style:dashed; }
 
+  /* ---------- tires that don't belong on this rack ---------- */
+  /* A count only ever asks about what Till expects on the rack you're stood at.
+     Anything else on the shelf had nowhere to go — you couldn't even search for
+     it, because the search looks inside the count. These are that way in.
+     Amber throughout: it is the colour the count already uses for "needs a
+     look", and a tire in the wrong place is neither an error nor a tick. */
+  .addodd{ width:100%; min-height:52px; margin-top:2px; border-radius:12px; font-family:inherit;
+    border:1.5px dashed color-mix(in srgb, var(--warn) 62%, transparent);
+    background:color-mix(in srgb, var(--warn) 6%, var(--surface));
+    color:var(--warn); font-size:14.5px; font-weight:750;
+    display:flex; align-items:center; justify-content:center; gap:8px; padding:12px; }
+  .addodd:active{ background:color-mix(in srgb, var(--warn) 14%, var(--surface)); }
+  .crow.odd{ border-color:color-mix(in srgb, var(--warn) 55%, transparent); border-left:4px solid var(--warn); }
+  .tag.odd{ color:var(--warn); background:var(--warn-bg); }
+  .grouphead.odd{ color:var(--warn); }
+  .xdel{ margin-left:auto; border:none; background:none; font-family:inherit; font-size:12.5px;
+    font-weight:700; color:var(--faint); padding:6px 2px; }
+
+  .sheet{ background:var(--surface); border:1px solid var(--line-strong); border-radius:16px;
+    overflow:hidden; box-shadow:0 2px 22px rgba(0,0,0,.10); }
+  .sheet-h{ padding:14px 15px 12px; border-bottom:1px solid var(--line); display:flex; gap:10px; align-items:flex-start; }
+  .sheet-h .m{ min-width:0; flex:1; }
+  .sheet-h b{ display:block; font-size:16px; font-weight:800; letter-spacing:-.2px; }
+  .sheet-h span{ display:block; font-size:12.5px; color:var(--muted); margin-top:3px; line-height:1.5; }
+  .sheet-x{ border:none; background:none; font-family:inherit; font-size:22px; line-height:1;
+    color:var(--faint); padding:0 2px; flex:0 0 auto; }
+  .sheet-b{ padding:12px 13px 14px; display:flex; flex-direction:column; gap:9px; }
+  .srch{ width:100%; height:44px; border-radius:12px; border:1px solid var(--line-strong);
+    background:var(--surface-2); padding:0 13px; font-size:15px; font-weight:650;
+    color:var(--ink); outline:none; }
+  .srch:focus{ border-color:var(--accent); background:var(--surface); }
+  .hits{ display:flex; flex-direction:column; gap:7px; }
+  .hit{ width:100%; text-align:left; font-family:inherit; padding:11px 12px; border-radius:12px;
+    border:1px solid var(--line); background:var(--surface-2);
+    display:flex; align-items:center; gap:11px; }
+  .hit:active{ border-color:var(--accent); }
+  .hit .m{ min-width:0; flex:1; }
+  .hit .hn{ display:block; font-size:14.5px; font-weight:750; letter-spacing:-.1px; color:var(--ink); }
+  .hit .hs{ display:block; margin-top:3px; font-size:12px; font-weight:600; color:var(--muted); }
+  .hit .hs.none{ color:var(--warn); }
+  .hit .qtyb{ font-size:11.5px; font-weight:800; color:var(--faint); white-space:nowrap; }
+  .newline{ width:100%; text-align:left; font-family:inherit; padding:12px; border-radius:12px;
+    border:1.5px dashed var(--line-strong); background:none; color:var(--accent);
+    font-size:14px; font-weight:750; display:flex; align-items:center; gap:8px; }
+  .sheet-note{ font-size:11.5px; line-height:1.55; color:var(--muted); margin:2px 1px 0; }
+  .fld{ display:flex; flex-direction:column; gap:6px; }
+  .flab{ font-size:11.5px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; }
+  .flab i{ font-style:normal; font-weight:650; text-transform:none; letter-spacing:0; color:var(--faint); }
+  .fin{ width:100%; height:46px; padding:0 13px; border-radius:12px; font-size:15px; font-weight:700;
+    border:1px solid var(--line-strong); background:var(--surface-2); color:var(--ink); outline:none; }
+  .fin:focus{ border-color:var(--accent); background:var(--surface); }
+  .fin::placeholder{ color:var(--faint); font-weight:600; }
+  .frow{ display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+
   .sendbox{ margin-top:14px; display:flex; flex-direction:column; gap:9px; }
   .slab{ font-size:11.5px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; }
   .cname{ width:100%; height:46px; padding:0 13px; border-radius:12px; font-size:15px; font-weight:700;
@@ -289,6 +343,18 @@
     background:rgba(37,99,235,.07); }
   .reqbanner b{ display:block; font-size:14.5px; color:var(--accent); }
   .reqbanner span{ display:block; font-size:12.5px; color:var(--muted); margin-top:2px; }
+  /* Called off by the shop while it was being walked. Amber, not red: nothing
+     has gone wrong and nothing is lost — the job was simply cancelled. */
+  .reqbanner.off{ border-color:var(--warn); background:color-mix(in srgb, var(--warn) 8%, var(--surface)); }
+  .reqbanner.off b{ color:var(--warn); }
+  .offacts{ display:flex; gap:8px; margin-top:11px; flex-wrap:wrap; }
+  .offbtn{ flex:1 1 auto; min-height:42px; padding:0 14px; border-radius:10px; font-family:inherit;
+    font-size:13.5px; font-weight:750; border:1px solid var(--line-strong);
+    background:var(--surface); color:var(--muted); }
+  .offbtn.go{ border-color:transparent; background:var(--ink); color:var(--bg); }
+  /* Sits inside the blue session bar, so it borrows its own contrast. */
+  .sessoff{ flex:0 0 auto; border:1px solid rgba(255,255,255,.5); background:rgba(255,255,255,.12);
+    color:#fff; font-family:inherit; font-size:12.5px; font-weight:750; padding:8px 13px; border-radius:999px; }
   .empty b{ display:block; color:var(--ink); font-size:16px; margin-bottom:6px; }
   /* rack home — one card per requested location, tap to open it */
   .rackcards{ display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:10px; }
@@ -622,11 +688,24 @@
     return authedGet('/rest/v1/count_requests?status=eq.open&select=id,created_at,note,racks&order=created_at.desc&limit=1')
       .then(function(res){ return res.ok ? res.json() : null; })
       .then(function(rows){
+        var row = (Array.isArray(rows) && rows.length) ? rows[0] : null;
         // A count already open is never re-scoped underneath the counter. The
         // racks it started on are the racks it finishes on — swapping them out
         // mid-walk would silently drop tires already counted from the report.
-        if (startedAt) return;
-        var row = (Array.isArray(rows) && rows.length) ? rows[0] : null;
+        //
+        // Being CALLED OFF is not a re-scope, though, and this used to swallow it
+        // too: the computer's own wording promises "the tablet will go back to
+        // saying no count is needed", and once Start had been pressed the tablet
+        // never heard a thing. Someone kept walking racks nobody was waiting on.
+        // An empty mailbox while a count is open now means exactly that, and is
+        // shown — the numbers are kept and the counter decides what to do with them.
+        if (startedAt) {
+          if (!row && !countSent && !calledOff) { calledOff = true; saveCount(); renderCount(); }
+          // A fresh request landing while we're flagged means the shop changed
+          // its mind back; stop shouting about it.
+          else if (row && calledOff) { calledOff = false; saveCount(); renderCount(); }
+          return;
+        }
         request = (row && Array.isArray(row.racks) && row.racks.length)
           ? { id: row.id, at: row.created_at, note: row.note || '', racks: row.racks.slice() }
           : null;
@@ -746,11 +825,23 @@
     return products.filter(function(p){ return want.indexOf(rackOf(p)) !== -1; });
   }
   window.tsSetRequest = setCountRequest;
+  // Tires found on a rack that the count never asked about — the leftovers. Kept
+  // as a LIST, not folded into `counted`, because they are a different claim: not
+  // "Till said 6 and I found 4" but "this was on the shelf and shouldn't be".
+  // Two kinds, and the desktop treats them differently:
+  //   { id }      a tire Till has, shelved somewhere else — a relocation
+  //   { isNew }   a tire Till has never had — the computer creates it on approval
+  var EXTRA_KEY = 'till_stock_count_extra';
+  var extras = [];
   var counted = {};      // { productId: number the owner keyed in }
   var expectedAt = {};   // { productId: on-file qty when it was counted }
   var foundAt = {};      // { productId: location typed while counting }
   var startedAt = null;  // ISO stamp — its presence IS "a count is open"
   var rackDone = {};     // { rackName: true } — marked complete by hand, independent of progress
+  // The shop called this count off while it was being walked. Kept on the device
+  // like the rest of the session: the counter may not be looking at the tablet
+  // when it lands, and it must still be there when they pick it back up.
+  var calledOff = false;
   var countName = '';
   var rackFilter = 'All';
   var countQuery = '';
@@ -759,6 +850,8 @@
   try { counted = JSON.parse(localStorage.getItem(COUNT_KEY) || '{}') || {}; } catch(e){ counted = {}; }
   try { expectedAt = JSON.parse(localStorage.getItem(EXPECT_KEY) || '{}') || {}; } catch(e){ expectedAt = {}; }
   try { foundAt = JSON.parse(localStorage.getItem(FOUND_KEY) || '{}') || {}; } catch(e){ foundAt = {}; }
+  try { extras = JSON.parse(localStorage.getItem(EXTRA_KEY) || '[]') || []; } catch(e){ extras = []; }
+  if (!Object.prototype.toString.call(extras).match(/Array/)) extras = [];
   try { countName = localStorage.getItem(NAME_KEY) || ''; } catch(e){ countName = ''; }
   // The memory. Counting a rack is interrupted constantly — a customer walks in,
   // the tablet sleeps, someone closes the tab. Every one of those has to be
@@ -766,8 +859,8 @@
   // carries on exactly where it was left.
   try {
     var __s = JSON.parse(localStorage.getItem(SESS_KEY) || 'null');
-    if (__s){ startedAt = __s.startedAt || null; rackDone = __s.rackDone || {}; }
-  } catch(e){ startedAt = null; rackDone = {}; }
+    if (__s){ startedAt = __s.startedAt || null; rackDone = __s.rackDone || {}; calledOff = !!__s.calledOff; }
+  } catch(e){ startedAt = null; rackDone = {}; calledOff = false; }
   // Counts written before sessions existed: adopt them rather than stranding the
   // numbers behind a Start button that would wipe them.
   if (!startedAt && Object.keys(counted).length) startedAt = new Date().toISOString();
@@ -777,13 +870,15 @@
       localStorage.setItem(COUNT_KEY, JSON.stringify(counted));
       localStorage.setItem(EXPECT_KEY, JSON.stringify(expectedAt));
       localStorage.setItem(FOUND_KEY, JSON.stringify(foundAt));
+      localStorage.setItem(EXTRA_KEY, JSON.stringify(extras));
       localStorage.setItem(NAME_KEY, countName);
-      localStorage.setItem(SESS_KEY, JSON.stringify({ startedAt: startedAt, rackDone: rackDone }));
+      localStorage.setItem(SESS_KEY, JSON.stringify({ startedAt: startedAt, rackDone: rackDone, calledOff: calledOff }));
     } catch(e){}
   }
   function clearCount(){
     counted = {}; expectedAt = {}; foundAt = {}; countName = '';
-    startedAt = null; rackDone = {};
+    extras = []; addSheet = null;
+    startedAt = null; rackDone = {}; calledOff = false;
     // The request is answered once the report goes back, so it goes with the
     // count. Leaving it would keep asking for a walk that has already been done.
     request = null; saveRequest();
@@ -876,10 +971,192 @@
     if (s === '') delete foundAt[id]; else foundAt[id] = s;
     saveCount();
   }
-  function setRack(r){ rackFilter = r; renderCount(); }
+  function setRack(r){ rackFilter = r; addSheet = null; renderCount(); }
   function setCountName(v){ countName = String(v == null ? '' : v); saveCount(); }
   window.tsBump = bump; window.tsType = typeQty; window.tsSame = markSame;
   window.tsRack = setRack; window.tsFound = setFound; window.tsName = setCountName;
+
+  // ---------- tires that don't belong on this rack ----------
+  // The count is scoped to what the computer asked for, which is right — but it
+  // left no way to record a tire that is physically on the shelf and outside that
+  // scope. You couldn't even find it: the search looks inside the count.
+  //
+  // The order here matters. It searches the WHOLE catalog first, and only offers
+  // "add it as new" once nothing matches — because the common case by far is a
+  // tire Till already has, shelved somewhere else, and creating a second copy of
+  // it would be the one outcome worse than not recording it at all.
+  var addSheet = null;   // { rack, q, mode:'search'|'new', size, brand, qty }
+
+  function newExtraKey(){ return 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function extrasFor(rack){ return extras.filter(function(x){ return x.rack === rack; }); }
+  function extraByKey(k){ return extras.filter(function(x){ return x.key === k; })[0]; }
+  function extraCount(x){ return Math.max(0, Number(x && x.counted) || 0); }
+
+  function openAddSheet(rack){
+    addSheet = { rack: rack, q: '', mode: 'search', size: '', brand: '', qty: '1' };
+    renderCount();
+  }
+  function closeAddSheet(){ addSheet = null; renderCount(); }
+  function addSheetSearch(v){ if (addSheet){ addSheet.q = String(v == null ? '' : v); renderCount(true); } }
+  function addSheetMode(m){
+    if (!addSheet) return;
+    // Carry the typed search across as the size — you searched "285/75/24.5",
+    // found nothing, and that is exactly what you're about to enter.
+    if (m === 'new' && !addSheet.size) addSheet.size = addSheet.q.trim();
+    addSheet.mode = m; renderCount();
+  }
+  function addSheetField(f, v){ if (addSheet) addSheet[f] = String(v == null ? '' : v); }
+
+  // What the sheet can offer: the whole catalog, minus anything already part of
+  // this count. A tire the count DOES cover belongs on its own rack's page — it
+  // already has a row there with a location box, and letting it in here too would
+  // send the computer two lines for one tire and correct it twice.
+  function addSheetHits(){
+    if (!addSheet) return [];
+    var q = addSheet.q.trim().toLowerCase();
+    if (!q) return [];
+    var taken = {};
+    countables().forEach(function(p){ taken[pid(p)] = 1; });
+    extras.forEach(function(x){ if (x.id) taken[x.id] = 1; });
+    return products.filter(function(p){ return !taken[pid(p)] && matches(p, q); }).slice(0, 12);
+  }
+
+  // A tire Till has, found where it shouldn't be. Its count starts at what Till
+  // holds, because the shop reports ONE total per tire and the computer files the
+  // lot at the place named — "4 of these, RACK 1" means all four are on RACK 1.
+  // Change it if fewer are actually in your hands and it becomes a correction too.
+  function addExtraProduct(id){
+    if (!addSheet) return;
+    var p = products.filter(function(x){ return pid(x) === id; })[0];
+    if (!p) return;
+    extras.push({ key: newExtraKey(), rack: addSheet.rack, id: id, isNew: false,
+      size: p.size || '', brand: p.brand || '',
+      counted: onFile(p), expected: onFile(p), was: rackOf(p) });
+    addSheet = null; saveCount(); renderCount();
+  }
+
+  // A tire Till has never had. Size and how many, nothing else — you're stood at
+  // a rack, not at a desk, and the owner's call is that no price is taken here:
+  // a guessed cost would feed the profit figures, so it is created blank and
+  // priced on the computer.
+  function addExtraNew(){
+    if (!addSheet) return;
+    var size = String(addSheet.size || '').trim();
+    if (!size){ countError = 'Enter the size first.'; renderCount(); return; }
+    var n = Math.max(1, Math.floor(Number(addSheet.qty) || 1));
+    extras.push({ key: newExtraKey(), rack: addSheet.rack, id: null, isNew: true,
+      size: size, brand: String(addSheet.brand || '').trim(), counted: n, expected: 0 });
+    addSheet = null; countError = ''; saveCount(); renderCount();
+  }
+
+  function extraBump(k, by){
+    var x = extraByKey(k); if (!x) return;
+    x.counted = Math.max(0, extraCount(x) + by);
+    saveCount(); renderCount();
+  }
+  function extraType(k, v){
+    var x = extraByKey(k); if (!x) return;
+    var s = String(v).trim();
+    x.counted = s === '' ? 0 : Math.max(0, Math.floor(Number(s) || 0));
+    saveCount(); renderCount(true);
+  }
+  function removeExtra(k){
+    extras = extras.filter(function(x){ return x.key !== k; });
+    saveCount(); renderCount();
+  }
+  window.tsAddOpen = openAddSheet; window.tsAddClose = closeAddSheet;
+  window.tsAddSearch = addSheetSearch; window.tsAddMode = addSheetMode;
+  window.tsAddField = addSheetField; window.tsAddPick = addExtraProduct;
+  window.tsAddNew = addExtraNew;
+  window.tsXBump = extraBump; window.tsXType = extraType; window.tsXDel = removeExtra;
+
+  function addSheetHtml(){
+    var r = addSheet.rack, rj = JSON.stringify(r).replace(/"/g,'&quot;');
+    var head = '<div class="sheet-h"><div class="m">'
+      + '<b>' + (addSheet.mode === 'new' ? 'A tire Till doesn’t have' : 'What else is on ' + esc(r) + '?') + '</b>'
+      + '<span>' + (addSheet.mode === 'new'
+          ? 'Found on ' + esc(r) + '. The computer adds it to your inventory when you approve the count.'
+          : 'Searches every tire in Till — it doesn’t have to be part of this count.')
+      + '</span></div>'
+      + '<button class="sheet-x" onclick="tsAddClose()" aria-label="Close">×</button></div>';
+
+    if (addSheet.mode === 'new'){
+      return '<div class="sheet">' + head + '<div class="sheet-b">'
+        + '<div class="fld"><div class="flab">Size</div>'
+        + '<input class="fin" id="ax_size" value="' + esc(addSheet.size) + '" placeholder="e.g. 285/75/24.5" '
+        + 'autocapitalize="characters" autocomplete="off" oninput="tsAddField(\'size\', this.value)"></div>'
+        + '<div class="frow">'
+        + '<div class="fld"><div class="flab">Brand <i>optional</i></div>'
+        + '<input class="fin" id="ax_brand" value="' + esc(addSheet.brand) + '" placeholder="e.g. Amulet" '
+        + 'autocomplete="off" oninput="tsAddField(\'brand\', this.value)"></div>'
+        + '<div class="fld"><div class="flab">How many</div>'
+        + '<input class="fin" id="ax_qty" inputmode="numeric" value="' + esc(addSheet.qty) + '" '
+        + 'style="text-align:center;font-size:19px;font-weight:800;" oninput="tsAddField(\'qty\', this.value)"></div>'
+        + '</div>'
+        + '<div class="fld"><div class="flab">Where <i>filled in for you</i></div>'
+        + '<div class="fin" style="display:flex;align-items:center;">' + esc(r) + '</div></div>'
+        + (countError ? '<div class="serr">' + esc(countError) + '</div>' : '')
+        + '<button class="btn" onclick="tsAddNew()">Add to this rack’s count</button>'
+        + '<button class="btn ghost" onclick="tsAddMode(&quot;search&quot;)">Back to search</button>'
+        + '<p class="sheet-note">No price is asked for here. It arrives in your inventory with the count '
+        + 'you keyed and nothing else — you set the cost on the computer.</p>'
+        + '</div></div>';
+    }
+
+    var hits = addSheetHits(), q = addSheet.q.trim();
+    var body = '<input class="srch" id="ax_q" type="search" enterkeyhint="search" autocapitalize="off" '
+      + 'autocomplete="off" value="' + esc(addSheet.q) + '" placeholder="Size or brand…" '
+      + 'oninput="tsAddSearch(this.value)" aria-label="Find a tire">';
+    if (hits.length){
+      body += '<div class="hits">' + hits.map(function(p){
+        var nm = nameLines(p), where = p.location ? 'Till says ' + esc(p.location) : 'No location on file';
+        return '<button class="hit" onclick="tsAddPick(' + JSON.stringify(pid(p)).replace(/"/g,'&quot;') + ')">'
+          + '<span class="m"><span class="hn">' + esc(nm.title) + (nm.brand ? ' <span style="font-weight:650;color:var(--muted);">· ' + esc(nm.brand) + '</span>' : '') + '</span>'
+          + '<span class="hs' + (p.location ? '' : ' none') + '">' + where + '</span></span>'
+          + '<span class="qtyb">' + onFile(p) + ' in stock</span></button>';
+      }).join('') + '</div>';
+    } else if (q){
+      body += '<div class="empty" style="padding:22px 12px;">No tire in Till matches “' + esc(q) + '”.</div>';
+    }
+    body += '<button class="newline" onclick="tsAddMode(&quot;new&quot;)">'
+      + '<span style="font-size:18px;line-height:1;">+</span>Not in Till at all — add it as new</button>'
+      + '<p class="sheet-note">Nothing here changes stock. Whatever you add travels with the count and waits '
+      + 'for the computer, the same as every other line.</p>';
+    return '<div class="sheet">' + head + '<div class="sheet-b">' + body + '</div></div>';
+  }
+
+  // The leftovers, in their own group. Kept apart from the rows the computer
+  // asked about — and out of the progress bar — because folding them in would
+  // make a rack you have finished read as unfinished.
+  function extrasHtml(rack){
+    var mine = extrasFor(rack);
+    if (!mine.length) return '';
+    var html = '<div class="grouphead odd">Also found here'
+      + '<span>' + mine.length + ' · not part of this count</span></div>';
+    mine.forEach(function(x){
+      var kj = JSON.stringify(x.key).replace(/"/g,'&quot;');
+      var sub = x.isNew ? (x.brand ? esc(x.brand) + ' · not in Till' : 'Not in Till')
+        : (x.was && x.was !== 'No rack' ? 'Till says ' + esc(x.was) : 'No location on file');
+      html += '<div class="crow odd">'
+        + '<div class="crow-top"><div style="min-width:0;">'
+        + '<div class="name">' + esc(x.size || 'Tire') + '</div>'
+        + '<div class="brandline">' + sub + '</div>'
+        + '</div><div style="text-align:right;">'
+        + '<span class="tag odd">' + (x.isNew ? 'New tire' : 'Wrong rack') + '</span>'
+        + '<div class="onfile">' + (x.isNew ? 'On file: —' : 'On file: ' + (Number(x.expected) || 0)) + '</div>'
+        + '</div></div>'
+        + '<div class="stepper">'
+        + '<button class="step" onclick="tsXBump(' + kj + ',-1)" aria-label="One fewer">−</button>'
+        + '<input class="qty" id="x_' + esc(x.key) + '" inputmode="numeric" value="' + extraCount(x) + '" '
+        + 'oninput="tsXType(' + kj + ', this.value)" aria-label="How many found here">'
+        + '<button class="step" onclick="tsXBump(' + kj + ',1)" aria-label="One more">+</button>'
+        + '<button class="xdel" onclick="tsXDel(' + kj + ')">Remove</button>'
+        + '</div>'
+        + '<div class="whererow"><div class="where" style="display:flex;align-items:center;">' + esc(rack) + '</div></div>'
+        + '</div>';
+    });
+    return html;
+  }
 
   function renderCount(keepFocus){
     var focusId = keepFocus && document.activeElement ? document.activeElement.id : null;
@@ -926,10 +1203,24 @@
       html += '<div class="reqbanner"><b>Recount requested · ' + esc(requestedRacks().join(', ')) + '</b>'
         + (request.note ? '<span>' + esc(request.note) + '</span>' : '') + '</div>';
       html += '<button class="startcount" onclick="tsStart()">Start count</button>';
+    } else if (calledOff){
+      // Called off from the shop computer mid-walk. The numbers are NOT thrown
+      // away on their behalf — someone walked those racks, and a count already
+      // done is still worth having. The two honest choices, said plainly.
+      html += '<div class="reqbanner off"><b>The shop called this count off</b>'
+        + '<span>Nothing you counted is lost. You can still send it, or throw it away.</span>'
+        + '<div class="offacts">'
+        + '<button class="offbtn go" onclick="tsOffSend()">Send what I counted</button>'
+        + '<button class="offbtn" onclick="tsOffDrop()">Throw it away</button>'
+        + '</div></div>';
     } else {
       // The request is why you started; repeating it while you work is noise.
-      html += '<div class="sessbar"><span class="dot"></span><div><b>Count in progress</b>'
-        + '<span>Started ' + esc(startedText()) + ' · submit it to finish</span></div></div>';
+      // "Call it off" lives here rather than in the header because it belongs to
+      // the session, and because the header's Start over only clears numbers —
+      // this one also tells the computer to stop waiting.
+      html += '<div class="sessbar"><span class="dot"></span><div style="min-width:0;flex:1;"><b>Count in progress</b>'
+        + '<span>Started ' + esc(startedText()) + ' · submit it to finish</span></div>'
+        + '<button class="sessoff" onclick="tsCallOff()">Call it off</button></div>';
     }
 
     // Progress follows the rack you're standing at — finishing a rack should
@@ -993,8 +1284,15 @@
       return String(a.size||'').localeCompare(String(b.size||''), undefined, { numeric:true });
     });
 
+    // Adding a leftover takes the page while you do it. You are answering one
+    // question — what else is on this shelf — and the list you were working down
+    // is not part of that answer.
+    var sheetOpen = !!addSheet && !searching && !onHome && addSheet.rack === rackFilter;
+
     if (onHome){
       /* the rack cards above are the whole page */
+    } else if (sheetOpen){
+      html += addSheetHtml();
     } else if (!list.length){
       html += '<div class="empty">' + (searching ? 'No matches for “' + esc(countQuery.trim()) + '”' : 'Nothing on this rack.') + '</div>';
     } else {
@@ -1040,14 +1338,30 @@
       });
     }
 
+    // The leftovers and the way to add one live at the bottom of a rack's page —
+    // you reach them after working down the shelf, which is when you're holding
+    // whatever didn't belong. Not offered on the rack home (you're not stood at
+    // any one rack) or in search results (they span racks, so "this rack" has no
+    // meaning), and not while a count hasn't been started.
+    if (!onHome && !searching && !sheetOpen && countOpen()){
+      html += extrasHtml(rackFilter);
+      html += '<button class="addodd" onclick="tsAddOpen(' + JSON.stringify(rackFilter).replace(/"/g,'&quot;') + ')">'
+        + '<span style="font-size:19px;font-weight:700;line-height:1;">+</span>Something else on this rack</button>';
+    }
+
     // Submitting belongs on the rack home, not inside a rack: finishing one rack
     // isn't finishing the count, and a Submit button sitting under the last size
     // of rack B invites exactly that mistake.
     if (onHome){
       var diffs = differences().length, done = countedProducts().length;
-      html += '<div class="foot"><button class="btn" id="toReviewBtn"' + (done ? '' : ' disabled') + '>'
+      // A rack walked and found to hold something that shouldn't be there is a
+      // real result even if every expected number matched — so leftovers alone
+      // are enough to have something worth sending.
+      var anything = done + extras.length;
+      html += '<div class="foot"><button class="btn" id="toReviewBtn"' + (anything ? '' : ' disabled') + '>'
         + (diffs ? 'See ' + diffs + ' difference' + (diffs===1?'':'s')
-                 : (done && done === pool.length ? 'Everything matched' : 'See what\'s different'))
+                 : (extras.length ? 'See ' + extras.length + ' found on the wrong rack'
+                 : (done && done === pool.length ? 'Everything matched' : 'See what\'s different')))
         + '</button></div>';
     }
 
@@ -1056,7 +1370,7 @@
     var on = strip && strip.querySelector('.rack.on');
     if (on) strip.scrollLeft = on.offsetLeft - (strip.clientWidth - on.offsetWidth) / 2;
     var go = $('toReviewBtn');
-    if (go) go.addEventListener('click', function(){ if (countedProducts().length) showReview(); });
+    if (go) go.addEventListener('click', function(){ if (countedProducts().length || extras.length) showReview(); });
 
     if (focusId){
       var el = document.getElementById(focusId);
@@ -1068,7 +1382,7 @@
   // anything differs — a rack counted and found correct is a real result, and
   // any locations stamped along the way still need to travel.
   function sendBlockHtml(){
-    var n = countedProducts().length;
+    var n = countedProducts().length + extras.length;
     if (countSent){
       return '<div class="sent"><b>Sent to the computer</b>'
         + '<span>' + n + ' counted. Open Till on the shop computer to review it. Nothing has changed yet.</span>'
@@ -1089,16 +1403,37 @@
       + 'Your numbers stay here until you start a new count.</p></div>';
   }
 
+  // The leftovers, said plainly before they go: what it is, where it was found,
+  // and which of the two things the computer will be asked to do about it.
+  function extrasReviewHtml(){
+    if (!extras.length) return '';
+    var html = '<div class="grouphead odd">Found on the wrong rack'
+      + '<span>' + extras.length + '</span></div>';
+    extras.forEach(function(x){
+      html += '<div class="row" style="display:block;">'
+        + '<div class="crow-top"><div style="min-width:0;">'
+        + '<div class="name">' + esc(x.size || 'Tire') + '</div>'
+        + '<div class="brandline">' + (x.brand ? esc(x.brand) + ' · ' : '') + esc(x.rack) + '</div>'
+        + '</div><span class="tag odd">' + (x.isNew ? 'New tire' : 'Wrong rack') + '</span></div>'
+        + '<div class="arrowline"><span>' + extraCount(x) + ' found</span>'
+        + '<span style="margin-left:auto;font-size:12.5px;font-weight:650;color:var(--muted);">'
+        + (x.isNew ? 'Till adds it, no price yet' : 'Till moves it to ' + esc(x.rack))
+        + '</span></div></div>';
+    });
+    return html;
+  }
+
   function renderReview(){
     var diffs = differences();
-    if (!countedProducts().length){
+    if (!countedProducts().length && !extras.length){
       $('reviewList').innerHTML = '<div class="empty"><b>Nothing counted yet</b>'
         + 'Count some tires first — then you can send them over.</div>';
       return;
     }
     if (!diffs.length){
       $('reviewList').innerHTML = '<div class="empty"><b>Everything matched</b>All '
-        + countedProducts().length + ' tires you counted agree with Till.</div>' + sendBlockHtml();
+        + countedProducts().length + ' tires you counted agree with Till.</div>'
+        + extrasReviewHtml() + sendBlockHtml();
       return;
     }
     var units = 0, value = 0, short = 0, over = 0;
@@ -1129,6 +1464,7 @@
         + (d < 0 ? '-' : '') + '$' + Math.abs(Math.round(d * (Number(p.buyPrice) || 0))).toLocaleString() + '</span></div>'
         + '</div>';
     });
+    html += extrasReviewHtml();
     html += sendBlockHtml();
     $('reviewList').innerHTML = html;
   }
@@ -1138,7 +1474,7 @@
   // rack the computer can see was counted and matched is worth as much as a
   // correction, and it's what lets the computer show "312 counted, 4 different".
   function countPayload(){
-    return countedProducts().map(function(p){
+    var lines = countedProducts().map(function(p){
       var id = pid(p);
       return {
         id: id,
@@ -1147,6 +1483,31 @@
         location: foundAt[id] || ''
       };
     });
+    // The leftovers ride the same list, because the computer already knows how to
+    // read it. A tire Till HAS goes as an ordinary line whose location is the rack
+    // it turned up on — which is exactly the "found somewhere else" case the
+    // computer has always handled, so it relocates with no new machinery.
+    //
+    // A tire Till has never had can't: there is no id to correct. It goes flagged
+    // `isNew` with its size and brand, and the computer creates it on approval.
+    var seen = {};
+    lines.forEach(function(l){ seen[l.id] = 1; });
+    extras.forEach(function(x){
+      var n = Math.max(0, Number(x.counted) || 0);
+      if (x.isNew){
+        if (!String(x.size || '').trim()) return;
+        lines.push({ id: null, isNew: true, size: x.size, brand: x.brand || '',
+                     counted: n, expected: 0, location: x.rack || '' });
+      } else if (x.id && !seen[x.id]) {
+        // Guarded rather than trusted: two lines for one tire would correct it
+        // twice on the computer. The picker already refuses anything inside the
+        // count, so this only ever catches a stale saved session.
+        seen[x.id] = 1;
+        lines.push({ id: x.id, counted: n,
+                     expected: Math.max(0, Number(x.expected) || 0), location: x.rack || '' });
+      }
+    });
+    return lines;
   }
   function defaultCountName(){
     return 'Count · ' + new Date().toLocaleDateString('en-US', { month:'short', day:'numeric' });
@@ -1201,6 +1562,44 @@
     });
   }
   var countSent = false, countError = '';
+
+  // ---------- calling a count off ----------
+  // Starting was one-way by design: a count half-abandoned on a shelf is worse
+  // than one still obviously open. But "one-way" only ever meant there is no
+  // quiet exit — a job genuinely called off (the truck came in, the racks got
+  // moved) needs a door, and it has to tell the computer, or the shop sits
+  // waiting for a walk nobody is doing.
+  function callOffCount(){
+    if (!countOpen() || sending) return;
+    var n = countedProducts().length + extras.length;
+    if (!confirm(n
+      ? 'Call off this count?\n\nThe ' + n + ' line' + (n === 1 ? '' : 's') + ' entered here are thrown away, and the computer stops waiting for it. Nothing in Till changes.'
+      : 'Call off this count?\n\nThe computer stops waiting for it. Nothing in Till changes.')) return;
+    // Best-effort, exactly like answering one: the count is gone from this device
+    // either way, and a request left open only means the computer still shows it
+    // as out. Never something the counter has to think about.
+    var reqId = request && request.id;
+    if (reqId != null) authedPatch('/rest/v1/count_requests?id=eq.' + encodeURIComponent(reqId),
+      { status: 'cancelled', answered_at: new Date().toISOString() }).catch(function(){});
+    clearCount(); countSent = false; countError = '';
+    rackFilter = 'All'; countQuery = '';
+    var cq = $('cq'); if (cq){ cq.value = ''; $('countSearchWrap').classList.remove('has'); }
+    renderCount();
+  }
+  // Called off by the shop, and the counter wants to send the walk anyway. The
+  // request is already closed on that end, so there is nothing to answer — the
+  // count still goes to the mailbox and shows up for review like any other.
+  function calledOffSend(){ calledOff = false; saveCount(); showReview(); }
+  function calledOffDrop(){
+    if (!confirm('Throw this count away?\n\nThe numbers entered here are cleared. Nothing in Till changes.')) return;
+    clearCount(); countSent = false; countError = '';
+    rackFilter = 'All'; countQuery = '';
+    renderCount();
+  }
+  window.tsCallOff = callOffCount;
+  window.tsOffSend = calledOffSend;
+  window.tsOffDrop = calledOffDrop;
+
   window.tsSend = sendCount;
   window.tsNewCount = function(){
     clearCount(); countSent = false; countError = '';
@@ -1452,6 +1851,20 @@
   document.addEventListener('visibilitychange', function(){
     if (document.visibilityState === 'visible' && session && products.length) loadStock();
   });
+
+  // While the count screen is open, look for the shop calling it off — without
+  // being asked to. Before this the only ways to find out were the refresh
+  // button and switching away and back, so a count cancelled on the computer
+  // could sit unnoticed on a tablet propped on a rack for as long as the walk
+  // took. Just the request, not the whole catalog: one small read a minute,
+  // stopped dead while the tab is hidden or a send is in flight.
+  setInterval(function(){
+    if (!session || document.visibilityState !== 'visible') return;
+    if (sending || countSent) return;
+    var view = document.getElementById('countView');
+    if (!view || view.style.display === 'none') return;
+    loadRequest();
+  }, 60000);
 
   // ---------- boot ----------
   if (session && (session.access_token || session.refresh_token)) loadStock();
