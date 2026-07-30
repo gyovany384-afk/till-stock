@@ -997,7 +997,18 @@
     renderCount();
   }
   function closeAddSheet(){ addSheet = null; renderCount(); }
-  function addSheetSearch(v){ if (addSheet){ addSheet.q = String(v == null ? '' : v); renderCount(true); } }
+  // Deliberately does NOT re-render. Rebuilding the list replaces the search box
+  // itself, and a replaced input drops the keyboard back to letters — so typing a
+  // size like "285/75/24.5" meant switching to the number pad for every single
+  // character. Only the results underneath are swapped, and the box you're typing
+  // in is left alone. (setFound below carries the same scar.)
+  function addSheetSearch(v){
+    if (!addSheet) return;
+    addSheet.q = String(v == null ? '' : v);
+    var box = document.getElementById('ax_results');
+    if (box) box.innerHTML = addSheetResultsHtml();
+    else renderCount();
+  }
   function addSheetMode(m){
     if (!addSheet) return;
     // Carry the typed search across as the size — you searched "285/75/24.5",
@@ -1054,11 +1065,15 @@
     x.counted = Math.max(0, extraCount(x) + by);
     saveCount(); renderCount();
   }
+  // Saves without re-rendering, for the same reason setFound does: rebuilding the
+  // list mid-keystroke replaces the box being typed into, which on a tablet drops
+  // the keypad. Nothing on screen reads this as you type — the steppers and the
+  // next real render both read it back off the saved value.
   function extraType(k, v){
     var x = extraByKey(k); if (!x) return;
     var s = String(v).trim();
     x.counted = s === '' ? 0 : Math.max(0, Math.floor(Number(s) || 0));
-    saveCount(); renderCount(true);
+    saveCount();
   }
   function removeExtra(k){
     extras = extras.filter(function(x){ return x.key !== k; });
@@ -1103,26 +1118,33 @@
         + '</div></div>';
     }
 
-    var hits = addSheetHits(), q = addSheet.q.trim();
     var body = '<input class="srch" id="ax_q" type="search" enterkeyhint="search" autocapitalize="off" '
       + 'autocomplete="off" value="' + esc(addSheet.q) + '" placeholder="Size or brand…" '
-      + 'oninput="tsAddSearch(this.value)" aria-label="Find a tire">';
+      + 'oninput="tsAddSearch(this.value)" aria-label="Find a tire">'
+      // Its own box, so a keystroke can swap the results without touching the
+      // input above them. See addSheetSearch.
+      + '<div id="ax_results">' + addSheetResultsHtml() + '</div>'
+      + '<button class="newline" onclick="tsAddMode(&quot;new&quot;)">'
+      + '<span style="font-size:18px;line-height:1;">+</span>Not in Till at all — add it as new</button>'
+      + '<p class="sheet-note">Nothing here changes stock. Whatever you add travels with the count and waits '
+      + 'for the computer, the same as every other line.</p>';
+    return '<div class="sheet">' + head + '<div class="sheet-b">' + body + '</div></div>';
+  }
+
+  function addSheetResultsHtml(){
+    if (!addSheet) return '';
+    var hits = addSheetHits(), q = addSheet.q.trim();
     if (hits.length){
-      body += '<div class="hits">' + hits.map(function(p){
+      return '<div class="hits">' + hits.map(function(p){
         var nm = nameLines(p), where = p.location ? 'Till says ' + esc(p.location) : 'No location on file';
         return '<button class="hit" onclick="tsAddPick(' + JSON.stringify(pid(p)).replace(/"/g,'&quot;') + ')">'
           + '<span class="m"><span class="hn">' + esc(nm.title) + (nm.brand ? ' <span style="font-weight:650;color:var(--muted);">· ' + esc(nm.brand) + '</span>' : '') + '</span>'
           + '<span class="hs' + (p.location ? '' : ' none') + '">' + where + '</span></span>'
           + '<span class="qtyb">' + onFile(p) + ' in stock</span></button>';
       }).join('') + '</div>';
-    } else if (q){
-      body += '<div class="empty" style="padding:22px 12px;">No tire in Till matches “' + esc(q) + '”.</div>';
     }
-    body += '<button class="newline" onclick="tsAddMode(&quot;new&quot;)">'
-      + '<span style="font-size:18px;line-height:1;">+</span>Not in Till at all — add it as new</button>'
-      + '<p class="sheet-note">Nothing here changes stock. Whatever you add travels with the count and waits '
-      + 'for the computer, the same as every other line.</p>';
-    return '<div class="sheet">' + head + '<div class="sheet-b">' + body + '</div></div>';
+    if (q) return '<div class="empty" style="padding:22px 12px;">No tire in Till matches “' + esc(q) + '”.</div>';
+    return '';
   }
 
   // The leftovers, in their own group. Kept apart from the rows the computer
