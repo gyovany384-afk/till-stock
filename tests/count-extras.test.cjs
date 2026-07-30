@@ -118,6 +118,16 @@ const { tablet, ok, finish, wait, screen, stored, startWalking } = require('./ha
   ok('...and carries no price of any kind',
      fresh && !('buyPrice' in fresh) && !('cost' in fresh) && !('sellPrice' in fresh), fresh);
 
+  // Every line carries its name, so the computer can still say WHICH tire when it
+  // can no longer look the id up — a tire deleted between the walk and the review
+  // used to arrive as a bare id and could only be reported as "a counted tire".
+  const plain = lines.filter(l => l.id === 'p1')[0];
+  ok('an ordinary counted line carries its size and brand',
+     plain && plain.size === '11R22.5' && plain.brand === 'Roadmaster', plain);
+  ok('so does a leftover picked from the catalog',
+     relo && relo.size === '285/75/24.5' && relo.brand === 'Kumho', relo);
+  ok('every line has a size on it', lines.every(l => !!l.size), lines.map(l => l.size));
+
   const ids = lines.map(l => l.id).filter(Boolean);
   ok('no tire appears twice', new Set(ids).size === ids.length, ids);
   ok('the walked rack travels too', (state.posted.racks || []).indexOf('RACK 1') !== -1, state.posted.racks);

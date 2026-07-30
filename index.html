@@ -1502,7 +1502,13 @@
         id: id,
         counted: counted[id],
         expected: expectedAt[id] !== undefined ? expectedAt[id] : onFile(p),
-        location: foundAt[id] || ''
+        location: foundAt[id] || '',
+        // Sent so the computer can NAME a tire it can no longer look up. A tire
+        // deleted from the catalog between the walk and the review arrives as a
+        // bare id, and the review could only say "a counted tire has since been
+        // deleted" — no way to tell whether it was one that mattered.
+        size: p.size || '',
+        brand: p.brand || ''
       };
     });
     // The leftovers ride the same list, because the computer already knows how to
@@ -1526,7 +1532,8 @@
         // count, so this only ever catches a stale saved session.
         seen[x.id] = 1;
         lines.push({ id: x.id, counted: n,
-                     expected: Math.max(0, Number(x.expected) || 0), location: x.rack || '' });
+                     expected: Math.max(0, Number(x.expected) || 0), location: x.rack || '',
+                     size: x.size || '', brand: x.brand || '' });
       }
     });
     return lines;
