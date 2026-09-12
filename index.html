@@ -382,9 +382,6 @@
   .rdone{ margin-left:auto; min-height:34px; padding:0 12px; border-radius:9px; cursor:pointer; font-family:inherit;
     font-size:12px; font-weight:700; background:transparent; border:1px solid var(--good); color:var(--good); }
   .rdone.on{ background:var(--good); border-color:var(--good); color:#fff; }
-  /* Phone is stock + sales lookups for now — counting is the tablet's job, so the
-     entry point simply isn't offered on a small screen. One rule to undo. */
-  @media (max-width: 699px){ #countBtn{ display:none; } }
 
   /* ---------- tablet ----------
      Counting is the screen that actually changes shape. On a tablet you're
@@ -440,7 +437,7 @@
     <div class="brand-mark">T</div>
     <div>
       <h1>Till Stock</h1>
-      <p>Look up your rack from anywhere</p>
+      <p>Look up the stock room from anywhere</p>
     </div>
   </div>
   <div class="card">
@@ -458,22 +455,32 @@
       <button class="btn" id="loginBtn" type="submit">Sign in</button>
     </form>
   </div>
-  <p class="hint">Use the same email &amp; password as your Till cloud sign-in.<br>This window can only look — it can never change anything in your shop.</p>
+  <!--
+    REWORDED 12 SEP 2026, AND IT WAS THE LAST UNTRUE SENTENCE ON THE PAGE. It
+    said to use the Till cloud sign-in. That account does not exist in this
+    database: the stock room computer's project has its own user list, and a
+    password typed from the old instruction fails with "Invalid login
+    credentials" — which reads as a forgotten password rather than as the wrong
+    door. It also has to be on the stock room's staff list, which is the part
+    nobody can guess from a sign-in box.
+  -->
+  <p class="hint">Sign in with the same email &amp; password as the stock room computer.<br>This window can only look — it can never change anything, in the shop or in the stock room.</p>
 </div>
 
 <!-- ============ APP ============ -->
 <div class="app" id="app">
-  <div class="banner">Read-only · view only, nothing here changes your shop</div>
+  <!--
+    IT NAMES THE BOOK NOW, and that is the point of the sentence rather than a
+    nicety. This page used to read the shop cloud that the counter's Till syncs
+    to. It reads the STOCK ROOM computer's own book, so a tire sold on the
+    counter does not move this number — and somebody could otherwise read a
+    figure off here and act on it as though it were today's shelf.
+  -->
+  <div class="banner">Stock room book · read-only · a sale on the counter does not change this</div>
   <div class="topbar">
     <div class="toprow">
       <div class="title">Stock</div>
       <div class="spacer"></div>
-      <button class="iconbtn" id="salesBtn" aria-label="Sales log" title="Sales log">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="15"/><line x1="12" y1="20" x2="12" y2="9"/><line x1="18" y1="20" x2="18" y2="4"/></svg>
-      </button>
-      <button class="iconbtn tally" id="countBtn" aria-label="Count stock" title="Count stock">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-      </button>
       <button class="iconbtn" id="refreshBtn" aria-label="Refresh">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
       </button>
@@ -493,79 +500,68 @@
   <div class="list" id="list"></div>
 </div>
 
-<!-- ============ COUNT STOCK ============ -->
-<div class="app" id="countView">
-  <div class="topbar">
-    <div class="toprow">
-      <button class="iconbtn" id="countBackBtn" aria-label="Back">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-      </button>
-      <div class="title">Count stock</div>
-      <div class="spacer"></div>
-      <button class="iconbtn" id="countRefreshBtn" aria-label="Check for a count" title="Check for a count">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
-      </button>
-      <button class="iconbtn" id="countClearBtn" aria-label="Start over" title="Start over">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
-      </button>
-    </div>
-    <div class="search" id="countSearchWrap">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input id="cq" type="search" enterkeyhint="search" autocapitalize="off" autocomplete="off" placeholder="Jump to a size or brand…" aria-label="Find a tire to count">
-      <button type="button" class="clr" id="cClrBtn" aria-label="Clear search">&times;</button>
-    </div>
-  </div>
-  <div class="list" id="countList"></div>
-</div>
+<!--
+  THE COUNT, SALES LOG AND REVIEW SCREENS WERE HERE UNTIL 12 SEP 2026, and they
+  are deleted rather than hidden. His words when asked what should survive the
+  repoint: "I only need, inventory lookup".
 
-<!-- ============ SALES LOG ============ -->
-<div class="app" id="salesView">
-  <div class="topbar">
-    <div class="toprow">
-      <button class="iconbtn" id="salesBackBtn" aria-label="Back">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-      </button>
-      <div class="title">Sales log</div>
-      <button class="tptoggle" id="trueProfitBtn" role="switch" aria-checked="false" aria-label="Show true (unrounded) profit" title="Show true (unrounded) profit">
-        <span>True profit</span>
-        <span class="tpswitch"><span class="tpknob"></span></span>
-      </button>
-      <div class="spacer"></div>
-    </div>
-    <div class="search" id="salesSearchWrap">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input id="sq" type="search" enterkeyhint="search" autocapitalize="off" autocomplete="off" placeholder="Search size or brand…" aria-label="Search sales">
-      <button type="button" class="clr" id="sClrBtn" aria-label="Clear search">&times;</button>
-    </div>
-    <div class="segrow" id="salesSeg"></div>
-  </div>
-  <div class="list" id="salesList"></div>
-</div>
+  DELETED, NOT HIDDEN, AND IT IS THE MONEY DECISION ON THIS PAGE. The count
+  screen POSTed a finished count into the SHOP cloud's mailbox, carrying
+  `expected` — what this screen said at the moment of counting. Left alive while
+  the list reads the stock room's book, it would have sent the shop computer real
+  corrections built on a stale copy's baselines, landing on product ids that
+  mostly match, with nothing erroring anywhere. Hiding the button leaves that
+  code reachable. Deleting it makes it impossible.
 
-<!-- ============ REVIEW ============ -->
-<div class="app" id="reviewView">
-  <div class="topbar">
-    <div class="toprow">
-      <button class="iconbtn" id="reviewBackBtn" aria-label="Back">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-      </button>
-      <div class="title">What's different</div>
-      <div class="spacer"></div>
-    </div>
-  </div>
-  <div class="list" id="reviewList"></div>
-</div>
-
+  The sales log went for the smaller version of the same reason: the stock room
+  book's sales carry no size, brand, work or condition, so it could only ever
+  have drawn a list of $0.00 "Tire" rows.
+-->
 <script>
 (function(){
-  // ---- Supabase (same project the Till desktop app syncs to) ----
-  var SUPA_URL = 'https://ozztakbcnmlwoyiexlkt.supabase.co';
-  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96enRha2Jjbm1sd295aWV4bGt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxNzcyNzIsImV4cCI6MjA5ODc1MzI3Mn0.U0JvmpqFXQsBRRMqsffHO5oVSn79IFANvJJ84oUV7vI';
-  var SESSION_KEY = 'till_stock_session';
+  // ---- Supabase: the STOCK ROOM computer's own project ----
+  //
+  // Repointed 12 Sep 2026. This page used to read the shop cloud that the
+  // counter's Till syncs to; it now reads the book the Till Stock desktop app
+  // owns, which is a different Supabase project with its own user list. Nobody's
+  // old sign-in works here, which is why the session key below is a new one.
+  //
+  // THE KEY IS THE PUBLISHABLE KIND AND IT IS MEANT TO SHIP IN A PAGE. This repo
+  // is public, so it is on the open internet — as the previous one already was.
+  // It opens nothing on its own: every table refuses a caller who is not signed
+  // in AND on the `staff` list, which is the actual lock.
+  //
+  // EVERY TABLE LIVES IN THE `till_stock` SCHEMA, not `public`. Without the
+  // Accept-Profile header below, a read looks in the wrong place and comes back
+  // with nothing — and nothing draws as an empty shop, not as an error. That is
+  // the single most likely way this page comes up blank with nobody able to say
+  // why.
+  var SUPA_URL = 'https://bvyuhdveucdfwaltjoks.supabase.co';
+  var ANON = 'sb_publishable_DdmxpTjPB9BoG4CeNE2qJA_UpNuQx-I';
+  var SCHEMA = 'till_stock';
+  var SESSION_KEY = 'till_stock_session_v2';
+
+  // THE OLD DEVICE'S LEFTOVERS, SWEPT ONCE. The file is served from the same
+  // address as before, so every key the old app wrote is still here: a session
+  // for a project that does not know this account, and six count keys tied to
+  // the other book's product ids. Left alone, the old session boots straight
+  // into a doomed request and the phone says "Your session expired" before
+  // anybody has touched it — which blames the wrong thing. The truth is that
+  // this is a different computer's book and it needs its own sign-in.
+  try {
+    var OLD_KEYS = ['till_stock_session', 'till_stock_count', 'till_stock_count_expected',
+      'till_stock_count_found', 'till_stock_count_extra', 'till_stock_count_name',
+      'till_stock_count_session', 'till_stock_count_request'];
+    for (var oi = 0; oi < OLD_KEYS.length; oi++) localStorage.removeItem(OLD_KEYS[oi]);
+  } catch(e){}
 
   var $ = function(id){ return document.getElementById(id); };
-  var session = null, products = [], updatedAt = null, query = '';
-  var salesLog = [], salesGroupBy = 'day', salesQuery = '', salesTrueProfit = false;
+  // `checkedAt` REPLACED `updatedAt` — 12 Sep 2026. There is no updated_at
+  // column anywhere in the stock room's schema, so the old freshness line had
+  // nothing to read and simply drew an empty string: the phone would have lost
+  // its only staleness signal without ever saying so. What this page can honestly
+  // know is when IT last read, so that is what the line says now.
+  var session = null, products = [], checkedAt = null, query = '';
 
   try { session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e){ session = null; }
 
@@ -604,120 +600,186 @@
       return res.json().then(function(d){ saveSession(d, session && session.remember); return true; });
     }).catch(function(){ return false; });
   }
-  function authedGet(path, retried){
+  // `extraHeaders` — THE SCHEMA HEADER AND THE PAGE RANGE COME THROUGH HERE.
+  //
+  // AND THE RETRY CARRIES THEM TOO. This used to read `authedGet(path, true)`,
+  // which after the signature changed would have sent the retry with no
+  // Accept-Profile and no Range — so the phone would work perfectly first thing
+  // and come back with an empty shop an hour later when the token rolled over.
+  // It would not reproduce on the bench and there would be nothing on screen to
+  // blame it on.
+  function authedGet(path, extraHeaders, retried){
     var headers = { 'apikey':ANON };
     if (session && session.access_token) headers['Authorization'] = 'Bearer ' + session.access_token;
+    if (extraHeaders) for (var k in extraHeaders) if (extraHeaders.hasOwnProperty(k)) headers[k] = extraHeaders[k];
     return fetch(SUPA_URL + path, { headers: headers }).then(function(res){
       if (res.status === 401 && !retried && session && session.refresh_token){
-        return refresh().then(function(ok){ return ok ? authedGet(path, true) : res; });
+        return refresh().then(function(ok){ return ok ? authedGet(path, extraHeaders, true) : res; });
       }
       return res;
     });
   }
-  // The ONE write this device is allowed to make, and it doesn't go anywhere near
-  // the shop data: it posts a finished count into the stock_counts mailbox, where
-  // it waits for the shop computer to review it. Same token-refresh behaviour as
-  // the read above.
-  function authedPost(path, body, retried){
-    var headers = { 'apikey':ANON, 'Content-Type':'application/json', 'Prefer':'return=minimal' };
+
+  // A function call on the database, for the one question this page asks before
+  // it asks for stock. BOTH profile headers go on it: Content-Profile says which
+  // schema the function is in, Accept-Profile says which schema to answer from,
+  // and PostgREST wants both on an RPC.
+  function rpc(name, body, retried){
+    var headers = {
+      'apikey':ANON, 'Content-Type':'application/json',
+      'Content-Profile': SCHEMA, 'Accept-Profile': SCHEMA
+    };
     if (session && session.access_token) headers['Authorization'] = 'Bearer ' + session.access_token;
-    return fetch(SUPA_URL + path, { method:'POST', headers: headers, body: JSON.stringify(body) })
-      .then(function(res){
-        if (res.status === 401 && !retried && session && session.refresh_token){
-          return refresh().then(function(ok){ return ok ? authedPost(path, body, true) : res; });
-        }
-        return res;
-      });
+    return fetch(SUPA_URL + '/rest/v1/rpc/' + name, {
+      method:'POST', headers: headers, body: JSON.stringify(body || {})
+    }).then(function(res){
+      if (res.status === 401 && !retried && session && session.refresh_token){
+        return refresh().then(function(ok){ return ok ? rpc(name, body, true) : res; });
+      }
+      return res;
+    });
   }
 
-  // Marking the computer's request as answered once the count goes back. Same
-  // token-refresh behaviour as the two above.
-  function authedPatch(path, body, retried){
-    var headers = { 'apikey':ANON, 'Content-Type':'application/json', 'Prefer':'return=minimal' };
-    if (session && session.access_token) headers['Authorization'] = 'Bearer ' + session.access_token;
-    return fetch(SUPA_URL + path, { method:'PATCH', headers: headers, body: JSON.stringify(body) })
-      .then(function(res){
-        if (res.status === 401 && !retried && session && session.refresh_token){
-          return refresh().then(function(ok){ return ok ? authedPatch(path, body, true) : res; });
-        }
-        return res;
-      });
+  // IS THIS ACCOUNT ALLOWED IN. Three answers, not two, and the reason is that
+  // an empty screen has three completely different causes which used to print one
+  // message: signed out, signed in but not on the staff list, and a book that is
+  // genuinely empty. The old wording — "Has your shop computer uploaded to the
+  // cloud?" — sent him to check a machine that was working fine.
+  //
+  // A FAILURE IS NOT A CLOSED DOOR. Collapsing every non-OK answer into false is
+  // how a stale token or a dropped connection comes to read as "you are not
+  // staff", which sends somebody to the shop computer for something a fresh
+  // sign-in would fix. That is the very errand this check exists to prevent.
+  function isStaff(){
+    return rpc('is_staff').then(function(res){
+      if (res.status === 401) return 'signed-out';
+      if (!res.ok) return 'unknown';
+      return res.json().then(function(v){ return v === true ? 'yes' : 'no'; })
+        .catch(function(){ return 'unknown'; });
+    }).catch(function(){ return 'unknown'; });
   }
+  // THE TWO WRITE HELPERS WERE HERE UNTIL 12 SEP 2026 — authedPost, which put a
+  // finished count into the shop cloud's mailbox, and authedPatch, which marked
+  // the computer's request answered. They went with the count screen. This page
+  // now has nothing it can write at all, which is a stronger promise than the
+  // banner has ever been able to make.
 
   // ---------- data ----------
-  // `keepView` means "re-read everything but leave me where I am". The count
-  // screen refreshes with it: someone stood at a rack pressing refresh to see
-  // whether a count has been sent over must not be thrown back to the stock list
-  // — especially not mid-count, where the screen IS the work.
-  function loadStock(keepView){
-    if (!keepView) showLoading();
-    // Pull ONLY the stock + sales-log sub-fields, never the whole shop blob — the
-    // phone never receives invoices, customers, bills or cash totals, just the two
-    // read-only lookups it shows (stock on hand, and what tires have sold).
-    return authedGet('/rest/v1/shop_data?id=eq.1&select=updated_at,products:data->products,salesLog:data->salesLog')
-      .then(function(res){
-        if (res.status === 401){ clearSession(); showLogin('Your session expired — sign in again.'); return; }
-        if (!res.ok) throw new Error('read failed');
-        return res.json();
-      })
-      .then(function(rows){
-        if (!rows) return;
-        var row = rows[0] || {};
-        updatedAt = row.updated_at;
-        products = Array.isArray(row.products) ? row.products.slice() : [];
-        products.sort(function(a,b){ return String(a.size||'').localeCompare(String(b.size||''), undefined, {numeric:true}); });
-        salesLog = Array.isArray(row.salesLog) ? row.salesLog.slice() : [];
-        if (!keepView) showApp();
-        renderList();
-        renderFresh();
-        // Repaint the count screen too when we never left it — the numbers on
-        // file may have moved, and the request may have only just arrived.
-        if (keepView) renderCount();
-        loadRequest();
-      })
-      .catch(function(){
-        // Failing quietly is right on the count screen: a dropped connection
-        // must never wipe what's on it. The stock list can say so, since there's
-        // nothing there to lose.
-        if (keepView) return;
-        $('list').innerHTML = '<div class="center">Couldn’t load stock. Check your connection and tap refresh.</div>';
-        showApp();
-      });
+  // How many rows one request may bring back. PostgREST will not hand over more
+  // than 1,000 whatever is asked for, and — this is the trap — it says NOTHING
+  // about the ones it left behind. No error, no flag, just a short list that
+  // looks complete. The book is about 1,595 tires, so an unpaged read loses
+  // roughly a third of the shop and every one of them answers "No matches",
+  // which at a counter reads as "we don't stock it". The desktop lost a day to
+  // exactly this on 2 September.
+  var PAGE = 1000;
+  // A limit on the loop itself, so a database that keeps answering full pages
+  // cannot hang the phone. Fifty pages is fifty thousand tires.
+  var MAX_PAGES = 50;
+
+  // The columns this page draws, named rather than `*`. The phone has always
+  // received less than the computer does; asking for supplier, notes, labour and
+  // reorder points it shows nowhere would quietly end that.
+  var COLS = 'id,product_code,size,brand,type,ply,qty,cost_cents,price_cents,location,section';
+
+  // ARCHIVED TIRES ARE FILTERED IN THE QUERY, not here. The desktop marks retired
+  // products archived and hides them everywhere; this page has never heard of the
+  // field, so any that came back would sit in the lookup looking exactly like live
+  // stock.
+  //
+  // AND `order=id` GOES ON EVERY PAGE. Range paging with no order leaves the
+  // order to the database's planner, so two pages can overlap or skip between
+  // them — 1,595 tires come back as 1,590 rows with two of them twice, and
+  // nothing says so.
+  var STOCK_PATH = '/rest/v1/products?select=' + COLS + '&archived=eq.false&order=id';
+
+  // CENTS BECOME DOLLARS HERE AND NOWHERE ELSE. `cost_cents` and `price_cents`
+  // are integers: $40.75 is stored as 4075. Wire them straight through and a $40
+  // tire prints $4,075.00; do not wire them at all and every row prints $0.00,
+  // because the properties this page draws (sellPrice, buyPrice) do not exist
+  // over there. Both are silent — the screen looks completely normal either way —
+  // and this project has already turned $78 into $7,800 once.
+  function rowToProduct(r){
+    return {
+      id: r.id,
+      productCode: r.product_code || '',
+      size: r.size || '',
+      brand: r.brand || '',
+      type: r.type || '',
+      ply: r.ply || '',
+      location: r.location || '',
+      section: r.section || '',
+      qty: Number(r.qty) || 0,
+      sellPrice: (Number(r.price_cents) || 0) / 100,
+      buyPrice: (Number(r.cost_cents) || 0) / 100
+    };
   }
 
-  // What the computer is asking for, read every time stock is. Any failure — no
-  // table yet, no connection, an empty mailbox — reads as "nothing asked for",
-  // which is the honest answer: this device never decides for itself what to
-  // count, so not knowing and not being asked look the same from here.
-  function loadRequest(){
-    return authedGet('/rest/v1/count_requests?status=eq.open&select=id,created_at,note,racks&order=created_at.desc&limit=1')
-      .then(function(res){ return res.ok ? res.json() : null; })
-      .then(function(rows){
-        var row = (Array.isArray(rows) && rows.length) ? rows[0] : null;
-        // A count already open is never re-scoped underneath the counter. The
-        // racks it started on are the racks it finishes on — swapping them out
-        // mid-walk would silently drop tires already counted from the report.
-        //
-        // Being CALLED OFF is not a re-scope, though, and this used to swallow it
-        // too: the computer's own wording promises "the tablet will go back to
-        // saying no count is needed", and once Start had been pressed the tablet
-        // never heard a thing. Someone kept walking racks nobody was waiting on.
-        // An empty mailbox while a count is open now means exactly that, and is
-        // shown — the numbers are kept and the counter decides what to do with them.
-        if (startedAt) {
-          if (!row && !countSent && !calledOff) { calledOff = true; saveCount(); renderCount(); }
-          // A fresh request landing while we're flagged means the shop changed
-          // its mind back; stop shouting about it.
-          else if (row && calledOff) { calledOff = false; saveCount(); renderCount(); }
-          return;
-        }
-        request = (row && Array.isArray(row.racks) && row.racks.length)
-          ? { id: row.id, at: row.created_at, note: row.note || '', racks: row.racks.slice() }
-          : null;
-        saveRequest();
-        renderCount();
-      })
-      .catch(function(){});
+  // One page of the book. Answers rows, or null when there are no more.
+  function stockPage(from){
+    return authedGet(STOCK_PATH, {
+      'Accept-Profile': SCHEMA,
+      'Range-Unit': 'items',
+      'Range': from + '-' + (from + PAGE - 1)
+    }).then(function(res){
+      if (res.status === 401){ return { expired: true }; }
+      // 416 IS "THERE IS NO SUCH PAGE", NOT A FAILURE. A book that is an exact
+      // multiple of a thousand rows makes one request too many, and res.ok is
+      // false for 416 — so this read would throw after having successfully
+      // fetched every tire in the shop.
+      if (res.status === 416) return { rows: [] };
+      // A RANGED REQUEST ANSWERS 206 Partial Content, not 200. Anything written
+      // as `res.status === 200` throws the whole book away.
+      if (!res.ok) throw new Error('read failed');
+      return res.json().then(function(rows){ return { rows: Array.isArray(rows) ? rows : [] }; });
+    });
+  }
+
+  function loadStock(){
+    showLoading();
+    var rows = [];
+
+    function page(from, pages){
+      if (pages > MAX_PAGES) return Promise.resolve(false);
+      return stockPage(from).then(function(answer){
+        if (answer.expired) return 'expired';
+        rows = rows.concat(answer.rows);
+        // A short page is the last page.
+        if (answer.rows.length < PAGE) return true;
+        return page(from + PAGE, pages + 1);
+      });
+    }
+
+    // THE DOOR IS ASKED ABOUT FIRST, the way the desktop does it. See isStaff.
+    return isStaff().then(function(allowed){
+      if (allowed === 'signed-out'){
+        clearSession(); showLogin('Your session expired — sign in again.'); return null;
+      }
+      if (allowed === 'no'){
+        showApp();
+        $('list').innerHTML = '<div class="empty">This account is not on the stock room\u2019s staff list.<br>'
+          + 'Ask for it to be added on the stock room computer.</div>';
+        return null;
+      }
+      if (allowed === 'unknown'){
+        showApp();
+        $('list').innerHTML = '<div class="center">Couldn\u2019t check your access. Check your connection and tap refresh.</div>';
+        return null;
+      }
+      return page(0, 1).then(function(done){
+        if (done === 'expired'){ clearSession(); showLogin('Your session expired — sign in again.'); return null; }
+        products = rows.map(rowToProduct);
+        products.sort(function(a,b){ return String(a.size||'').localeCompare(String(b.size||''), undefined, {numeric:true}); });
+        checkedAt = Date.now();
+        showApp();
+        renderList();
+        renderFresh();
+        return true;
+      });
+    }).catch(function(){
+      $('list').innerHTML = '<div class="center">Couldn\u2019t load stock. Check your connection and tap refresh.</div>';
+      showApp();
+    });
   }
 
   // ---------- rendering ----------
@@ -737,7 +799,12 @@
     var q = query.trim().toLowerCase();
     var shown = q ? products.filter(function(p){ return matches(p, q); }) : products;
     if (!products.length){
-      $('list').innerHTML = '<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7z"/><path d="M3 7l9 4.5L21 7M12 11.5V21"/></svg>No stock found yet.<br>Has your shop computer uploaded to the cloud?</div>';
+      // IT NO LONGER NAMES A MACHINE. The old wording — "Has your shop computer
+      // uploaded to the cloud?" — was one message for three different causes,
+      // two of which are now answered before this line is reached (see isStaff).
+      // What is left here is the honest third: the door is open and the book
+      // really is empty.
+      $('list').innerHTML = '<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7z"/><path d="M3 7l9 4.5L21 7M12 11.5V21"/></svg>The stock room book has no tires in it.</div>';
       return;
     }
     if (!shown.length){ $('list').innerHTML = '<div class="empty">No matches for “' + esc(query.trim()) + '”</div>'; return; }
@@ -762,1040 +829,47 @@
     });
     $('list').innerHTML = html;
   }
+  // IT SAYS "CHECKED", NOT "UPDATED", AND THAT IS THE WHOLE OF THE CHANGE.
+  //
+  // The line used to read the shop blob's `updated_at` — a fact the database
+  // told it. The stock room's schema has no such column, so left as it was this
+  // line would have silently drawn nothing and the phone would have lost its only
+  // staleness signal. What this page can honestly report is when IT last read,
+  // which is a different claim, so it makes a different one: calling a clock on
+  // this phone "updated" would be passing off its own fact as the database's.
   function renderFresh(){
-    if (!updatedAt){ $('freshText').textContent = ''; return; }
-    var d = new Date(updatedAt), now = new Date();
+    if (!checkedAt){ $('freshText').textContent = ''; return; }
+    var d = new Date(checkedAt), now = new Date();
     var mins = Math.round((now - d)/60000);
     var t;
     if (mins < 1) t = 'just now';
     else if (mins < 60) t = mins + ' min ago';
     else if (mins < 60*24 && d.toDateString()===now.toDateString()) t = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
     else t = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-    $('freshText').innerHTML = '<span class="dot"></span>updated ' + t;
+    $('freshText').innerHTML = '<span class="dot"></span>checked ' + t;
   }
 
-  // ---------- count stock ----------
-  // A count is walked here and SENT to the shop computer, which is the only
-  // thing that ever changes stock. This device still cannot touch inventory: it
-  // posts the count into its own mailbox table (stock_counts) where it waits to
-  // be reviewed. Nothing it sends takes effect on its own.
+  // ---------- what was here ----------
   //
-  // Three things are remembered per tire, and the second one is the important one:
-  //   counted[id]    what was physically found
-  //   expectedAt[id] what Till said AT THE MOMENT it was counted
-  //   foundAt[id]    where it was found, if the counter said
-  // The computer applies (counted - expectedAt) to whatever the number is when
-  // it's reviewed — so a tire that sells an hour after being counted doesn't
-  // come back as a shortage. Sending only `counted` would make that impossible.
-  var COUNT_KEY  = 'till_stock_count';
-  var EXPECT_KEY = 'till_stock_count_expected';
-  var FOUND_KEY  = 'till_stock_count_found';
-  var NAME_KEY   = 'till_stock_count_name';
-  // A count is a SESSION, not a pile of numbers. It is started deliberately, and
-  // the only way out is submitting it — there is no stop button, because a count
-  // half-abandoned on a shelf is worse than one that is still obviously open.
-  var SESS_KEY = 'till_stock_count_session';
-  // What the computer asked for. This device never decides what to count — the
-  // shop picks the locations and sends them over, and this is that list. No
-  // request means no count is needed, and the screen says exactly that rather
-  // than offering 300 tires and leaving the counter to guess which matter.
-  //   { at: ISO, note: string, racks: ['B1','C1'] }
-  var REQ_KEY = 'till_stock_count_request';
-  var request = null;
-  try { request = JSON.parse(localStorage.getItem(REQ_KEY) || 'null'); } catch(e){ request = null; }
-  function saveRequest(){
-    try {
-      if (request) localStorage.setItem(REQ_KEY, JSON.stringify(request));
-      else localStorage.removeItem(REQ_KEY);
-    } catch(e){}
-  }
-  // The hook the desktop sync will call once that side exists; also how a request
-  // is put in place for testing. Passing null clears it.
-  function setCountRequest(r){
-    request = (r && r.racks && r.racks.length) ? r : null;
-    saveRequest(); renderCount();
-  }
-  // Only the locations the computer named, and only ones we actually hold stock
-  // for — a rack that has since been emptied isn't worth walking to.
-  function requestedRacks(){
-    if (!request || !request.racks) return [];
-    var have = racks();
-    return request.racks.filter(function(r){ return have.indexOf(r) !== -1; });
-  }
-  function requestOpen(){ return requestedRacks().length > 0; }
-  // Everything the count is allowed to touch. Scoped to the request, so progress,
-  // search and what gets sent back all agree on what "the count" is.
-  function countables(){
-    var want = requestedRacks();
-    return products.filter(function(p){ return want.indexOf(rackOf(p)) !== -1; });
-  }
-  window.tsSetRequest = setCountRequest;
-  // Tires found on a rack that the count never asked about — the leftovers. Kept
-  // as a LIST, not folded into `counted`, because they are a different claim: not
-  // "Till said 6 and I found 4" but "this was on the shelf and shouldn't be".
-  // Two kinds, and the desktop treats them differently:
-  //   { id }      a tire Till has, shelved somewhere else — a relocation
-  //   { isNew }   a tire Till has never had — the computer creates it on approval
-  var EXTRA_KEY = 'till_stock_count_extra';
-  var extras = [];
-  var counted = {};      // { productId: number the owner keyed in }
-  var expectedAt = {};   // { productId: on-file qty when it was counted }
-  var foundAt = {};      // { productId: location typed while counting }
-  var startedAt = null;  // ISO stamp — its presence IS "a count is open"
-  var rackDone = {};     // { rackName: true } — marked complete by hand, independent of progress
-  // The shop called this count off while it was being walked. Kept on the device
-  // like the rest of the session: the counter may not be looking at the tablet
-  // when it lands, and it must still be there when they pick it back up.
-  var calledOff = false;
-  // Whether this count has already gone to the computer. Also part of the saved
-  // session, and for a sharper reason than tidiness: sending ANSWERS the request,
-  // so the mailbox legitimately goes empty afterwards. A tablet that slept and
-  // woke with this forgotten would see a started count with no open request and
-  // conclude the shop had called it off — telling the counter their finished,
-  // successfully-sent walk had been cancelled.
-  var countSent = false;
-  var countName = '';
-  var rackFilter = 'All';
-  var countQuery = '';
-  var sending = false;
-
-  try { counted = JSON.parse(localStorage.getItem(COUNT_KEY) || '{}') || {}; } catch(e){ counted = {}; }
-  try { expectedAt = JSON.parse(localStorage.getItem(EXPECT_KEY) || '{}') || {}; } catch(e){ expectedAt = {}; }
-  try { foundAt = JSON.parse(localStorage.getItem(FOUND_KEY) || '{}') || {}; } catch(e){ foundAt = {}; }
-  try { extras = JSON.parse(localStorage.getItem(EXTRA_KEY) || '[]') || []; } catch(e){ extras = []; }
-  if (!Object.prototype.toString.call(extras).match(/Array/)) extras = [];
-  try { countName = localStorage.getItem(NAME_KEY) || ''; } catch(e){ countName = ''; }
-  // The memory. Counting a rack is interrupted constantly — a customer walks in,
-  // the tablet sleeps, someone closes the tab. Every one of those has to be
-  // survivable, so the session is read back off the device on load and the count
-  // carries on exactly where it was left.
-  try {
-    var __s = JSON.parse(localStorage.getItem(SESS_KEY) || 'null');
-    if (__s){ startedAt = __s.startedAt || null; rackDone = __s.rackDone || {};
-              calledOff = !!__s.calledOff; countSent = !!__s.countSent; }
-  } catch(e){ startedAt = null; rackDone = {}; calledOff = false; countSent = false; }
-  // Counts written before sessions existed: adopt them rather than stranding the
-  // numbers behind a Start button that would wipe them.
-  if (!startedAt && Object.keys(counted).length) startedAt = new Date().toISOString();
-
-  function saveCount(){
-    try {
-      localStorage.setItem(COUNT_KEY, JSON.stringify(counted));
-      localStorage.setItem(EXPECT_KEY, JSON.stringify(expectedAt));
-      localStorage.setItem(FOUND_KEY, JSON.stringify(foundAt));
-      localStorage.setItem(EXTRA_KEY, JSON.stringify(extras));
-      localStorage.setItem(NAME_KEY, countName);
-      localStorage.setItem(SESS_KEY, JSON.stringify({ startedAt: startedAt, rackDone: rackDone,
-        calledOff: calledOff, countSent: countSent }));
-    } catch(e){}
-  }
-  function clearCount(){
-    counted = {}; expectedAt = {}; foundAt = {}; countName = '';
-    extras = []; addSheet = null;
-    startedAt = null; rackDone = {}; calledOff = false; countSent = false;
-    // The request is answered once the report goes back, so it goes with the
-    // count. Leaving it would keep asking for a walk that has already been done.
-    request = null; saveRequest();
-    saveCount();
-  }
-  function countOpen(){ return !!startedAt; }
-  // Starting is one-way. There is no matching stop: the button becomes a state
-  // once pressed, and the session ends by being submitted.
-  function startCount(){
-    if (countOpen()) return;
-    startedAt = new Date().toISOString();
-    saveCount(); renderCount();
-  }
-  function toggleRackDone(r){
-    if (rackDone[r]) delete rackDone[r]; else rackDone[r] = true;
-    saveCount(); renderCount();
-  }
-  function startedText(){
-    if (!startedAt) return '';
-    var d = new Date(startedAt);
-    return d.toLocaleDateString('en-US', { month:'short', day:'numeric' })
-      + ' · ' + d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
-  }
-  window.tsStart = startCount; window.tsRackDone = toggleRackDone;
-  // Pin what Till said the instant a tire is first counted. Only the FIRST entry
-  // sets it — nudging the stepper afterwards must not move the baseline, or the
-  // variance quietly rewrites itself as you correct a typo.
-  function pinExpected(id, p){
-    if (expectedAt[id] === undefined) expectedAt[id] = onFile(p);
-  }
-
-  function pid(p){ return String(p.id != null ? p.id : (p.productCode || p.size + '|' + p.brand)); }
-  function isCounted(p){ return counted[pid(p)] !== undefined; }
-  function onFile(p){ return Number(p.qty) || 0; }
-  function diffOf(p){ return isCounted(p) ? counted[pid(p)] - onFile(p) : 0; }
-  function countedProducts(){ return products.filter(isCounted); }
-  function differences(){ return products.filter(function(p){ return isCounted(p) && diffOf(p) !== 0; }); }
-  // The rack a tire counts under. `location` is the computer's DISPLAY label and
-  // can carry a shelf and a spillover marker — "RACK 1 · A +2". The computer
-  // asks for PLACES ("RACK 1"), so the place is what has to be matched on, or
-  // every request it sends would come back matching nothing and the screen would
-  // say no count is needed. The full label still shows on the row; it just isn't
-  // what does the grouping.
-  function placeOf(loc){
-    return String(loc == null ? '' : loc).split('·')[0].replace(/\s*\+\d+\s*$/, '').trim();
-  }
-  function rackOf(p){ return placeOf(p.location) || 'No rack'; }
-  function racks(){
-    var seen = [];
-    products.forEach(function(p){ if (seen.indexOf(rackOf(p)) === -1) seen.push(rackOf(p)); });
-    return seen.sort();
-  }
-
-  function bump(id, by){
-    var p = products.filter(function(x){ return pid(x) === id; })[0];
-    if (!p) return;
-    var now = isCounted(p) ? counted[id] : onFile(p);   // first tap starts from what's on file
-    pinExpected(id, p);
-    counted[id] = Math.max(0, now + by);
-    saveCount(); renderCount();
-  }
-  function typeQty(id, v){
-    var p = products.filter(function(x){ return pid(x) === id; })[0];
-    var s = String(v).trim();
-    // Emptying the box un-counts the line — it goes back to "not counted yet",
-    // which is a different thing from counting zero. The baseline goes with it.
-    if (s === ''){ delete counted[id]; delete expectedAt[id]; }
-    else {
-      if (p) pinExpected(id, p);
-      counted[id] = Math.max(0, Math.floor(Number(s) || 0));
-    }
-    saveCount(); renderCount(true);
-  }
-  function markSame(id){
-    var p = products.filter(function(x){ return pid(x) === id; })[0];
-    if (!p) return;
-    pinExpected(id, p);
-    counted[id] = onFile(p);
-    saveCount(); renderCount();
-  }
-  // Where the tire actually is. Most of the catalog has no location on file, so
-  // the first proper walk of the racks is also what fills them in — you're stood
-  // in front of the tire, which is the only time anyone knows.
-  // Deliberately does NOT re-render. A rack can hold hundreds of rows and the
-  // list is rebuilt as one string, so re-rendering per keystroke turns typing a
-  // location into a stutter. Nothing on screen depends on this value as you
-  // type — it's read back from foundAt on the next real render.
-  function setFound(id, v){
-    var s = String(v == null ? '' : v).trim();
-    if (s === '') delete foundAt[id]; else foundAt[id] = s;
-    saveCount();
-  }
-  function setRack(r){ rackFilter = r; addSheet = null; renderCount(); }
-  function setCountName(v){ countName = String(v == null ? '' : v); saveCount(); }
-  window.tsBump = bump; window.tsType = typeQty; window.tsSame = markSame;
-  window.tsRack = setRack; window.tsFound = setFound; window.tsName = setCountName;
-
-  // ---------- tires that don't belong on this rack ----------
-  // The count is scoped to what the computer asked for, which is right — but it
-  // left no way to record a tire that is physically on the shelf and outside that
-  // scope. You couldn't even find it: the search looks inside the count.
+  // The count screen's code (about 890 lines) and the sales log's (about 130)
+  // stood here until 12 Sep 2026 and went with their markup — the state, the
+  // storage keys, the renderers, the send, the call-off poll and the test hooks.
+  // The reason is in the comment where the markup was: a count screen left
+  // reachable would have posted corrections into the SHOP's mailbox built on
+  // baselines read from the stock room's book.
   //
-  // The order here matters. It searches the WHOLE catalog first, and only offers
-  // "add it as new" once nothing matches — because the common case by far is a
-  // tire Till already has, shelved somewhere else, and creating a second copy of
-  // it would be the one outcome worse than not recording it at all.
-  var addSheet = null;   // { rack, q, mode:'search'|'new', size, brand, qty }
-
-  function newExtraKey(){ return 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
-  function extrasFor(rack){ return extras.filter(function(x){ return x.rack === rack; }); }
-  function extraByKey(k){ return extras.filter(function(x){ return x.key === k; })[0]; }
-  function extraCount(x){ return Math.max(0, Number(x && x.counted) || 0); }
-
-  function openAddSheet(rack){
-    addSheet = { rack: rack, q: '', mode: 'search', size: '', brand: '', qty: '1' };
-    renderCount();
-  }
-  function closeAddSheet(){ addSheet = null; renderCount(); }
-  // Deliberately does NOT re-render. Rebuilding the list replaces the search box
-  // itself, and a replaced input drops the keyboard back to letters — so typing a
-  // size like "285/75/24.5" meant switching to the number pad for every single
-  // character. Only the results underneath are swapped, and the box you're typing
-  // in is left alone. (setFound below carries the same scar.)
-  function addSheetSearch(v){
-    if (!addSheet) return;
-    addSheet.q = String(v == null ? '' : v);
-    var box = document.getElementById('ax_results');
-    if (box) box.innerHTML = addSheetResultsHtml();
-    else renderCount();
-  }
-  function addSheetMode(m){
-    if (!addSheet) return;
-    // Carry the typed search across as the size — you searched "285/75/24.5",
-    // found nothing, and that is exactly what you're about to enter.
-    if (m === 'new' && !addSheet.size) addSheet.size = addSheet.q.trim();
-    addSheet.mode = m; renderCount();
-  }
-  function addSheetField(f, v){ if (addSheet) addSheet[f] = String(v == null ? '' : v); }
-
-  // What the sheet can offer: the whole catalog, minus anything already part of
-  // this count. A tire the count DOES cover belongs on its own rack's page — it
-  // already has a row there with a location box, and letting it in here too would
-  // send the computer two lines for one tire and correct it twice.
-  function addSheetHits(){
-    if (!addSheet) return [];
-    var q = addSheet.q.trim().toLowerCase();
-    if (!q) return [];
-    var taken = {};
-    countables().forEach(function(p){ taken[pid(p)] = 1; });
-    extras.forEach(function(x){ if (x.id) taken[x.id] = 1; });
-    return products.filter(function(p){ return !taken[pid(p)] && matches(p, q); }).slice(0, 12);
-  }
-
-  // A tire Till has, found where it shouldn't be. Its count starts at what Till
-  // holds, because the shop reports ONE total per tire and the computer files the
-  // lot at the place named — "4 of these, RACK 1" means all four are on RACK 1.
-  // Change it if fewer are actually in your hands and it becomes a correction too.
-  function addExtraProduct(id){
-    if (!addSheet) return;
-    var p = products.filter(function(x){ return pid(x) === id; })[0];
-    if (!p) return;
-    extras.push({ key: newExtraKey(), rack: addSheet.rack, id: id, isNew: false,
-      size: p.size || '', brand: p.brand || '',
-      counted: onFile(p), expected: onFile(p), was: rackOf(p) });
-    addSheet = null; saveCount(); renderCount();
-  }
-
-  // A tire Till has never had. Size and how many, nothing else — you're stood at
-  // a rack, not at a desk, and the owner's call is that no price is taken here:
-  // a guessed cost would feed the profit figures, so it is created blank and
-  // priced on the computer.
-  function addExtraNew(){
-    if (!addSheet) return;
-    var size = String(addSheet.size || '').trim();
-    if (!size){ countError = 'Enter the size first.'; renderCount(); return; }
-    var n = Math.max(1, Math.floor(Number(addSheet.qty) || 1));
-    extras.push({ key: newExtraKey(), rack: addSheet.rack, id: null, isNew: true,
-      size: size, brand: String(addSheet.brand || '').trim(), counted: n, expected: 0 });
-    addSheet = null; countError = ''; saveCount(); renderCount();
-  }
-
-  function extraBump(k, by){
-    var x = extraByKey(k); if (!x) return;
-    x.counted = Math.max(0, extraCount(x) + by);
-    saveCount(); renderCount();
-  }
-  // Saves without re-rendering, for the same reason setFound does: rebuilding the
-  // list mid-keystroke replaces the box being typed into, which on a tablet drops
-  // the keypad. Nothing on screen reads this as you type — the steppers and the
-  // next real render both read it back off the saved value.
-  function extraType(k, v){
-    var x = extraByKey(k); if (!x) return;
-    var s = String(v).trim();
-    x.counted = s === '' ? 0 : Math.max(0, Math.floor(Number(s) || 0));
-    saveCount();
-  }
-  function removeExtra(k){
-    extras = extras.filter(function(x){ return x.key !== k; });
-    saveCount(); renderCount();
-  }
-  window.tsAddOpen = openAddSheet; window.tsAddClose = closeAddSheet;
-  window.tsAddSearch = addSheetSearch; window.tsAddMode = addSheetMode;
-  window.tsAddField = addSheetField; window.tsAddPick = addExtraProduct;
-  window.tsAddNew = addExtraNew;
-  window.tsXBump = extraBump; window.tsXType = extraType; window.tsXDel = removeExtra;
-
-  function addSheetHtml(){
-    var r = addSheet.rack, rj = JSON.stringify(r).replace(/"/g,'&quot;');
-    var head = '<div class="sheet-h"><div class="m">'
-      + '<b>' + (addSheet.mode === 'new' ? 'A tire Till doesn’t have' : 'What else is on ' + esc(r) + '?') + '</b>'
-      + '<span>' + (addSheet.mode === 'new'
-          ? 'Found on ' + esc(r) + '. The computer adds it to your inventory when you approve the count.'
-          : 'Searches every tire in Till — it doesn’t have to be part of this count.')
-      + '</span></div>'
-      + '<button class="sheet-x" onclick="tsAddClose()" aria-label="Close">×</button></div>';
-
-    if (addSheet.mode === 'new'){
-      return '<div class="sheet">' + head + '<div class="sheet-b">'
-        + '<div class="fld"><div class="flab">Size</div>'
-        + '<input class="fin" id="ax_size" value="' + esc(addSheet.size) + '" placeholder="e.g. 285/75/24.5" '
-        + 'autocapitalize="characters" autocomplete="off" oninput="tsAddField(\'size\', this.value)"></div>'
-        + '<div class="frow">'
-        + '<div class="fld"><div class="flab">Brand <i>optional</i></div>'
-        + '<input class="fin" id="ax_brand" value="' + esc(addSheet.brand) + '" placeholder="e.g. Amulet" '
-        + 'autocomplete="off" oninput="tsAddField(\'brand\', this.value)"></div>'
-        + '<div class="fld"><div class="flab">How many</div>'
-        + '<input class="fin" id="ax_qty" inputmode="numeric" value="' + esc(addSheet.qty) + '" '
-        + 'style="text-align:center;font-size:19px;font-weight:800;" oninput="tsAddField(\'qty\', this.value)"></div>'
-        + '</div>'
-        + '<div class="fld"><div class="flab">Where <i>filled in for you</i></div>'
-        + '<div class="fin" style="display:flex;align-items:center;">' + esc(r) + '</div></div>'
-        + (countError ? '<div class="serr">' + esc(countError) + '</div>' : '')
-        + '<button class="btn" onclick="tsAddNew()">Add to this rack’s count</button>'
-        + '<button class="btn ghost" onclick="tsAddMode(&quot;search&quot;)">Back to search</button>'
-        + '<p class="sheet-note">No price is asked for here. It arrives in your inventory with the count '
-        + 'you keyed and nothing else — you set the cost on the computer.</p>'
-        + '</div></div>';
-    }
-
-    var body = '<input class="srch" id="ax_q" type="search" enterkeyhint="search" autocapitalize="off" '
-      + 'autocomplete="off" value="' + esc(addSheet.q) + '" placeholder="Size or brand…" '
-      + 'oninput="tsAddSearch(this.value)" aria-label="Find a tire">'
-      // Its own box, so a keystroke can swap the results without touching the
-      // input above them. See addSheetSearch.
-      + '<div id="ax_results">' + addSheetResultsHtml() + '</div>'
-      + '<button class="newline" onclick="tsAddMode(&quot;new&quot;)">'
-      + '<span style="font-size:18px;line-height:1;">+</span>Not in Till at all — add it as new</button>'
-      + '<p class="sheet-note">Nothing here changes stock. Whatever you add travels with the count and waits '
-      + 'for the computer, the same as every other line.</p>';
-    return '<div class="sheet">' + head + '<div class="sheet-b">' + body + '</div></div>';
-  }
-
-  function addSheetResultsHtml(){
-    if (!addSheet) return '';
-    var hits = addSheetHits(), q = addSheet.q.trim();
-    if (hits.length){
-      return '<div class="hits">' + hits.map(function(p){
-        var nm = nameLines(p), where = p.location ? 'Till says ' + esc(p.location) : 'No location on file';
-        return '<button class="hit" onclick="tsAddPick(' + JSON.stringify(pid(p)).replace(/"/g,'&quot;') + ')">'
-          + '<span class="m"><span class="hn">' + esc(nm.title) + (nm.brand ? ' <span style="font-weight:650;color:var(--muted);">· ' + esc(nm.brand) + '</span>' : '') + '</span>'
-          + '<span class="hs' + (p.location ? '' : ' none') + '">' + where + '</span></span>'
-          + '<span class="qtyb">' + onFile(p) + ' in stock</span></button>';
-      }).join('') + '</div>';
-    }
-    if (q) return '<div class="empty" style="padding:22px 12px;">No tire in Till matches “' + esc(q) + '”.</div>';
-    return '';
-  }
-
-  // The leftovers, in their own group. Kept apart from the rows the computer
-  // asked about — and out of the progress bar — because folding them in would
-  // make a rack you have finished read as unfinished.
-  function extrasHtml(rack){
-    var mine = extrasFor(rack);
-    if (!mine.length) return '';
-    var html = '<div class="grouphead odd">Also found here'
-      + '<span>' + mine.length + ' · not part of this count</span></div>';
-    mine.forEach(function(x){
-      var kj = JSON.stringify(x.key).replace(/"/g,'&quot;');
-      var sub = x.isNew ? (x.brand ? esc(x.brand) + ' · not in Till' : 'Not in Till')
-        : (x.was && x.was !== 'No rack' ? 'Till says ' + esc(x.was) : 'No location on file');
-      html += '<div class="crow odd">'
-        + '<div class="crow-top"><div style="min-width:0;">'
-        + '<div class="name">' + esc(x.size || 'Tire') + '</div>'
-        + '<div class="brandline">' + sub + '</div>'
-        + '</div><div style="text-align:right;">'
-        + '<span class="tag odd">' + (x.isNew ? 'New tire' : 'Wrong rack') + '</span>'
-        + '<div class="onfile">' + (x.isNew ? 'On file: —' : 'On file: ' + (Number(x.expected) || 0)) + '</div>'
-        + '</div></div>'
-        + '<div class="stepper">'
-        + '<button class="step" onclick="tsXBump(' + kj + ',-1)" aria-label="One fewer">−</button>'
-        + '<input class="qty" id="x_' + esc(x.key) + '" inputmode="numeric" value="' + extraCount(x) + '" '
-        + 'oninput="tsXType(' + kj + ', this.value)" aria-label="How many found here">'
-        + '<button class="step" onclick="tsXBump(' + kj + ',1)" aria-label="One more">+</button>'
-        + '<button class="xdel" onclick="tsXDel(' + kj + ')">Remove</button>'
-        + '</div>'
-        + '<div class="whererow"><div class="where" style="display:flex;align-items:center;">' + esc(rack) + '</div></div>'
-        + '</div>';
-    });
-    return html;
-  }
-
-  function renderCount(keepFocus){
-    var focusId = keepFocus && document.activeElement ? document.activeElement.id : null;
-    var caret = focusId ? document.activeElement.selectionStart : null;
-
-    // Racks are PAGES, not filters. Home lists the racks and nothing else;
-    // tapping one opens just that rack's sizes. You count a rack at a time
-    // standing in front of it, so one rack is all that should ever be on screen —
-    // a single list of every size in the shop with headers down it was a list you
-    // had to keep finding your place in.
-    //
-    // A search overrides both: when you're hunting one tire you don't know which
-    // rack it's on, so it looks across all of them and each row says where it is.
-    var cq = countQuery.trim().toLowerCase();
-    var searching = cq !== '';
-    var onHome = !searching && rackFilter === 'All';
-    var pool = countables();          // the requested locations, and only those
-    var scope = searching ? pool.filter(function(p){ return matches(p, cq); })
-              : rackFilter === 'All' ? pool
-              : pool.filter(function(p){ return rackOf(p) === rackFilter; });
-    var scopeDone = scope.filter(isCounted).length;
-    var scopeDiffs = scope.filter(function(p){ return isCounted(p) && diffOf(p) !== 0; }).length;
-
-    // The session bar. Before a count is started it is the one thing to press;
-    // afterwards it stops being a button at all and just says what is going on,
-    // including when it was started — which is what tells you this is the count
-    // you walked away from rather than a fresh one.
-    //
-    // (When the desktop's recount request lands it renders here too, and it must
-    // NOT show once a count is open: the request is the reason you started, and
-    // repeating it while you work is just noise. `request` stays null until the
-    // desktop side exists.)
-    var html = '';
-    // Nothing asked for = nothing to do. Said plainly and finished with, rather
-    // than dressed up as an error or left as a blank screen.
-    if (!requestOpen()){
-      $('countList').innerHTML =
-        '<div class="empty"><b>No count needed</b>'
-        + 'The computer hasn’t asked for one. When the shop sends a recount over, '
-        + 'the locations it wants show up here.</div>';
-      return;
-    }
-    if (!countOpen()){
-      html += '<div class="reqbanner"><b>Recount requested · ' + esc(requestedRacks().join(', ')) + '</b>'
-        + (request.note ? '<span>' + esc(request.note) + '</span>' : '') + '</div>';
-      html += '<button class="startcount" onclick="tsStart()">Start count</button>';
-    } else if (countSent){
-      // Already gone to the computer. Only the review screen used to know that —
-      // step back to the count and it carried on insisting a finished walk was
-      // "in progress", with a Call it off button on a count that had already been
-      // sent. The numbers stay visible on purpose (they are what was sent, and
-      // worth being able to look back over); they just aren't a job any more.
-      html += '<div class="reqbanner done"><b>Sent to the computer</b>'
-        + '<span>Nothing changes in Till until it is reviewed there. These numbers stay here '
-        + 'until you start a new count.</span>'
-        + '<div class="offacts"><button class="offbtn go" onclick="tsNewCount()">Start a new count</button></div>'
-        + '</div>';
-    } else if (calledOff){
-      // Called off from the shop computer mid-walk. The numbers are NOT thrown
-      // away on their behalf — someone walked those racks, and a count already
-      // done is still worth having. The two honest choices, said plainly.
-      html += '<div class="reqbanner off"><b>The shop called this count off</b>'
-        + '<span>Nothing you counted is lost. You can still send it, or throw it away.</span>'
-        + '<div class="offacts">'
-        + '<button class="offbtn go" onclick="tsOffSend()">Send what I counted</button>'
-        + '<button class="offbtn" onclick="tsOffDrop()">Throw it away</button>'
-        + '</div></div>';
-    } else {
-      // The request is why you started; repeating it while you work is noise.
-      // "Call it off" lives here rather than in the header because it belongs to
-      // the session, and because the header's Start over only clears numbers —
-      // this one also tells the computer to stop waiting.
-      html += '<div class="sessbar"><span class="dot"></span><div style="min-width:0;flex:1;"><b>Count in progress</b>'
-        + '<span>Started ' + esc(startedText()) + ' · submit it to finish</span></div>'
-        + '<button class="sessoff" onclick="tsCallOff()">Call it off</button></div>';
-    }
-
-    // Progress follows the rack you're standing at — finishing a rack should
-    // read as finished, not as 6 of 312.
-    html += '<div class="prog"><div class="prog-top">'
-      + '<span><b>' + scopeDone + '</b> of ' + scope.length + ' counted'
-      + (rackFilter === 'All' ? '' : ' in ' + esc(rackFilter)) + '</span>'
-      + '<span>' + (scopeDiffs ? scopeDiffs + ' difference' + (scopeDiffs===1?'':'s')
-                               : (scopeDone ? 'all matching' : '—')) + '</span>'
-      + '</div><div class="bar"><div style="width:' + Math.round(scopeDone / Math.max(1, scope.length) * 100) + '%"></div></div></div>';
-
-    if (onHome){
-      // The rack home. One card per rack: how far through it you are, whether
-      // you've called it done, and how much is meant to be on it.
-      html += '<div class="rackcards">' + requestedRacks().map(function(r){
-        var set = pool.filter(function(p){ return rackOf(p) === r; });
-        var doneHere = set.filter(isCounted).length;
-        var tires = set.reduce(function(s,p){ return s + onFile(p); }, 0);
-        var isDone = !!rackDone[r];
-        var word = isDone ? 'DONE' : doneHere ? 'IN PROGRESS' : 'NOT COUNTED';
-        return '<button class="rcard' + (isDone ? ' done' : '') + '"'
-          + ' onclick="tsRack(' + JSON.stringify(r).replace(/"/g,'&quot;') + ')">'
-          + '<div class="rc-top"><span class="rc-l">' + esc(r) + '</span>'
-          + '<span class="rc-p">' + doneHere + '/' + set.length + '</span></div>'
-          + '<div class="rc-s">' + word + '</div>'
-          + '<div class="rc-m">' + set.length + ' size' + (set.length === 1 ? '' : 's')
-          + ' · ' + tires + ' tire' + (tires === 1 ? '' : 's') + '</div>'
-          + '</button>';
-      }).join('') + '</div>';
-    } else {
-      // Inside a rack (or looking at search results): a way back, and the one
-      // rack's own "done" toggle sitting with its name rather than buried in a
-      // header halfway down a list.
-      var title = searching ? 'Matches for “' + esc(countQuery.trim()) + '”' : esc(rackFilter);
-      var rdoneNow = !searching && !!rackDone[rackFilter];
-      html += '<div class="rackhead">'
-        + '<button class="rhback" onclick="tsRack(&quot;All&quot;)" aria-label="Back to racks">‹</button>'
-        + '<div class="rh-t">' + title + '</div>'
-        + (!searching && countOpen()
-            ? '<button class="rdone' + (rdoneNow ? ' on' : '') + '"'
-              + ' onclick="tsRackDone(' + JSON.stringify(rackFilter).replace(/"/g,'&quot;') + ')">'
-              + (rdoneNow ? '✓ Rack done' : 'Mark rack done') + '</button>'
-            : '')
-        + '</div>';
-    }
-
-    var list = scope;
-
-    // Group by rack BEFORE listing. The catalog is sorted by size for the lookup
-    // screen, and counting inherited that order — which meant the rack changed on
-    // almost every line and the list came out as header, tire, header, tire.
-    // Counting is walked rack by rack, so the rack is what orders it, size within.
-    // "No rack" sits at the end: it's the leftovers pile, not a place.
-    list = list.slice().sort(function(a, b){
-      var ra = rackOf(a), rb = rackOf(b);
-      if (ra !== rb){
-        if (ra === 'No rack') return 1;
-        if (rb === 'No rack') return -1;
-        return ra.localeCompare(rb, undefined, { numeric:true });
-      }
-      return String(a.size||'').localeCompare(String(b.size||''), undefined, { numeric:true });
-    });
-
-    // Adding a leftover takes the page while you do it. You are answering one
-    // question — what else is on this shelf — and the list you were working down
-    // is not part of that answer.
-    var sheetOpen = !!addSheet && !searching && !onHome && addSheet.rack === rackFilter;
-
-    if (onHome){
-      /* the rack cards above are the whole page */
-    } else if (sheetOpen){
-      html += addSheetHtml();
-    } else if (!list.length){
-      html += '<div class="empty">' + (searching ? 'No matches for “' + esc(countQuery.trim()) + '”' : 'Nothing on this rack.') + '</div>';
-    } else {
-      var lastRack = null;
-      list.forEach(function(p){
-        var r = rackOf(p);
-        // Only search results need telling apart — inside a rack every row is on
-        // the rack already named at the top of the page.
-        if (searching && r !== lastRack){
-          lastRack = r;
-          var here = list.filter(function(x){ return rackOf(x) === r; });
-          html += '<div class="grouphead">' + esc(r)
-            + '<span>' + here.filter(isCounted).length + '/' + here.length + ' counted</span></div>';
-        }
-        var id = pid(p), on = isCounted(p), d = diffOf(p), nm = nameLines(p);
-        var tag = !on ? '<span class="tag none">Not counted</span>'
-          : d === 0 ? '<span class="tag ok">✓ Matches</span>'
-          : '<span class="tag ' + (d > 0 ? 'up' : 'dn') + '">' + (d > 0 ? '+' : '') + d + '</span>';
-        var js = JSON.stringify(id).replace(/"/g,'&quot;');
-        html += '<div class="crow' + (on ? (d === 0 ? ' ok' : ' diff') : '') + '">'
-          + '<div class="crow-top"><div style="min-width:0;">'
-          + '<div class="name">' + esc(nm.title) + '</div>'
-          + (nm.brand ? '<div class="brandline">' + esc(nm.brand) + '</div>' : '')
-          + '</div><div style="text-align:right;">' + tag
-          + '<div class="onfile">On file: ' + onFile(p) + '</div></div></div>'
-          + '<div class="stepper">'
-          + '<button class="step" onclick="tsBump(' + js + ',-1)" aria-label="One fewer">−</button>'
-          + '<input class="qty' + (on ? '' : ' untouched') + '" id="q_' + esc(id) + '" inputmode="numeric" '
-          + 'value="' + (on ? counted[id] : '') + '" placeholder="' + onFile(p) + '" '
-          + 'oninput="tsType(' + js + ', this.value)" aria-label="Counted quantity">'
-          + '<button class="step" onclick="tsBump(' + js + ',1)" aria-label="One more">+</button>'
-          + (on ? '' : '<button class="step same" onclick="tsSame(' + js + ')">Same</button>')
-          + '</div>'
-          // The location box only appears once a line is counted — that's the
-          // moment you're stood in front of the tire and actually know.
-          + (on ? '<div class="whererow' + (p.location ? '' : ' missing') + '">'
-              + '<input class="where" id="w_' + esc(id) + '" value="' + esc(foundAt[id] || '') + '" '
-              + 'placeholder="' + (p.location ? esc(p.location) : 'Where is it?') + '" '
-              + 'autocapitalize="characters" autocomplete="off" '
-              + 'oninput="tsFound(' + js + ', this.value)" aria-label="Where you found this tire">'
-              + '</div>' : '')
-          + '</div>';
-      });
-    }
-
-    // The leftovers and the way to add one live at the bottom of a rack's page —
-    // you reach them after working down the shelf, which is when you're holding
-    // whatever didn't belong. Not offered on the rack home (you're not stood at
-    // any one rack) or in search results (they span racks, so "this rack" has no
-    // meaning), and not while a count hasn't been started.
-    if (!onHome && !searching && !sheetOpen && countOpen()){
-      html += extrasHtml(rackFilter);
-      html += '<button class="addodd" onclick="tsAddOpen(' + JSON.stringify(rackFilter).replace(/"/g,'&quot;') + ')">'
-        + '<span style="font-size:19px;font-weight:700;line-height:1;">+</span>Something else on this rack</button>';
-    }
-
-    // Submitting belongs on the rack home, not inside a rack: finishing one rack
-    // isn't finishing the count, and a Submit button sitting under the last size
-    // of rack B invites exactly that mistake.
-    if (onHome){
-      var diffs = differences().length, done = countedProducts().length;
-      // A rack walked and found to hold something that shouldn't be there is a
-      // real result even if every expected number matched — so leftovers alone
-      // are enough to have something worth sending.
-      var anything = done + extras.length;
-      html += '<div class="foot"><button class="btn" id="toReviewBtn"' + (anything ? '' : ' disabled') + '>'
-        + (diffs ? 'See ' + diffs + ' difference' + (diffs===1?'':'s')
-                 : (extras.length ? 'See ' + extras.length + ' found on the wrong rack'
-                 : (done && done === pool.length ? 'Everything matched' : 'See what\'s different')))
-        + '</button></div>';
-    }
-
-    $('countList').innerHTML = html;
-    var strip = $('rackStrip');
-    var on = strip && strip.querySelector('.rack.on');
-    if (on) strip.scrollLeft = on.offsetLeft - (strip.clientWidth - on.offsetWidth) / 2;
-    var go = $('toReviewBtn');
-    if (go) go.addEventListener('click', function(){ if (countedProducts().length || extras.length) showReview(); });
-
-    if (focusId){
-      var el = document.getElementById(focusId);
-      if (el){ el.focus(); try { el.setSelectionRange(caret, caret); } catch(e){} }
-    }
-  }
-
-  // Name, send button, and whatever state the send is in. Shown whether or not
-  // anything differs — a rack counted and found correct is a real result, and
-  // any locations stamped along the way still need to travel.
-  function sendBlockHtml(){
-    var n = countedProducts().length + extras.length;
-    if (countSent){
-      return '<div class="sent"><b>Sent to the computer</b>'
-        + '<span>' + n + ' counted. Open Till on the shop computer to review it. Nothing has changed yet.</span>'
-        + '<button class="btn ghost" onclick="tsNewCount()">Start a new count</button></div>';
-    }
-    var stamps = countedProducts().filter(function(p){ return foundAt[pid(p)]; }).length;
-    return '<div class="sendbox">'
-      + '<label class="slab" for="cname">Name this count</label>'
-      + '<input id="cname" class="cname" value="' + esc(countName) + '" placeholder="' + esc(defaultCountName()) + '" '
-      + 'autocomplete="off" oninput="tsName(this.value)" aria-label="Name this count">'
-      + (countError ? '<div class="serr">' + esc(countError) + '</div>' : '')
-      + '<button class="btn" onclick="tsSend()"' + (sending ? ' disabled' : '') + '>'
-      + (sending ? 'Sending…' : 'Send ' + n + ' counted tire' + (n === 1 ? '' : 's') + ' to the computer')
-      + '</button>'
-      + '<p class="note">This device can’t change stock. Sending puts the count in front of Till on the shop '
-      + 'computer, where you review it and decide. '
-      + (stamps ? stamps + ' location' + (stamps === 1 ? '' : 's') + ' will be set too. ' : '')
-      + 'Your numbers stay here until you start a new count.</p></div>';
-  }
-
-  // The leftovers, said plainly before they go: what it is, where it was found,
-  // and which of the two things the computer will be asked to do about it.
-  function extrasReviewHtml(){
-    if (!extras.length) return '';
-    var html = '<div class="grouphead odd">Found on the wrong rack'
-      + '<span>' + extras.length + '</span></div>';
-    extras.forEach(function(x){
-      html += '<div class="row" style="display:block;">'
-        + '<div class="crow-top"><div style="min-width:0;">'
-        + '<div class="name">' + esc(x.size || 'Tire') + '</div>'
-        + '<div class="brandline">' + (x.brand ? esc(x.brand) + ' · ' : '') + esc(x.rack) + '</div>'
-        + '</div><span class="tag odd">' + (x.isNew ? 'New tire' : 'Wrong rack') + '</span></div>'
-        + '<div class="arrowline"><span>' + extraCount(x) + ' found</span>'
-        + '<span style="margin-left:auto;font-size:12.5px;font-weight:650;color:var(--muted);">'
-        + (x.isNew ? 'Till adds it, no price yet' : 'Till moves it to ' + esc(x.rack))
-        + '</span></div></div>';
-    });
-    return html;
-  }
-
-  function renderReview(){
-    var diffs = differences();
-    if (!countedProducts().length && !extras.length){
-      $('reviewList').innerHTML = '<div class="empty"><b>Nothing counted yet</b>'
-        + 'Count some tires first — then you can send them over.</div>';
-      return;
-    }
-    if (!diffs.length){
-      $('reviewList').innerHTML = '<div class="empty"><b>Everything matched</b>All '
-        + countedProducts().length + ' tires you counted agree with Till.</div>'
-        + extrasReviewHtml() + sendBlockHtml();
-      return;
-    }
-    var units = 0, value = 0, short = 0, over = 0;
-    diffs.forEach(function(p){
-      var d = diffOf(p);
-      units += d; value += d * (Number(p.buyPrice) || 0);
-      if (d < 0) short++; else over++;
-    });
-    var html = '<div class="summary"><div class="l">Value ' + (value < 0 ? 'short' : 'over') + '</div>'
-      + '<div class="v" style="color:' + (value < 0 ? '#fca5a5' : '#86efac') + ';">'
-      + (value < 0 ? '-' : '') + '$' + Math.abs(Math.round(value)).toLocaleString() + '</div>'
-      + '<div class="split">'
-      + '<div><div class="l">Tires short</div><div class="n">' + short + '</div></div>'
-      + '<div><div class="l">Tires over</div><div class="n">' + over + '</div></div>'
-      + '<div><div class="l">Units</div><div class="n">' + (units > 0 ? '+' : '') + units + '</div></div>'
-      + '</div></div>';
-
-    diffs.forEach(function(p){
-      var d = diffOf(p), nm = nameLines(p);
-      html += '<div class="row" style="display:block;">'
-        + '<div class="crow-top"><div style="min-width:0;">'
-        + '<div class="name">' + esc(nm.title) + '</div>'
-        + '<div class="brandline">' + (nm.brand ? esc(nm.brand) + ' · ' : '') + esc(rackOf(p)) + '</div>'
-        + '</div><span class="tag ' + (d > 0 ? 'up' : 'dn') + '">' + (d > 0 ? '+' : '') + d + '</span></div>'
-        + '<div class="arrowline"><span class="was">' + onFile(p) + '</span><span class="arr">→</span>'
-        + '<span>' + counted[pid(p)] + '</span>'
-        + '<span style="margin-left:auto;font-size:12.5px;font-weight:700;color:' + (d < 0 ? 'var(--danger)' : 'var(--good)') + ';">'
-        + (d < 0 ? '-' : '') + '$' + Math.abs(Math.round(d * (Number(p.buyPrice) || 0))).toLocaleString() + '</span></div>'
-        + '</div>';
-    });
-    html += extrasReviewHtml();
-    html += sendBlockHtml();
-    $('reviewList').innerHTML = html;
-  }
-
-  // ---------- sending a count to the computer ----------
-  // Every line that was actually counted goes, not just the ones that differ: a
-  // rack the computer can see was counted and matched is worth as much as a
-  // correction, and it's what lets the computer show "312 counted, 4 different".
-  function countPayload(){
-    var lines = countedProducts().map(function(p){
-      var id = pid(p);
-      return {
-        id: id,
-        counted: counted[id],
-        expected: expectedAt[id] !== undefined ? expectedAt[id] : onFile(p),
-        location: foundAt[id] || '',
-        // Sent so the computer can NAME a tire it can no longer look up. A tire
-        // deleted from the catalog between the walk and the review arrives as a
-        // bare id, and the review could only say "a counted tire has since been
-        // deleted" — no way to tell whether it was one that mattered.
-        size: p.size || '',
-        brand: p.brand || ''
-      };
-    });
-    // The leftovers ride the same list, because the computer already knows how to
-    // read it. A tire Till HAS goes as an ordinary line whose location is the rack
-    // it turned up on — which is exactly the "found somewhere else" case the
-    // computer has always handled, so it relocates with no new machinery.
-    //
-    // A tire Till has never had can't: there is no id to correct. It goes flagged
-    // `isNew` with its size and brand, and the computer creates it on approval.
-    var seen = {};
-    lines.forEach(function(l){ seen[l.id] = 1; });
-    extras.forEach(function(x){
-      var n = Math.max(0, Number(x.counted) || 0);
-      if (x.isNew){
-        if (!String(x.size || '').trim()) return;
-        lines.push({ id: null, isNew: true, size: x.size, brand: x.brand || '',
-                     counted: n, expected: 0, location: x.rack || '' });
-      } else if (x.id && !seen[x.id]) {
-        // Guarded rather than trusted: two lines for one tire would correct it
-        // twice on the computer. The picker already refuses anything inside the
-        // count, so this only ever catches a stale saved session.
-        seen[x.id] = 1;
-        lines.push({ id: x.id, counted: n,
-                     expected: Math.max(0, Number(x.expected) || 0), location: x.rack || '',
-                     size: x.size || '', brand: x.brand || '' });
-      }
-    });
-    return lines;
-  }
-  function defaultCountName(){
-    return 'Count · ' + new Date().toLocaleDateString('en-US', { month:'short', day:'numeric' });
-  }
-  function deviceLabel(){
-    // Enough to tell the tablet from the phone in the computer's list, without
-    // getting clever about device fingerprinting.
-    var w = Math.max(screen.width || 0, screen.height || 0);
-    return w >= 900 ? 'Tablet' : 'Phone';
-  }
-
-  function sendCount(){
-    if (sending) return;
-    var lines = countPayload();
-    if (!lines.length) return;
-    // Captured before the send, because finishing a count clears the request:
-    // `racks` is what was actually WALKED, which the computer needs to mark a
-    // rack as counted even when it held nothing worth a line. Without it a rack
-    // walked and found empty would read as never counted, forever.
-    var walked = requestedRacks();
-    var reqId = request && request.id;
-    sending = true; renderReview();
-    authedPost('/rest/v1/stock_counts', {
-      name: (countName || '').trim() || defaultCountName(),
-      device: deviceLabel(),
-      status: 'pending',
-      racks: walked,
-      lines: lines
-    }).then(function(res){
-      sending = false;
-      if (!res.ok){
-        // 404 means the mailbox table isn't there yet — worth saying plainly,
-        // because it's a one-time setup step and not something the counter did.
-        countError = res.status === 404
-          ? 'The computer isn’t set up to receive counts yet. Your count is safe on this device.'
-          : 'Couldn’t send — your count is still here. Check the connection and try again.';
-        renderReview();
-        return;
-      }
-      countSent = true; countError = '';
-      saveCount();   // sent-ness belongs to the session, not just this page view
-      // The request has been answered. Best-effort on purpose: the count is
-      // safely in the mailbox either way, and a request left open only means the
-      // computer shows it as still out — annoying, not wrong. Never turn this
-      // into an error the counter has to think about.
-      if (reqId != null) authedPatch('/rest/v1/count_requests?id=eq.' + encodeURIComponent(reqId),
-        { status:'answered', answered_at: new Date().toISOString() }).catch(function(){});
-      renderReview();
-    }).catch(function(){
-      sending = false;
-      countError = 'Couldn’t send — your count is still here. Check the connection and try again.';
-      renderReview();
-    });
-  }
-  var countError = '';   // countSent is declared with the session state above
-
-  // ---------- calling a count off ----------
-  // Starting was one-way by design: a count half-abandoned on a shelf is worse
-  // than one still obviously open. But "one-way" only ever meant there is no
-  // quiet exit — a job genuinely called off (the truck came in, the racks got
-  // moved) needs a door, and it has to tell the computer, or the shop sits
-  // waiting for a walk nobody is doing.
-  function callOffCount(){
-    // Nothing to call off once it has gone: the request is already answered, and
-    // patching it to 'cancelled' would tell the computer to ignore a count that
-    // is sat in its inbox waiting to be applied.
-    if (!countOpen() || sending || countSent) return;
-    var n = countedProducts().length + extras.length;
-    if (!confirm(n
-      ? 'Call off this count?\n\nThe ' + n + ' line' + (n === 1 ? '' : 's') + ' entered here are thrown away, and the computer stops waiting for it. Nothing in Till changes.'
-      : 'Call off this count?\n\nThe computer stops waiting for it. Nothing in Till changes.')) return;
-    // Best-effort, exactly like answering one: the count is gone from this device
-    // either way, and a request left open only means the computer still shows it
-    // as out. Never something the counter has to think about.
-    var reqId = request && request.id;
-    if (reqId != null) authedPatch('/rest/v1/count_requests?id=eq.' + encodeURIComponent(reqId),
-      { status: 'cancelled', answered_at: new Date().toISOString() }).catch(function(){});
-    clearCount(); countSent = false; countError = '';
-    rackFilter = 'All'; countQuery = '';
-    var cq = $('cq'); if (cq){ cq.value = ''; $('countSearchWrap').classList.remove('has'); }
-    renderCount();
-  }
-  // Called off by the shop, and the counter wants to send the walk anyway. The
-  // request is already closed on that end, so there is nothing to answer — the
-  // count still goes to the mailbox and shows up for review like any other.
-  function calledOffSend(){ calledOff = false; saveCount(); showReview(); }
-  function calledOffDrop(){
-    if (!confirm('Throw this count away?\n\nThe numbers entered here are cleared. Nothing in Till changes.')) return;
-    clearCount(); countSent = false; countError = '';
-    rackFilter = 'All'; countQuery = '';
-    renderCount();
-  }
-  window.tsCallOff = callOffCount;
-  window.tsOffSend = calledOffSend;
-  window.tsOffDrop = calledOffDrop;
-
-  window.tsSend = sendCount;
-  window.tsNewCount = function(){
-    clearCount(); countSent = false; countError = '';
-    rackFilter = 'All'; countQuery = '';
-    var cq = $('cq'); if (cq){ cq.value = ''; $('countSearchWrap').classList.remove('has'); }
-    showCount();
-  };
-
-  // ---------- sales log ----------
-  // A read-only mirror of the desktop Sales log: the same Day / Week / Month / All
-  // grouping, and the same three totals (Units, Sales, Profit). The phone never
-  // recomputes profit — it reads the `work` the shop computer already logged, so
-  // the numbers here always agree with the desktop to the penny. View only; there
-  // is no delete here (that stays on the computer, where the invoice lives).
-  var SALES_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  var SALES_SEGS = [['day','Day'],['week','Week'],['month','Month'],['all','All']];
-
-  function pad2(n){ return (n < 10 ? '0' : '') + n; }
-  function round2(n){ return Math.round((Number(n) || 0) * 100) / 100; }
-  function signedMoney(n){ var v = Number(n) || 0; return (v < 0 ? '-' : '') + money(Math.abs(v)); }
-  function fmtSaleDate(iso){
-    // iso is a local YYYY-MM-DD string from the shop — parse the parts by hand so
-    // the browser can't shift it a day by reading it as UTC.
-    var p = String(iso || '').split('-');
-    if (p.length < 3) return String(iso || '');
-    var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
-    return d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
-  }
-  function salesPeriod(dateStr, mode){
-    if (mode === 'all') return { key:'all', label:'All time' };
-    if (mode === 'month'){
-      var y = dateStr.slice(0,4), m = Number(dateStr.slice(5,7));
-      return { key: dateStr.slice(0,7), label: (SALES_MONTHS[m-1] || '') + ' ' + y };
-    }
-    if (mode === 'week'){
-      var p = dateStr.split('-');
-      var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
-      var start = new Date(d); start.setDate(d.getDate() - d.getDay());
-      var key = start.getFullYear() + '-' + pad2(start.getMonth() + 1) + '-' + pad2(start.getDate());
-      return { key: key, label: 'Week of ' + fmtSaleDate(key) };
-    }
-    return { key: dateStr, label: fmtSaleDate(dateStr) };
-  }
-  function saleMatches(e, q){
-    return (String(e.size||'') + ' ' + String(e.brand||'')).toLowerCase().indexOf(q) !== -1;
-  }
-
-  function setSalesGroup(m){ salesGroupBy = m; renderSales(); }
-  window.tsSalesGroup = setSalesGroup;
-
-  function renderSales(){
-    $('salesSeg').innerHTML = SALES_SEGS.map(function(s){
-      // Escape the quotes so they don't close the double-quoted onclick early —
-      // same guard the rack filter uses. Without it the handler never fires and
-      // the view is stuck on Day.
-      return '<button class="seg' + (salesGroupBy === s[0] ? ' on' : '') + '" '
-        + 'onclick="tsSalesGroup(' + JSON.stringify(s[0]).replace(/"/g, '&quot;') + ')">' + s[1] + '</button>';
-    }).join('');
-
-    var q = salesQuery.trim().toLowerCase();
-    var all = salesLog.slice().sort(function(a,b){
-      return String(b.date||'').localeCompare(String(a.date||'')) || (String(a.id) < String(b.id) ? 1 : -1);
-    });
-    var entries = q ? all.filter(function(e){ return saleMatches(e, q); }) : all;
-
-    // Totals follow what's on screen (so a search narrows the totals too), and
-    // follow the True-profit toggle: recorded work, or Sale minus exact cost.
-    var units = 0, sales = 0, work = 0;
-    entries.forEach(function(e){
-      var qty = Number(e.qty) || 0;
-      var sale = (Number(e.sellPrice) || 0) * qty;
-      units += qty;
-      sales += sale;
-      work  += salesTrueProfit ? (sale - (Number(e.cost) || 0) * qty) : (Number(e.work) || 0);
-    });
-
-    var html = '<div class="kpis">'
-      + '<div class="kpi"><div class="l">Units</div><div class="v">' + units + '</div></div>'
-      + '<div class="kpi"><div class="l">Sales</div><div class="v">' + money(sales) + '</div></div>'
-      + '<div class="kpi"><div class="l">Profit</div><div class="v ' + (work < 0 ? 'neg' : 'pos') + '">' + signedMoney(work) + '</div></div>'
-      + '</div>';
-
-    if (!salesLog.length){
-      html += '<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-6"/></svg>No sales logged yet.<br>Ring up a tire on the shop computer and it shows here.</div>';
-      $('salesList').innerHTML = html; return;
-    }
-    if (!entries.length){
-      html += '<div class="empty">No sales for “' + esc(salesQuery.trim()) + '”</div>';
-      $('salesList').innerHTML = html; return;
-    }
-
-    var mode = salesGroupBy;
-    var groups = [], idx = {};
-    entries.forEach(function(e){
-      var g = salesPeriod(String(e.date||''), mode);
-      if (!(g.key in idx)){ idx[g.key] = groups.length; groups.push({ label:g.label, items:[], sales:0 }); }
-      var gr = groups[idx[g.key]];
-      gr.items.push(e);
-      gr.sales += (Number(e.sellPrice) || 0) * (Number(e.qty) || 0);
-    });
-
-    groups.forEach(function(g){
-      html += '<div class="grouphead">' + esc(g.label) + '<span>' + money(g.sales) + '</span></div>';
-      g.items.forEach(function(e){
-        var qty = Number(e.qty) || 0, unit = Number(e.sellPrice) || 0, sale = unit * qty;
-        // Recorded: COGS is rounded up, so work = e.work and cogs = sale - work.
-        // True profit: cost is the exact per-tire cost, unrounded, so the padding
-        // the round-up added drops out of both the cost and the profit.
-        var w, cogs;
-        if (salesTrueProfit) { cogs = round2((Number(e.cost) || 0) * qty); w = round2(sale - cogs); }
-        else { w = Number(e.work) || 0; cogs = sale - w; }
-        var used = e.condition === 'used';
-        var size = String(e.size || '').trim(), brand = String(e.brand || '').trim();
-        var title = size || brand || 'Tire';
-        var bits = [];
-        if (size && brand) bits.push(esc(brand));               // brand only when size already took the title line
-        if (mode !== 'day') bits.push(fmtSaleDate(e.date));      // the group header already carries the day in Day mode
-        bits.push(qty + ' sold');
-        html += '<div class="srow">'
-          + '<div class="top"><div style="min-width:0;">'
-          + '<div class="name">' + esc(title) + '</div>'
-          + '<div class="brandline">' + bits.join(' · ') + '</div>'
-          + '</div><div style="text-align:right;flex:0 0 auto;">'
-          + '<div class="sell">' + money(sale) + '</div>'
-          + '<span class="tag ' + (used ? 'used' : 'new') + '" style="margin-top:5px;display:inline-block;">' + (used ? 'USED' : 'NEW') + '</span>'
-          + '</div></div>'
-          + '<div class="ftr"><span>' + qty + ' × ' + money(unit) + '</span>'
-          + '<span class="cost">cost ' + money(cogs) + '</span>'
-          + '<span class="work' + (w < 0 ? ' neg' : '') + '">' + (w < 0 ? '-' : '+') + money(Math.abs(w)) + ' profit</span>'
-          + '</div></div>';
-      });
-    });
-
-    $('salesList').innerHTML = html;
-  }
+  // The event listeners went with them, which matters more than it sounds: every
+  // one of them runs at boot, and because this whole app is sealed in one IIFE, a
+  // single addEventListener on an element that is no longer there throws and kills
+  // the entire script. The page would come up doing nothing at all, with nothing
+  // on it to say why.
 
   // ---------- view switches ----------
-  var VIEWS = ['login', 'app', 'countView', 'reviewView', 'salesView'];
+  // TWO SCREENS NOW. `only()` walks this list on every change and touches the
+  // style of each one, so an id left in here after its div was deleted breaks the
+  // app on the first tap — the same sealed-IIFE trap as a listener on a missing
+  // element, and it is why this line is part of the same change as the markup.
+  var VIEWS = ['login', 'app'];
   function only(id, disp){
     VIEWS.forEach(function(v){ $(v).style.display = (v === id ? (disp || 'flex') : 'none'); });
   }
@@ -1804,9 +878,6 @@
     if (msg){ var m = $('loginMsg'); m.textContent = msg; m.className = 'msg err'; }
   }
   function showApp(){ only('app'); }
-  function showSales(){ only('salesView'); renderSales(); }
-  function showCount(){ only('countView'); renderCount(); }
-  function showReview(){ only('reviewView'); renderReview(); }
   function showLoading(){
     only('app');
     if (!products.length) $('list').innerHTML = '<div class="center"><div class="spin"></div>Loading stock…</div>';
@@ -1826,8 +897,7 @@
       .then(function(){ btn.disabled = false; btn.textContent = 'Sign in'; });
   });
   $('signOutBtn').addEventListener('click', function(){
-    clearSession(); products = []; salesLog = []; $('q').value = ''; query = '';
-    $('sq').value = ''; salesQuery = ''; $('salesSearchWrap').classList.remove('has');
+    clearSession(); products = []; $('q').value = ''; query = '';
     $('searchWrap').classList.remove('has');
     showLogin(); document.getElementById('loginMsg').className = 'msg';
   });
@@ -1842,56 +912,6 @@
   });
   $('refreshBtn').addEventListener('animationend', function(){ this.classList.remove('spinning'); }, true);
 
-  // The same receipt, on the count screen. This is the button that matters most
-  // now the computer sends the work over: when a request goes out mid-shift, the
-  // counter needs a way to go and look for it without backing out of the screen
-  // they're standing in. Re-pulls the stock AND the request together.
-  $('countRefreshBtn').addEventListener('click', function(){
-    var btn = this;
-    btn.classList.remove('spinning');
-    void btn.offsetWidth;
-    btn.classList.add('spinning');
-    if (session) loadStock(true);          // true = stay on this screen
-  });
-  $('countRefreshBtn').addEventListener('animationend', function(){ this.classList.remove('spinning'); }, true);
-
-  $('salesBtn').addEventListener('click', showSales);
-  $('salesBackBtn').addEventListener('click', showApp);
-  $('trueProfitBtn').addEventListener('click', function(){
-    salesTrueProfit = !salesTrueProfit;
-    this.classList.toggle('on', salesTrueProfit);
-    this.setAttribute('aria-checked', salesTrueProfit ? 'true' : 'false');
-    renderSales();
-  });
-  $('sq').addEventListener('input', function(){
-    salesQuery = this.value;
-    $('salesSearchWrap').classList.toggle('has', !!salesQuery);
-    renderSales();
-  });
-  $('sClrBtn').addEventListener('click', function(){
-    $('sq').value = ''; salesQuery = '';
-    $('salesSearchWrap').classList.remove('has');
-    renderSales();
-  });
-
-  $('countBtn').addEventListener('click', function(){ if (products.length) showCount(); });
-  $('countBackBtn').addEventListener('click', showApp);
-  $('reviewBackBtn').addEventListener('click', showCount);
-  $('countClearBtn').addEventListener('click', function(){
-    if (!Object.keys(counted).length) return;
-    if (!confirm('Start this count over? The numbers you\'ve entered are cleared. Nothing in Till changes.')) return;
-    clearCount(); countSent = false; countError = ''; renderCount();
-  });
-  $('cq').addEventListener('input', function(){
-    countQuery = this.value;
-    $('countSearchWrap').classList.toggle('has', !!countQuery);
-    renderCount();
-  });
-  $('cClrBtn').addEventListener('click', function(){
-    $('cq').value = ''; countQuery = '';
-    $('countSearchWrap').classList.remove('has');
-    renderCount();
-  });
   $('q').addEventListener('input', function(){
     query = this.value;
     $('searchWrap').classList.toggle('has', !!query);
@@ -1902,7 +922,9 @@
   // does, the phone keyboard drops and springs back, which reads as a jarring
   // shift. Cancelling the press's default focus-steal keeps the input (and the
   // keyboard) put; the click still fires and clears the text.
-  ['clrBtn', 'cClrBtn', 'sClrBtn'].forEach(function(id){
+  // One clear button left, and the loop stays a loop so the next one added gets
+  // the same treatment without anybody remembering why.
+  ['clrBtn'].forEach(function(id){
     $(id).addEventListener('mousedown', function(e){ e.preventDefault(); });
   });
   // Coming back to the tab after a while → refresh so stock is current.
@@ -1910,19 +932,10 @@
     if (document.visibilityState === 'visible' && session && products.length) loadStock();
   });
 
-  // While the count screen is open, look for the shop calling it off — without
-  // being asked to. Before this the only ways to find out were the refresh
-  // button and switching away and back, so a count cancelled on the computer
-  // could sit unnoticed on a tablet propped on a rack for as long as the walk
-  // took. Just the request, not the whole catalog: one small read a minute,
-  // stopped dead while the tab is hidden or a send is in flight.
-  setInterval(function(){
-    if (!session || document.visibilityState !== 'visible') return;
-    if (sending || countSent) return;
-    var view = document.getElementById('countView');
-    if (!view || view.style.display === 'none') return;
-    loadRequest();
-  }, 60000);
+  // THE ONE-A-MINUTE POLL WENT WITH THE COUNT SCREEN. It existed to notice the
+  // shop calling a count off while a tablet sat propped on a rack. Nothing on
+  // this page waits on the computer any more, so a poll would be a request a
+  // minute for nothing.
 
   // ---------- boot ----------
   if (session && (session.access_token || session.refresh_token)) loadStock();

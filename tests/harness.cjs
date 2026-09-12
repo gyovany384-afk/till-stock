@@ -1,13 +1,17 @@
 // ============================================================
-// Test harness for the tablet app.
+// Test harness for the stock lookup.
 //
 // till-stock is one hand-written index.html with its code sealed inside an IIFE,
 // and that is worth keeping — so nothing here reaches inside it. The tests drive
 // the app the way a thumb does: through the handlers the buttons call, reading
-// the rendered screen, what lands in localStorage, and the REAL request bodies it
-// tries to send. The payload is the thing that matters — the shop computer is the
-// only thing in the system that can change stock, so a malformed line is the only
-// way this device can do damage.
+// the rendered screen, and watching the REAL requests it tries to send.
+//
+// REWRITTEN 12 SEP 2026, when the page was repointed from the shop's cloud to
+// the stock room computer's own book and the count screen was deleted. The old
+// harness stubbed the shop's `shop_data` blob and the two tests on it drove the
+// count screen, so both would have gone green against a page that had lost the
+// whole stock list. What matters now is the read: paging, the schema header, the
+// order, cents, and the three reasons a screen can be empty.
 //
 // There is no package.json here on purpose (the app ships as a single file to a
 // static host). jsdom is borrowed from the Till desktop repo, which already has
@@ -32,6 +36,9 @@ function loadJsdom() {
 
 const jsdom = loadJsdom();
 if (!jsdom) {
+  // A SKIP IS PRINTED LOUDLY AND STILL EXITS 0, which is the honest trade: these
+  // tests cannot run without a borrowed jsdom, and a red suite on a machine that
+  // simply does not have one teaches nobody anything. Read the line.
   console.log('SKIPPED — jsdom not found.\n' +
     'These tests borrow it from the Till desktop repo. Either run `npm install` in\n' +
     '<Till repo>/code/till, or set TILL_REPO to point at that checkout.');
@@ -41,76 +48,126 @@ const { JSDOM } = jsdom;
 
 const HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
-// A small catalog with the shapes that matter: two tires on the rack being
-// walked, one filed somewhere else, one with no location on file at all.
-const PRODUCTS = [
-  { id: 'p1', size: '11R22.5',     brand: 'Roadmaster', qty: 8, location: 'RACK 1',     buyPrice: 100 },
-  { id: 'p2', size: '295/75/22.5', brand: 'Amulet',     qty: 6, location: 'RACK 1 · B', buyPrice: 120 },
-  { id: 'p3', size: '285/75/24.5', brand: 'Kumho',      qty: 4, location: 'RACK 3 · A', buyPrice: 140 },
-  { id: 'p4', size: '385/65/22.5', brand: 'Amulet',     qty: 2, location: '',           buyPrice: 160 },
-];
+// Rows in the shape the STOCK ROOM's database hands them over: snake_case
+// columns, and money as an integer number of cents. $40.75 is 4075. Getting this
+// wrong in either direction is silent on screen, which is why the rows in the
+// tests look like this rather than like the objects the page draws.
+function row(over = {}) {
+  return {
+    id: 'p1', product_code: 'TR-2055516', size: '205/55R16', brand: 'Marchetti Primato 4',
+    type: 'Car', ply: '91V', qty: 10, cost_cents: 7800, price_cents: 12900,
+    location: 'Rack A2', section: 'Front floor',
+    ...over,
+  };
+}
 
-function reply(body, status = 200) {
+// A book of `n` tires, each one distinguishable.
+function book(n) {
+  const out = [];
+  for (let i = 0; i < n; i += 1) {
+    out.push(row({ id: 'p' + i, product_code: 'CODE' + i, size: (200 + i) + '/55R16' }));
+  }
+  return out;
+}
+
+function reply(body, status = 200, headers = {}) {
   return Promise.resolve({
-    ok: status < 300, status,
+    ok: status >= 200 && status < 300,
+    status,
+    headers: { get: (k) => headers[String(k).toLowerCase()] || null },
     json: () => Promise.resolve(body),
     text: () => Promise.resolve(JSON.stringify(body)),
   });
 }
 
+function parseRange(headers) {
+  const h = (headers && (headers.Range || headers.range)) || '';
+  const m = String(h).match(/^(\d+)-(\d+)$/);
+  if (!m) return null;
+  return { from: Number(m[1]), to: Number(m[2]) };
+}
+
 /**
- * Boot a signed-in tablet against a fake shop.
+ * Boot a signed-in phone against a fake stock room.
  *
  * Both the session and the fetch stub have to be in place BEFORE the page's own
- * script runs — it reads the session at load and only then asks for the shop
- * data. Set them afterwards and the app boots to the login screen with an empty
- * catalog, which is a test of nothing.
+ * script runs — it reads the session at load and only then asks anything. Set
+ * them afterwards and the app boots to the sign-in screen, which is a test of
+ * nothing.
  *
- * Returns { w, state } where state.requestOpen is the computer's side of the
- * mailbox: flipping it to false IS the desktop calling a count off.
+ * opts:
+ *   rows        the book (rows in database shape). Default: one tire.
+ *   staff       true | false | 401 | 'fail'   what is_staff answers.
+ *   pageFail    { at, status }  make the page starting at `at` answer `status`.
+ *   emptyRange  true  -> answer 416 for any page past the end, rather than []
+ *   seed        extra localStorage planted before the page runs.
  *
- * `seed` is extra localStorage to plant BEFORE the page runs — how you stand up a
- * tablet that already has a count on it. Setting those keys after boot proves
- * nothing: the app reads them once, at load.
+ * Returns { w, calls } where `calls` is every request the page made, in order,
+ * as { url, method, headers, body }.
  */
-function tablet(products = PRODUCTS, seed = null) {
-  const state = { requestOpen: true, patched: [], posted: null, products };
-  function stub(url, opts) {
-    const u = String(url), method = (opts && opts.method) || 'GET';
-    if (u.indexOf('/auth/v1/token') !== -1) return reply({ access_token: 'tok', refresh_token: 'ref' });
-    if (u.indexOf('/rest/v1/shop_data') !== -1) {
-      return reply([{ updated_at: '2026-07-30T00:00:00Z', products: state.products, salesLog: [] }]);
+function phone(opts = {}) {
+  const rows = opts.rows || [row()];
+  const staff = opts.staff === undefined ? true : opts.staff;
+  const calls = [];
+  let staffAsked = 0;
+  let pageFailedOnce = false;
+
+  function stub(url, init) {
+    const u = String(url);
+    const method = (init && init.method) || 'GET';
+    const headers = (init && init.headers) || {};
+    calls.push({ url: u, method, headers, body: init && init.body });
+
+    if (u.indexOf('/auth/v1/token') !== -1) {
+      return reply({ access_token: 'tok2', refresh_token: 'ref2', expires_in: 3600, user: { email: 'shop@example.test' } });
     }
-    if (u.indexOf('/rest/v1/count_requests') !== -1) {
-      if (method === 'PATCH') { state.patched.push({ url: u, body: JSON.parse(opts.body) }); return reply({}, 204); }
-      return reply(state.requestOpen
-        ? [{ id: 42, created_at: '2026-07-30T00:00:00Z', note: 'Front racks', racks: ['RACK 1'] }]
-        : []);
+
+    if (u.indexOf('/rest/v1/rpc/is_staff') !== -1) {
+      staffAsked += 1;
+      if (staff === 'fail') return Promise.reject(new Error('offline'));
+      if (staff === 401) return reply({ message: 'JWT expired' }, 401);
+      return reply(staff === true);
     }
-    if (u.indexOf('/rest/v1/stock_counts') !== -1 && method === 'POST') {
-      state.posted = JSON.parse(opts.body);
-      return reply({}, 201);
+
+    if (u.indexOf('/rest/v1/products') !== -1) {
+      const range = parseRange(headers);
+      const from = range ? range.from : 0;
+      const to = range ? range.to : rows.length - 1;
+
+      if (opts.pageFail && opts.pageFail.at === from && !pageFailedOnce) {
+        pageFailedOnce = true;
+        return reply({ message: 'nope' }, opts.pageFail.status);
+      }
+      if (opts.emptyRange && from >= rows.length && from > 0) {
+        return reply({ message: 'Requested Range Not Satisfiable' }, 416);
+      }
+      const slice = rows.slice(from, to + 1);
+      // A ranged request answers 206, not 200 — the page has to accept both.
+      return reply(slice, range ? 206 : 200);
     }
+
     return reply([]);
   }
+
   const dom = new JSDOM(HTML, {
     runScripts: 'dangerously', url: 'https://example.test/',
     beforeParse(win) {
-      win.localStorage.setItem('till_stock_session',
+      win.localStorage.setItem('till_stock_session_v2',
         JSON.stringify({ access_token: 'tok', refresh_token: 'ref', remember: true }));
-      if (seed) Object.keys(seed).forEach(k => win.localStorage.setItem(k, seed[k]));
+      if (opts.seed) Object.keys(opts.seed).forEach((k) => win.localStorage.setItem(k, opts.seed[k]));
       win.fetch = stub;
-      win.confirm = () => true;     // prompts are accepted; refusing is tested by not calling
+      win.confirm = () => true;
     },
   });
-  return { w: dom.window, state };
+
+  return { w: dom.window, calls, staffAsked: () => staffAsked };
 }
 
 let failures = 0;
 function ok(name, cond, extra) {
   if (cond) { console.log('  PASS  ' + name); return true; }
   console.log('  FAIL  ' + name + (extra !== undefined ? '  -> ' + JSON.stringify(extra) : ''));
-  failures++;
+  failures += 1;
   return false;
 }
 function finish(label) {
@@ -118,15 +175,13 @@ function finish(label) {
   process.exit(failures ? 1 : 0);
 }
 
-const wait = (ms) => new Promise(r => setTimeout(r, ms));
-const screen = (w) => (w.document.getElementById('countList') || {}).innerHTML || '';
-const stored = (w, key, dflt) => { try { return JSON.parse(w.localStorage.getItem(key) || dflt); } catch (e) { return null; } };
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const list = (w) => (w.document.getElementById('list') || {}).innerHTML || '';
+const fresh = (w) => (w.document.getElementById('freshText') || {}).textContent || '';
+const onScreen = (w, id) => {
+  const el = w.document.getElementById(id);
+  return !!el && el.style.display !== 'none';
+};
+const stockCalls = (calls) => calls.filter((c) => c.url.indexOf('/rest/v1/products') !== -1);
 
-// Put a request in place and open the rack, the way the computer plus one tap would.
-function startWalking(w, rack = 'RACK 1') {
-  w.tsSetRequest({ id: 42, racks: [rack], note: 'Front racks' });
-  w.tsStart();
-  w.tsRack(rack);
-}
-
-module.exports = { tablet, ok, finish, wait, screen, stored, startWalking, PRODUCTS };
+module.exports = { phone, ok, finish, wait, list, fresh, onScreen, stockCalls, row, book };
