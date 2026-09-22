@@ -219,6 +219,83 @@ const headerOf = (call, name) => {
     w.close();
   }
 
+  // ---- out of stock is not the same as gone (the audit of dc60061) -------
+  // The phone sold the last one and the answer was lost. The read that follows
+  // leaves the tire out — which is not the counter deleting it, and must not
+  // be said as though it were.
+  {
+    const rows = [row({ id: 'p1', qty: 1 }), row({ id: 'p2', size: '195/65R15', qty: 3 })];
+    const { w } = phone({ rows, sale: () => Promise.reject(new Error('the signal dropped')) });
+    await wait(60);
+    w.document.querySelector('.row[data-id="p1"]').click();
+    await wait(20);
+    w.document.querySelector('[data-act="confirm"]').click();
+    await wait(30);
+    rows[0].qty = 0;                       // the sale went in after all
+    w.document.getElementById('refreshBtn').click();
+    await wait(60);
+    const head = (w.document.querySelector('.waiting .w-head') || {}).textContent || '';
+    ok('a waiting sale on a tire now out of stock says so', /out of stock and not shown/.test(head), head);
+    ok('and does not say the tire is off the book', head.indexOf('no longer on the stock list') === -1, head);
+    // …and the way out says where the count is.
+    w.document.querySelector('.waiting [data-act="leave"]').click();
+    await wait(60);
+    const msg = (w.document.querySelector('.salemsg') || {}).textContent || '';
+    ok('Leave it does not send him to a count that is not on the phone',
+      /out of stock now/.test(msg) && msg.indexOf('check this tire') === -1, msg);
+    w.close();
+  }
+  // Where the tire really has gone, the words are still the old ones.
+  {
+    const rows = [row({ id: 'p1', qty: 1 }), row({ id: 'p2', size: '195/65R15', qty: 3 })];
+    const { w } = phone({ rows, sale: () => Promise.reject(new Error('the signal dropped')) });
+    await wait(60);
+    w.document.querySelector('.row[data-id="p1"]').click();
+    await wait(20);
+    w.document.querySelector('[data-act="confirm"]').click();
+    await wait(30);
+    rows.splice(0, 1);                     // archived at the counter
+    w.document.getElementById('refreshBtn').click();
+    await wait(60);
+    const head = (w.document.querySelector('.waiting .w-head') || {}).textContent || '';
+    ok('a waiting sale on a tire taken off the book still says that', /no longer on the stock list/.test(head), head);
+    w.close();
+  }
+
+  // ---- the note counts what was left out, and says it in English ---------
+  {
+    const { w } = phone({ rows: [row({ id: 'p1', qty: 4 }), row({ id: 'p2', qty: 0 })] });
+    await wait(80);
+    const q = w.document.getElementById('q');
+    q.value = 'nothing like it'; q.dispatchEvent(new w.Event('input', { bubbles: true }));
+    await wait(20);
+    ok('one tire left out is said as one tire', list(w).indexOf('1 tire is out of stock and not shown') !== -1, list(w).slice(0, 300));
+    w.close();
+  }
+  {
+    const { w } = phone({ rows: [row({ id: 'p1', qty: 4 }), row({ id: 'p2', qty: 0 }), row({ id: 'p3', qty: -1 })] });
+    await wait(80);
+    const q = w.document.getElementById('q');
+    q.value = 'nothing like it'; q.dispatchEvent(new w.Event('input', { bubbles: true }));
+    await wait(20);
+    ok('two are said as two', list(w).indexOf('2 tires are out of stock and not shown') !== -1, list(w).slice(0, 300));
+    w.close();
+  }
+  // Coming back to the app looks again even when there is nothing on screen.
+  // (jsdom calls a page it has never shown "prerender", so the state the page
+  // actually reads is set here rather than assumed.)
+  {
+    const { w, calls } = phone({ rows: [row({ id: 'p1', qty: 0 })] });
+    await wait(80);
+    Object.defineProperty(w.document, 'visibilityState', { value: 'visible', configurable: true });
+    const reads = stockCalls(calls).length;
+    w.document.dispatchEvent(new w.Event('visibilitychange'));
+    await wait(60);
+    ok('coming back to the app reads again with everything out of stock', stockCalls(calls).length > reads,
+      [reads, stockCalls(calls).length]);
+    w.close();
+  }
+
   // ---- the retry that used to drop its headers --------------------------
   // The page refreshes its token once on a 401 and reads again. If that retry
   // does not carry the schema header and the range, the phone works perfectly

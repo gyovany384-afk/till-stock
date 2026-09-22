@@ -610,9 +610,11 @@
   // its only staleness signal without ever saying so. What this page can honestly
   // know is when IT last read, so that is what the line says now.
   var session = null, products = [], checkedAt = null, query = '';
-  // How many the last read left out because there are none on the shelf. Only
-  // an empty screen uses it, to say which kind of empty it is.
-  var hidden = 0;
+  // How many the last read left out because there are none on the shelf, and
+  // which ones. An empty screen uses the count to say which kind of empty it
+  // is; a waiting sale uses the ids, so "no longer on the stock list" is not
+  // said of a tire that is simply out (the Fable audit of dc60061).
+  var hidden = 0, outIds = {};
   // THE TIRE OPENED FOR A SALE, and what the panel under it holds: the count, and
   // whether a Confirm is in the air. `pendingId` is the sale number of a press
   // that has not had a clear answer — kept so "Try again" sends the SAME sale.
@@ -840,8 +842,16 @@
         var all = rows.map(rowToProduct);
         products = all.filter(function(p){ return (Number(p.qty) || 0) > 0; });
         hidden = all.length - products.length;
+        outIds = {};
+        for (var oi = 0; oi < all.length; oi++) if ((Number(all[oi].qty) || 0) <= 0) outIds[all[oi].id] = true;
         products.sort(function(a,b){ return String(a.size||'').localeCompare(String(b.size||''), undefined, {numeric:true}); });
         checkedAt = Date.now();
+        // …AND THE COUNT IT SENT SOMEBODY TO CHECK IS NOT HERE. Left it and the
+        // read that followed found the tire out of stock: it is not on this
+        // screen to check (the Fable audit of dc60061).
+        if (said && said.left && outIds[said.id]) {
+          said = { id: said.id, tone: 'warn', text: 'Left as it is. That tire is out of stock now, so it is not shown here — the stock room computer has its count.' };
+        }
         restorePending();
         showApp();
         renderList();
@@ -929,7 +939,11 @@
   function aboveTheList(shown, unread){
     var onScreen = function(id){ for (var i = 0; i < shown.length; i++) if (shown[i].id === id) return true; return false; };
     if (sale && (sale.busy || sale.pendingId) && !onScreen(sale.id)){
+      // OUT OF STOCK IS NOT THE SAME AS GONE — the Fable audit of dc60061. The
+      // phone had just sold the last one, so the read leaves the tire out; said
+      // as "no longer on the stock list" that reads as the counter deleting it.
       var head = unread ? 'Waiting sale — the stock list could not be read'
+        : outIds[sale.id] ? 'Waiting sale — this tire is out of stock and not shown'
         : !productById(sale.id) ? 'Waiting sale — this tire is no longer on the stock list'
         : 'Waiting sale — hidden by your search';
       return '<div class="waiting" data-sell="1">'
@@ -1193,7 +1207,7 @@
     var id = sale.id;
     dropPendingIf(sale.pendingId);
     openId = null; sale = null;
-    said = { id: id, tone: 'warn', text: 'Left as it is. The stock is being read again — check this tire\u2019s count before selling it again.' };
+    said = { id: id, tone: 'warn', left: true, text: 'Left as it is. The stock is being read again — check this tire\u2019s count before selling it again.' };
     renderList();
     loadStock();
   }
@@ -1270,7 +1284,7 @@
     // still kept on the phone, and the next sign-in brings it back; held in
     // memory, it outlived the list it was drawn in (the audit of 3e46762).
     sale = null; openId = null; said = null;
-    clearSession(); products = []; hidden = 0; $('q').value = ''; query = '';
+    clearSession(); products = []; hidden = 0; outIds = {}; $('q').value = ''; query = '';
     $('searchWrap').classList.remove('has');
     showLogin(); document.getElementById('loginMsg').className = 'msg';
   });
@@ -1341,7 +1355,10 @@
 
   // Coming back to the tab after a while → refresh so stock is current.
   document.addEventListener('visibilitychange', function(){
-    if (document.visibilityState === 'visible' && session && products.length) loadStock();
+    // ON `checkedAt`, NOT ON WHAT IS DRAWN — the Fable audit of dc60061. With
+    // everything out of stock the list is empty and a read had still happened,
+    // so coming back to the app would not look again until a tap on refresh.
+    if (document.visibilityState === 'visible' && session && checkedAt) loadStock();
   });
 
   // THE ONE-A-MINUTE POLL WENT WITH THE COUNT SCREEN. It existed to notice the
