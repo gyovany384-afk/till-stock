@@ -111,6 +111,9 @@ function phone(opts = {}) {
   const calls = [];
   let staffAsked = 0;
   let pageFailedOnce = false;
+  // Every sale the page sent, in order, and the numbers already sold.
+  const sales = [];
+  const soldIds = new Map();
 
   function stub(url, init) {
     const u = String(url);
@@ -127,6 +130,24 @@ function phone(opts = {}) {
       if (staff === 'fail') return Promise.reject(new Error('offline'));
       if (staff === 401) return reply({ message: 'JWT expired' }, 401);
       return reply(staff === true);
+    }
+
+    // A SALE — 21 Sep 2026. `opts.sale(body, n)` answers it when given, as a
+    // promise of reply() or a rejection for a dropped signal; otherwise a
+    // stand-in for till_stock.log_sale that takes the tires off `rows`, and
+    // finds a sale number it has seen before and sells nothing twice.
+    if (u.indexOf('/rest/v1/rpc/log_sale') !== -1) {
+      const body = JSON.parse((init && init.body) || '{}');
+      sales.push(body);
+      if (opts.sale) return opts.sale(body, sales.length);
+      const r = rows.find((x) => x.id === body.p_product_id);
+      if (!r) return reply({ message: 'That tire is not on the book any more. Nothing was sold.' }, 400);
+      const was = soldIds.get(body.p_id);
+      if (was) return reply({ id: body.p_id, already: true, qty_before: was.before, qty_left: r.qty });
+      const before = r.qty;
+      r.qty -= body.p_qty;
+      soldIds.set(body.p_id, { before });
+      return reply({ id: body.p_id, already: false, product: r.size + ' ' + r.brand, qty_before: before, qty_left: r.qty, believed: body.p_believed });
     }
 
     if (u.indexOf('/rest/v1/products') !== -1) {
@@ -160,7 +181,7 @@ function phone(opts = {}) {
     },
   });
 
-  return { w: dom.window, calls, staffAsked: () => staffAsked };
+  return { w: dom.window, calls, staffAsked: () => staffAsked, sales };
 }
 
 let failures = 0;
@@ -184,4 +205,4 @@ const onScreen = (w, id) => {
 };
 const stockCalls = (calls) => calls.filter((c) => c.url.indexOf('/rest/v1/products') !== -1);
 
-module.exports = { phone, ok, finish, wait, list, fresh, onScreen, stockCalls, row, book };
+module.exports = { phone, ok, finish, wait, list, fresh, onScreen, stockCalls, row, book, reply };

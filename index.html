@@ -278,6 +278,28 @@
   .count{ margin-top:6px; font-size:12px; font-weight:700; color:var(--good); background:var(--good-bg);
     display:inline-block; padding:2px 8px; border-radius:20px; }
   .count.out{ color:var(--danger); background:var(--danger-bg); }
+
+  /* ---------- Selling a tire — 21 Sep 2026 ----------
+     His picture: a tire opened into − 1 + and a blue Confirm, the panel under
+     the row with a blue edge. Own class names on purpose: .step and .qty are
+     still defined further down for the count screen that was deleted on 12 Sep,
+     and borrowing them would pull in its sizes. */
+  .row{ cursor:pointer; }
+  .row.open{ border-color:var(--accent); }
+  .sellpanel{ display:flex; align-items:center; gap:10px; padding:12px; border-radius:13px;
+    background:color-mix(in srgb, var(--accent) 7%, var(--surface));
+    border:1.5px solid var(--accent); border-left:5px solid var(--accent); }
+  .sp-step{ width:64px; height:54px; border-radius:12px; border:1px solid var(--line-strong);
+    background:var(--surface); color:var(--ink); font-size:26px; font-weight:500; line-height:1; flex-shrink:0; }
+  .sp-step:disabled{ opacity:.4; }
+  .sp-qty{ min-width:34px; text-align:center; font-size:22px; font-weight:800; }
+  .sp-confirm{ flex:1; min-width:0; height:54px; border:none; border-radius:12px; background:var(--accent);
+    color:#fff; font-size:16px; font-weight:700; }
+  .sp-confirm:disabled{ opacity:.65; }
+  .salemsg{ font-size:13px; font-weight:600; line-height:1.45; padding:9px 12px; border-radius:11px;
+    color:var(--good); background:var(--good-bg); }
+  .salemsg.err{ color:var(--danger); background:var(--danger-bg); }
+  .salemsg.warn{ color:var(--warn); background:var(--warn-bg); }
   .empty{ text-align:center; color:var(--faint); font-size:14px; padding:48px 20px; line-height:1.6; }
   .empty svg{ width:34px; height:34px; margin-bottom:10px; opacity:.5; }
 
@@ -416,7 +438,10 @@
     #countList > .rackhead,
     #list > .grouphead,
     #list > .empty,
-    #list > .center{ grid-column:1 / -1; }
+    #list > .center,
+    /* The sale panel and what it says span the width, under the tile tapped. */
+    #list > .sellpanel,
+    #list > .salemsg{ grid-column:1 / -1; }
 
     .crow{ padding:13px 15px; }
     .step{ width:50px; height:50px; }
@@ -464,7 +489,12 @@
     door. It also has to be on the stock room's staff list, which is the part
     nobody can guess from a sign-in box.
   -->
-  <p class="hint">Sign in with the same email &amp; password as the stock room computer.<br>This window can only look — it can never change anything, in the shop or in the stock room.</p>
+  <!--
+    AND AGAIN 21 SEP 2026: it said this window "can never change anything". Since
+    that day a sale confirmed here is logged in the stock room's book, so the
+    sentence says so — and still says what it cannot touch.
+  -->
+  <p class="hint">Sign in with the same email &amp; password as the stock room computer.<br>This window looks up stock and can log a sale in the stock room. It never changes anything in the shop's Till.</p>
 </div>
 
 <!-- ============ APP ============ -->
@@ -476,7 +506,12 @@
     counter does not move this number — and somebody could otherwise read a
     figure off here and act on it as though it were today's shelf.
   -->
-  <div class="banner">Stock room book · read-only · a sale on the counter does not change this</div>
+  <!--
+    NOT "READ-ONLY" ANY MORE — 21 Sep 2026. A tire tapped and confirmed here is a
+    sale in the stock room's book. The half about the shop's Till still holds:
+    a sale rung up there does not move these numbers.
+  -->
+  <div class="banner">Stock room book · tap a tire to log a sale · the shop's Till does not change this</div>
   <div class="topbar">
     <div class="toprow">
       <div class="title">Stock</div>
@@ -562,6 +597,11 @@
   // its only staleness signal without ever saying so. What this page can honestly
   // know is when IT last read, so that is what the line says now.
   var session = null, products = [], checkedAt = null, query = '';
+  // THE TIRE OPENED FOR A SALE, and what the panel under it holds: the count, and
+  // whether a Confirm is in the air. `pendingId` is the sale number of a press
+  // that has not had a clear answer — kept so "Try again" sends the SAME sale.
+  // `said` is the last thing a sale said, drawn under the tire it was about.
+  var openId = null, sale = null, said = null;
 
   try { session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e){ session = null; }
 
@@ -660,9 +700,12 @@
   }
   // THE TWO WRITE HELPERS WERE HERE UNTIL 12 SEP 2026 — authedPost, which put a
   // finished count into the shop cloud's mailbox, and authedPatch, which marked
-  // the computer's request answered. They went with the count screen. This page
-  // now has nothing it can write at all, which is a stronger promise than the
-  // banner has ever been able to make.
+  // the computer's request answered. They went with the count screen.
+  //
+  // ONE WRITE CAME BACK ON 21 SEP 2026, and it is not a table write: a sale goes
+  // through the rpc above to till_stock.log_sale, which stamps the price, the
+  // cost and the tax itself and moves the count in the same transaction. This
+  // page works out no money — see "selling a tire" below.
 
   // ---------- data ----------
   // How many rows one request may bring back. PostgREST will not hand over more
@@ -817,7 +860,8 @@
       if (p.location) subBits.push('📍 ' + esc(p.location));
       if (p.section) subBits.push(esc(p.section));
       if (p.productCode) subBits.push('#' + esc(p.productCode));
-      html += '<div class="row">'
+      var isOpen = openId === p.id;
+      html += '<div class="row' + (isOpen ? ' open' : '') + '" data-id="' + esc(p.id) + '" role="button" aria-expanded="' + (isOpen ? 'true' : 'false') + '">'
         + '<div class="main"><div class="name">' + esc(nm.title) + '</div>'
         + (nm.brand ? '<div class="brandline">' + esc(nm.brand) + '</div>' : '')
         + (subBits.length ? '<div class="sub">' + subBits.join('<span>·</span>') + '</div>' : '')
@@ -826,9 +870,120 @@
         + '<div class="cost">cost ' + money(p.buyPrice) + '</div>'
         + '<div class="count' + (out?' out':'') + '">' + (Number(p.qty)||0) + (out?' out':' in stock') + '</div>'
         + '</div></div>';
+      if (isOpen && sale) html += sellPanel();
+      if (said && said.id === p.id) html += '<div class="salemsg' + (said.tone ? ' ' + said.tone : '') + '" role="status">' + esc(said.text) + '</div>';
     });
     $('list').innerHTML = html;
   }
+  // ---------- selling a tire — 21 Sep 2026 ----------
+  //
+  // His ask: "new mobile app feature, allowing a sale to be logged", with a
+  // picture of a tire opened into − 1 + and a blue Confirm. Asked, he chose the
+  // tire's own price (no price box), sold by "Phone", and more than the shelf
+  // holds allowed, as the counter allows it.
+  //
+  // THIS PAGE WORKS OUT NO MONEY. It sends which tire, how many, its own date
+  // and clock, the count it was showing, and a sale number; till_stock.log_sale
+  // stamps the price, the cost and the tax exactly as the counter's own sale
+  // does and takes the tires off the shelf in one step (see the stock room's
+  // db/2026-09-21-a-sale-from-the-phone.sql). A second copy of that arithmetic
+  // in here would be a second place for a price to go wrong.
+  //
+  // THE SALE NUMBER IS MADE HERE, AT THE PRESS — the counter's shape: s, this
+  // phone's four letters, the time in milliseconds. A press whose answer is lost
+  // on a weak signal says so and offers Try again, which sends the SAME number;
+  // the database finds the sale already there and sells nothing twice.
+  var TAG_KEY = 'till_stock_phone_tag';
+  function phoneTag(){
+    var tag = null;
+    try { tag = localStorage.getItem(TAG_KEY); } catch(e){}
+    if (!/^[a-z]{4}$/.test(tag || '')){
+      var letters = 'abcdefghijklmnopqrstuvwxyz';
+      tag = '';
+      for (var i = 0; i < 4; i++) tag += letters[Math.floor(Math.random() * 26) % 26];
+      try { localStorage.setItem(TAG_KEY, tag); } catch(e){}
+    }
+    return tag;
+  }
+  function pad2(n){ return (n < 10 ? '0' : '') + n; }
+  // The phone's own day and clock, as the counter writes them: '2026-09-21' and
+  // '14:20'. The database's clock is not the shop's — it runs on another zone.
+  function localDay(d){ return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function localClock(d){ return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+
+  function sellPanel(){
+    var busy = sale.busy;
+    var word = busy ? 'Selling…' : (sale.pendingId ? 'Try again' : 'Confirm');
+    return '<div class="sellpanel" data-sell="1">'
+      + '<button type="button" class="sp-step" data-act="minus" aria-label="One fewer"' + (busy || sale.pendingId || sale.qty <= 1 ? ' disabled' : '') + '>&minus;</button>'
+      + '<div class="sp-qty" aria-live="polite">' + sale.qty + '</div>'
+      + '<button type="button" class="sp-step" data-act="plus" aria-label="One more"' + (busy || sale.pendingId ? ' disabled' : '') + '>+</button>'
+      + '<button type="button" class="sp-confirm" data-act="confirm"' + (busy ? ' disabled' : '') + '>' + word + '</button>'
+      + '</div>';
+  }
+
+  // What the sale says, in the counter's own words (logSale in the stock room's
+  // src/state/stock.js), with how many are left on the end.
+  function saleWords(r, qty){
+    var sold = qty + ' \u00d7 ' + (r.product || 'this tire');
+    var left = Number(r.qty_left);
+    if (r.already) return { text: 'That sale was already logged — nothing was sold twice. ' + left + ' left.', tone: '' };
+    var before = Number(r.qty_before), believed = r.believed;
+    if (believed !== null && believed !== undefined && Number(believed) !== before){
+      if (left < 0) return { text: sold + ' sold. The shelf had ' + before + ', not ' + believed + ' — the book is now at \u2212' + Math.abs(left) + '. COUNT THIS RACK.', tone: 'warn' };
+      if (before < Number(believed)) return { text: sold + ' sold. The shelf had ' + before + ', not ' + believed + ' — it was sold somewhere else first. ' + left + ' left.', tone: 'warn' };
+      return { text: sold + ' sold. The shelf had ' + before + ', not ' + believed + ' — the book went up somewhere else. ' + left + ' left.', tone: 'warn' };
+    }
+    if (left < 0) return { text: sold + ' sold. The book is now at \u2212' + Math.abs(left) + ' — count this rack.', tone: 'warn' };
+    return { text: sold + ' sold — ' + left + ' left.', tone: '' };
+  }
+
+  function confirmSale(){
+    if (!sale || sale.busy) return;
+    var p = null;
+    for (var i = 0; i < products.length; i++) if (products[i].id === sale.id){ p = products[i]; break; }
+    if (!p) return;
+    if (!sale.pendingId) sale.pendingId = 's' + phoneTag() + Date.now();
+    if (sale.believed === undefined) sale.believed = Number(p.qty) || 0;
+    var now = new Date();
+    var body = {
+      p_id: sale.pendingId, p_product_id: p.id, p_qty: sale.qty,
+      p_date: localDay(now), p_when: localClock(now), p_believed: sale.believed
+    };
+    sale.busy = true;
+    said = null;
+    renderList();
+    var qty = sale.qty, id = sale.id;
+    rpc('log_sale', body).then(function(res){
+      if (res.status === 401){ clearSession(); showLogin('Your session expired — sign in again. Nothing was sold.'); return; }
+      if (res.ok) return res.json().then(function(r){
+        p.qty = Number(r.qty_left);
+        openId = null; sale = null;
+        said = saleWords(r, qty);
+        said.id = id;
+        renderList();
+      });
+      // A REFUSAL IS AN ANSWER: nothing was written, so the next press is a new
+      // sale. The database's own words are said, or plainer ones where it has
+      // not been taught this yet.
+      return res.json().catch(function(){ return {}; }).then(function(j){
+        var missing = res.status === 404 || (j && j.code === 'PGRST202');
+        sale.busy = false; sale.pendingId = null; sale.believed = undefined;
+        said = { id: id, tone: 'err', text: missing
+          ? 'The stock room book has not been taught to take a sale from the phone yet. Nothing was sold.'
+          : ((j && j.message) || 'The stock room refused the sale. Nothing was sold.') };
+        renderList();
+      });
+    }).catch(function(){
+      // NO ANSWER IS NOT A NO. The sale may have landed; Try again sends the same
+      // number, which cannot sell twice.
+      if (!sale || sale.id !== id) return;
+      sale.busy = false;
+      said = { id: id, tone: 'err', text: 'No answer from the stock room — the sale may or may not have gone through. Tap Try again: it cannot sell twice.' };
+      renderList();
+    });
+  }
+
   // IT SAYS "CHECKED", NOT "UPDATED", AND THAT IS THE WHOLE OF THE CHANGE.
   //
   // The line used to read the shop blob's `updated_at` — a fact the database
@@ -927,6 +1082,31 @@
   ['clrBtn'].forEach(function(id){
     $(id).addEventListener('mousedown', function(e){ e.preventDefault(); });
   });
+  // A TAP ON A TIRE OPENS IT FOR A SALE; a tap on it again closes it. One
+  // listener on the list rather than one per row, because the rows are redrawn
+  // from scratch on every keystroke in the search.
+  $('list').addEventListener('click', function(e){
+    var act = e.target.closest ? e.target.closest('[data-act]') : null;
+    if (act && sale){
+      var what = act.getAttribute('data-act');
+      if (what === 'minus' && sale.qty > 1 && !sale.busy && !sale.pendingId){ sale.qty -= 1; renderList(); }
+      if (what === 'plus' && !sale.busy && !sale.pendingId){ sale.qty += 1; renderList(); }
+      if (what === 'confirm') confirmSale();
+      return;
+    }
+    if (e.target.closest && e.target.closest('[data-sell]')) return;
+    var row = e.target.closest ? e.target.closest('.row[data-id]') : null;
+    if (!row) return;
+    // NOT WHILE A SALE IS IN THE AIR, or waiting on Try again: closing it would
+    // lose the number that makes a retry safe.
+    if (sale && (sale.busy || sale.pendingId)) return;
+    var id = row.getAttribute('data-id');
+    said = null;
+    if (openId === id){ openId = null; sale = null; }
+    else { openId = id; sale = { id: id, qty: 1, busy: false, pendingId: null }; }
+    renderList();
+  });
+
   // Coming back to the tab after a while → refresh so stock is current.
   document.addEventListener('visibilitychange', function(){
     if (document.visibilityState === 'visible' && session && products.length) loadStock();
