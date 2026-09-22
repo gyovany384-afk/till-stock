@@ -334,5 +334,199 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     w.close()
   }
 
+  // ============================================================
+  // The Fable audit of 3e46762 — what it found, held.
+  // ============================================================
+  const PENDING = 'till_stock_phone_pending'
+  const topSaid = (w) => (($(w, '#list > .salemsg') || {}).textContent || '').trim()
+  const sellsAgain = async (w, id) => {
+    await tap(w, '.row[data-id="' + id + '"]')
+    return ($(w, '.row[data-id="' + id + '"]').nextElementSibling || {}).className === 'sellpanel'
+  }
+
+  // ---- the waiting tire taken off the list at the counter --------------------------
+  {
+    let n = 0
+    const rows = two()
+    const { w, sales } = phone({
+      rows,
+      sale: (body) => {
+        n += 1
+        if (n === 1) return Promise.reject(new Error('the signal dropped'))
+        return reply({ id: body.p_id, already: true, qty_before: 10, qty_left: 9 })
+      },
+    })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    rows.splice(0, 1)   // archived at the counter while the answer was lost
+    w.document.getElementById('refreshBtn').click(); await wait(60)
+    const top = $(w, '#list > .waiting')
+    ok('a sale waiting on a tire taken off the list is drawn above the list',
+      Boolean(top) && /no longer on the stock list/.test(top.textContent) && /1 × 205\/55R16 Marchetti Primato 4/.test(top.textContent), top && top.textContent)
+    ok('with Try again and Leave it to press', ($(w, '.waiting [data-act="confirm"]') || {}).textContent === 'Try again' && Boolean($(w, '.waiting [data-act="leave"]')))
+    await tap(w, '.row[data-id="p2"]')
+    ok('another tire tapped still names the sale waiting', /A sale is still waiting on 205\/55R16 Marchetti Primato 4/.test(said(w)), said(w))
+    await tap(w, '.waiting [data-act="confirm"]'); await wait(30)
+    ok('Try again sends the same number, tire, day and clock',
+      sales.length === 2 && sales[1].p_id === sales[0].p_id && sales[1].p_product_id === 'p1'
+      && sales[1].p_date === sales[0].p_date && sales[1].p_when === sales[0].p_when, sales)
+    ok('the answer is said above the list, not to nobody', /already logged/.test(topSaid(w)), topSaid(w))
+    ok('and the waiting block is gone', !$(w, '.waiting'))
+    ok('and the phone sells again', await sellsAgain(w, 'p2'))
+    w.close()
+  }
+  {
+    const rows = two()
+    const { w } = phone({ rows, sale: () => Promise.reject(new Error('the signal dropped')) })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    rows.splice(0, 1)
+    w.document.getElementById('refreshBtn').click(); await wait(60)
+    await tap(w, '.waiting [data-act="leave"]'); await wait(60)
+    ok('Leave it above the list lets the sale go', !$(w, '.waiting') && w.localStorage.getItem(PENDING) === null)
+    ok('and says so above the list', /Left as it is/.test(topSaid(w)), topSaid(w))
+    ok('and the phone sells again', await sellsAgain(w, 'p2'))
+    w.close()
+  }
+  {
+    let n = 0
+    const rows = two()
+    const { w } = phone({
+      rows,
+      sale: () => {
+        n += 1
+        if (n === 1) return Promise.reject(new Error('the signal dropped'))
+        return reply({ code: 'P0001', message: 'That tire is not on the book any more. Nothing was sold.' }, 400)
+      },
+    })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    rows.splice(0, 1)
+    w.document.getElementById('refreshBtn').click(); await wait(60)
+    await tap(w, '.waiting [data-act="confirm"]'); await wait(30)
+    ok('a retry refused for a tire no longer on the book says so above the list', /not on the book any more/.test(topSaid(w)), topSaid(w))
+    ok('and lets the sale go', !$(w, '.waiting') && w.localStorage.getItem(PENDING) === null)
+    ok('and the phone sells again', await sellsAgain(w, 'p2'))
+    w.close()
+  }
+
+  // ---- a reload, with the kept sale's tire no longer on the list ------------------------
+  {
+    const kept = JSON.stringify({ id: 'sabcd1758000000001', productId: 'gone1', qty: 2, believed: 5,
+      name: '225/45R17 Ostrava Sport', day: '2026-09-20', clock: '17:55' })
+    const { w, sales } = phone({ rows: two(), seed: { [PENDING]: kept },
+      sale: (body) => reply({ id: body.p_id, already: true, qty_before: 5, qty_left: 3 }) })
+    await wait(80)
+    const top = $(w, '#list > .waiting')
+    ok('a kept sale whose tire has left the list comes back above it, not dropped in silence',
+      Boolean(top) && /2 × 225\/45R17 Ostrava Sport/.test(top.textContent) && /never got a clear answer/.test(top.textContent), top && top.textContent)
+    await tap(w, '.waiting [data-act="confirm"]'); await wait(30)
+    const s = sales[0] || {}
+    ok('Try again sends the kept number, tire, count, day and clock',
+      s.p_id === 'sabcd1758000000001' && s.p_product_id === 'gone1' && s.p_qty === 2 && s.p_date === '2026-09-20' && s.p_when === '17:55', s)
+    w.close()
+  }
+
+  {
+    const kept = JSON.stringify({ id: 'sabcd1758000000002', productId: 'gone2', qty: 1, believed: 1,
+      name: '<img id="injected2" src=x>', day: '2026-09-20', clock: '17:55' })
+    const { w } = phone({ rows: two(), seed: { [PENDING]: kept } })
+    await wait(80)
+    ok('the waiting block draws a kept name as text', !w.document.getElementById('injected2') && /<img id="injected2"/.test(($(w, '.waiting') || {}).textContent || ''))
+    w.close()
+  }
+
+  // ---- a retry the next day is still the day of the press --------------------------------
+  {
+    let n = 0
+    const { w, sales } = phone({
+      rows: two(),
+      sale: (body) => {
+        n += 1
+        if (n === 1) return Promise.reject(new Error('the signal dropped'))
+        return reply({ id: body.p_id, already: true, qty_before: 10, qty_left: 9 })
+      },
+    })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    const keptNow = JSON.parse(w.localStorage.getItem(PENDING) || 'null') || {}
+    ok('the day and clock of the press are kept with the waiting sale', keptNow.day === sales[0].p_date && keptNow.clock === sales[0].p_when, keptNow)
+    const Real = w.Date
+    const later = Real.now() + 26 * 3600 * 1000
+    w.Date = class extends Real {
+      constructor(...a) { super(...(a.length ? a : [later])) }
+      static now() { return later }
+    }
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    w.Date = Real
+    ok('a retry the next day sends the day and clock of the press, not of the retry',
+      sales.length === 2 && sales[1].p_date === sales[0].p_date && sales[1].p_when === sales[0].p_when, sales.map((x) => [x.p_date, x.p_when]))
+    w.close()
+  }
+
+  // ---- a waiting sale hidden by a search ----------------------------------------------------
+  {
+    const { w } = phone({ rows: two(), sale: () => Promise.reject(new Error('the signal dropped')) })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    const q = w.document.getElementById('q')
+    q.value = 'Norvell'; q.dispatchEvent(new w.Event('input', { bubbles: true })); await wait(20)
+    ok('a waiting sale a search hides is drawn above the results, with its way out',
+      /hidden by your search/.test(($(w, '#list > .waiting') || {}).textContent || '') && Boolean($(w, '.waiting [data-act="leave"]')))
+    q.value = 'nothing like it'; q.dispatchEvent(new w.Event('input', { bubbles: true })); await wait(20)
+    ok('even when the search finds nothing', Boolean($(w, '#list > .waiting')) && /No matches/.test(list(w)))
+    w.close()
+  }
+
+  // ---- signing out ------------------------------------------------------------------------------
+  {
+    const { w } = phone({ rows: two() })
+    await wait(60)
+    await tap(w, '.row[data-id="p2"]')
+    w.document.getElementById('signOutBtn').click(); await wait(20)
+    await signIn(w)
+    ok('a tire open before signing out is not open after signing back in', !$(w, '.sellpanel'))
+    w.close()
+  }
+  {
+    const rows = two()
+    const { w } = phone({ rows, sale: () => Promise.reject(new Error('the signal dropped')) })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    rows.splice(0, 1)
+    w.document.getElementById('signOutBtn').click(); await wait(20)
+    await signIn(w)
+    ok('a sale still waiting comes back after signing in again, with Try again to press',
+      ($(w, '#list > .waiting [data-act="confirm"]') || {}).textContent === 'Try again')
+    w.close()
+  }
+
+  // ---- the answers that are not answers, and a refusal that is one -------------------------
+  for (const status of [408, 409, 429]) {
+    let n = 0
+    const { w, sales } = phone({
+      rows: two(),
+      sale: (body) => {
+        n += 1
+        if (n === 1) return reply({ message: 'not now' }, status)
+        return reply({ id: body.p_id, already: true, qty_before: 10, qty_left: 9 })
+      },
+    })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('a ' + status + ' is said as no clear answer', /may or may not have gone through/.test(said(w)) && !/Nothing was sold/.test(said(w)), said(w))
+    ok('and the sale stays kept on the phone', w.localStorage.getItem(PENDING) !== null)
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('and Try again sends the same number', sales.length === 2 && sales[0].p_id === sales[1].p_id, sales.map((x) => x.p_id))
+    w.close()
+  }
+  {
+    const { w } = phone({ rows: two(), sale: () => reply({ code: 'P0001', message: 'That tire is not on the book any more. Nothing was sold.' }, 400) })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('a refusal is an answer: nothing is kept waiting on the phone', w.localStorage.getItem(PENDING) === null && /not on the book any more/.test(said(w)), said(w))
+    w.close()
+  }
+
   finish('Selling a tire');
 })();

@@ -302,6 +302,12 @@
     color:var(--good); background:var(--good-bg); }
   .salemsg.err{ color:var(--danger); background:var(--danger-bg); }
   .salemsg.warn{ color:var(--warn); background:var(--warn-bg); }
+  /* A SALE WAITING ON A TIRE NOT ON THE SCREEN — taken off the book at the
+     counter, or hidden by a search. Drawn above the list, so Try again and
+     Leave it are always somewhere to press. */
+  .waiting{ display:flex; flex-direction:column; gap:8px; }
+  .waiting .w-head{ font-size:12.5px; font-weight:700; color:var(--warn); padding:0 2px; }
+  .waiting .w-name{ font-size:15.5px; font-weight:700; letter-spacing:-.1px; padding:0 2px; }
   .empty{ text-align:center; color:var(--faint); font-size:14px; padding:48px 20px; line-height:1.6; }
   .empty svg{ width:34px; height:34px; margin-bottom:10px; opacity:.5; }
 
@@ -443,6 +449,7 @@
     #list > .center,
     /* The sale panel and what it says span the width, under the tile tapped. */
     #list > .sellpanel,
+    #list > .waiting,
     #list > .salemsg{ grid-column:1 / -1; }
 
     .crow{ padding:13px 15px; }
@@ -844,17 +851,18 @@
   function renderList(){
     var q = query.trim().toLowerCase();
     var shown = q ? products.filter(function(p){ return matches(p, q); }) : products;
+    var top = aboveTheList(shown);
     if (!products.length){
       // IT NO LONGER NAMES A MACHINE. The old wording — "Has your shop computer
       // uploaded to the cloud?" — was one message for three different causes,
       // two of which are now answered before this line is reached (see isStaff).
       // What is left here is the honest third: the door is open and the book
       // really is empty.
-      $('list').innerHTML = '<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7z"/><path d="M3 7l9 4.5L21 7M12 11.5V21"/></svg>The stock room book has no tires in it.</div>';
+      $('list').innerHTML = top + '<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7z"/><path d="M3 7l9 4.5L21 7M12 11.5V21"/></svg>The stock room book has no tires in it.</div>';
       return;
     }
-    if (!shown.length){ $('list').innerHTML = '<div class="empty">No matches for “' + esc(query.trim()) + '”</div>'; return; }
-    var html = '';
+    if (!shown.length){ $('list').innerHTML = top + '<div class="empty">No matches for “' + esc(query.trim()) + '”</div>'; return; }
+    var html = top;
     shown.forEach(function(p){
       var out = (Number(p.qty)||0) <= 0;
       var nm = nameLines(p);
@@ -874,9 +882,30 @@
         + '<div class="count' + (out?' out':'') + '">' + (Number(p.qty)||0) + (out?' out':' in stock') + '</div>'
         + '</div></div>';
       if (isOpen && sale) html += sellPanel();
-      if (said && said.id === p.id) html += '<div class="salemsg' + (said.tone ? ' ' + said.tone : '') + '" role="status">' + esc(said.text) + '</div>';
+      if (said && said.id === p.id) html += saidHtml(said);
     });
     $('list').innerHTML = html;
+  }
+  function saidHtml(s){ return '<div class="salemsg' + (s.tone ? ' ' + s.tone : '') + '" role="status">' + esc(s.text) + '</div>'; }
+  // A SALE WHOSE TIRE IS NOT ON THE SCREEN — the Fable audit of 3e46762. The
+  // counter archived or merged it while the sale waited on an answer, or a
+  // search hides it: Try again and Leave it were then drawn nowhere, and every
+  // tap on another tire said "finish it first" with no way to. Drawn above the
+  // list instead, with whatever was said about it. A message about a tire no
+  // longer on the book goes there too, or it would be said to nobody.
+  function aboveTheList(shown){
+    var onScreen = function(id){ for (var i = 0; i < shown.length; i++) if (shown[i].id === id) return true; return false; };
+    if (sale && (sale.busy || sale.pendingId) && !onScreen(sale.id)){
+      var gone = !productById(sale.id);
+      return '<div class="waiting" data-sell="1">'
+        + '<div class="w-head">' + (gone ? 'Waiting sale — this tire is no longer on the stock list' : 'Waiting sale — hidden by your search') + '</div>'
+        + '<div class="w-name">' + esc(sale.qty + ' × ' + (sale.name || 'a tire')) + '</div>'
+        + sellPanel()
+        + (said && said.id === sale.id ? saidHtml(said) : '')
+        + '</div>';
+    }
+    if (said && !productById(said.id)) return saidHtml(said);
+    return '';
   }
   // ---------- selling a tire — 21 Sep 2026 ----------
   //
@@ -951,7 +980,8 @@
   var PENDING_KEY = 'till_stock_phone_pending';
   function keepPending(){
     try {
-      if (sale && sale.pendingId) localStorage.setItem(PENDING_KEY, JSON.stringify({ id: sale.pendingId, productId: sale.id, qty: sale.qty, believed: sale.believed }));
+      if (sale && sale.pendingId) localStorage.setItem(PENDING_KEY, JSON.stringify({ id: sale.pendingId, productId: sale.id, qty: sale.qty,
+        believed: sale.believed, name: sale.name, day: sale.day, clock: sale.clock }));
       else localStorage.removeItem(PENDING_KEY);
     } catch(e){}
   }
@@ -960,31 +990,50 @@
     for (var i = 0; i < products.length; i++) if (products[i].id === id) return products[i];
     return null;
   }
-  // After the stock is read: a sale left waiting is opened again, saying so.
+  // The tire as the messages name it: size and brand, else the code.
+  function tireName(p){
+    var n = (String(p.size || '') + ' ' + String(p.brand || '')).trim();
+    return n || String(p.productCode || '').trim() || 'a tire';
+  }
+  // After the stock is read: a sale left waiting is opened again, saying so —
+  // EVEN WHEN ITS TIRE IS NO LONGER ON THE LIST. Skipped in silence, it
+  // vanished from view (the Fable audit of 3e46762), and Try again still gets a
+  // clear answer: the database finds the sale if it went in, and refuses a
+  // tire it no longer holds if it did not.
   function restorePending(){
     if (sale) return;
     var kept = null;
     try { kept = JSON.parse(localStorage.getItem(PENDING_KEY) || 'null'); } catch(e){ kept = null; }
     if (!kept || !kept.id || !kept.productId) return;
-    if (!productById(kept.productId)) return;
+    var p = productById(kept.productId);
     openId = kept.productId;
-    sale = { id: kept.productId, qty: Number(kept.qty) || 1, busy: false, pendingId: kept.id, believed: kept.believed };
+    sale = { id: kept.productId, qty: Number(kept.qty) || 1, busy: false, pendingId: kept.id, believed: kept.believed,
+      name: p ? tireName(p) : (kept.name || 'a tire'), day: kept.day, clock: kept.clock };
     said = { id: kept.productId, tone: 'err', text: 'A sale from before never got a clear answer — it may or may not have gone through. Tap Try again: it cannot sell twice.' };
   }
 
   function confirmSale(){
     if (!sale || sale.busy) return;
     var p = productById(sale.id);
-    if (!p) return;
+    // A FIRST PRESS NEEDS ITS TIRE ON THE LIST; A RETRY DOES NOT. The counter
+    // may have archived or merged it since the first send, and the database
+    // still answers the same number clearly (the Fable audit of 3e46762).
+    if (!p && !sale.pendingId) return;
     // A RETRY, or a first press? Only a first press that is refused before it
     // runs can honestly say nothing was sold.
     var retry = !!sale.pendingId;
-    if (!sale.pendingId) sale.pendingId = 's' + phoneTag() + Date.now();
-    if (sale.believed === undefined) sale.believed = Number(p.qty) || 0;
-    var now = new Date();
+    if (!sale.pendingId){
+      var now = new Date();
+      sale.pendingId = 's' + phoneTag() + now.getTime();
+      // THE DAY AND CLOCK OF THE PRESS go with the number, so a retry the next
+      // morning is still filed as yesterday's sale (the audit of 3e46762).
+      sale.day = localDay(now); sale.clock = localClock(now);
+    }
+    if (sale.believed === undefined) sale.believed = p ? (Number(p.qty) || 0) : null;
+    if (!sale.day || !sale.clock){ var t = new Date(); sale.day = localDay(t); sale.clock = localClock(t); }
     var body = {
-      p_id: sale.pendingId, p_product_id: p.id, p_qty: sale.qty,
-      p_date: localDay(now), p_when: localClock(now), p_believed: sale.believed
+      p_id: sale.pendingId, p_product_id: sale.id, p_qty: sale.qty,
+      p_date: sale.day, p_when: sale.clock, p_believed: sale.believed
     };
     sale.busy = true;
     keepPending();
@@ -998,8 +1047,12 @@
       // after signing back in. Either way the panel lets go of "Selling…"; left
       // held, selling stayed dead until a reload (the audit of 92f4171).
       if (res.status === 401){
-        sale.busy = false;
-        if (!retry){ sale.pendingId = null; sale.believed = undefined; dropPending(); }
+        if (!retry) dropPending();
+        // `sale` is gone if they signed out while this was on its way.
+        if (sale && sale.id === id){
+          sale.busy = false;
+          if (!retry){ sale.pendingId = null; sale.believed = undefined; }
+        }
         clearSession();
         showLogin(retry
           ? 'Your session expired — sign in again, then tap Try again. The sale may already be in; it cannot go in twice.'
@@ -1031,7 +1084,7 @@
       return res.json().catch(function(){ return {}; }).then(function(j){
         var missing = res.status === 404 || (j && j.code === 'PGRST202');
         dropPending();
-        sale.busy = false; sale.pendingId = null; sale.believed = undefined;
+        if (sale && sale.id === id){ sale.busy = false; sale.pendingId = null; sale.believed = undefined; }
         said = { id: id, tone: 'err', text: missing
           ? 'The stock room book has not been taught to take a sale from the phone yet. Nothing was sold.'
           : ((j && j.message) || 'The stock room refused the sale. Nothing was sold.') };
@@ -1128,6 +1181,10 @@
       .then(function(){ btn.disabled = false; btn.textContent = 'Sign in'; });
   });
   $('signOutBtn').addEventListener('click', function(){
+    // THE SALE ON SCREEN GOES WITH THE SIGN-OUT. One waiting on an answer is
+    // still kept on the phone, and the next sign-in brings it back; held in
+    // memory, it outlived the list it was drawn in (the audit of 3e46762).
+    sale = null; openId = null; said = null;
     clearSession(); products = []; $('q').value = ''; query = '';
     $('searchWrap').classList.remove('has');
     showLogin(); document.getElementById('loginMsg').className = 'msg';
@@ -1182,7 +1239,7 @@
     if (sale && (sale.busy || sale.pendingId)){
       if (id !== sale.id){
         var waiting = productById(sale.id);
-        said = { id: id, tone: 'warn', text: 'A sale is still waiting on ' + (waiting ? (waiting.size + ' ' + waiting.brand).trim() : 'another tire')
+        said = { id: id, tone: 'warn', text: 'A sale is still waiting on ' + (waiting ? tireName(waiting) : (sale.name || 'another tire'))
           + ' — finish it first (Try again or Leave it).' };
         renderList();
       }
@@ -1190,7 +1247,10 @@
     }
     said = null;
     if (openId === id){ openId = null; sale = null; }
-    else { openId = id; sale = { id: id, qty: 1, busy: false, pendingId: null }; }
+    else {
+      var tapped = productById(id);
+      openId = id; sale = { id: id, qty: 1, busy: false, pendingId: null, name: tapped ? tireName(tapped) : 'a tire' };
+    }
     renderList();
   });
 
