@@ -591,6 +591,8 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     w.fetch = (u, init) => (String(u).indexOf('/auth/v1/token') !== -1 ? reply({ message: 'refused' }, 400) : real(u, init))
     h.sends[0].resolve(reply({ message: 'JWT expired' }, 401)); await wait(30)
     const words = () => ((w.document.getElementById('loginMsg') || {}).textContent) || ''
+    ok('an older send\'s 401 whose refresh was refused asks for a sign-in, not a silent sign-out',
+      w.document.getElementById('login').style.display !== 'none' && /sign in again\.$/.test(words()), words())
     ok('an older send\'s 401 does not say nothing was sold', !/Nothing was sold/.test(words()), words())
     ok('nor let the number go', keptId(w) === pid && ($(w, '[data-act="confirm"]') || {}).textContent === 'Selling…')
     h.sends[1].resolve(reply({ message: 'JWT expired' }, 401)); await wait(30)
@@ -627,9 +629,51 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const pidB = sales[1].p_id
     h.sends[0].resolve(reply({ id: sales[0].p_id, already: false, product: '205/55R16 Marchetti Primato 4', qty_before: 10, qty_left: 9, believed: 10 })); await wait(30)
     ok('the other sale keeps its number', keptId(w) === pidB, keptId(w))
+    ok('and the sale left with Leave it, which landed after all, is said', /1 × 205\/55R16 Marchetti Primato 4 sold — 9 left/.test(said(w)), said(w))
     ok('and stays on its way', ($(w, '[data-act="confirm"]') || {}).textContent === 'Selling…')
     h.sends[1].reject(new Error('the signal dropped')); await wait(30)
     ok('and when its own answer is lost it offers Try again', ($(w, '[data-act="confirm"]') || {}).textContent === 'Try again' && keptId(w) === pidB)
+    w.close()
+  }
+
+  // ---- a left sale landing late does not talk over the sale on screen ----------------------------
+  {
+    const h = held()
+    const { w, sales } = phone({ rows: two(), sale: h.sale })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    await signOutAndIn(w)
+    await tap(w, '[data-act="leave"]'); await wait(60)
+    await tap(w, '.row[data-id="p2"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    h.sends[1].reject(new Error('the signal dropped')); await wait(30)
+    h.sends[0].resolve(reply({ id: sales[0].p_id, already: false, product: '205/55R16 Marchetti Primato 4', qty_before: 10, qty_left: 9, believed: 10 })); await wait(30)
+    ok('what the sale on screen says is kept when a left one lands late', /may or may not have gone through/.test(said(w)), said(w))
+    w.close()
+  }
+
+  // ---- a count that belongs to another tire (the audit of af86044) ------------------------------
+  {
+    const { w } = phone({ rows: two(), sale: (body) => reply({ id: body.p_id, already: true, product_id: 'p9', qty_before: 10, qty_left: 13 }) })
+    await wait(60)
+    // The read that follows is held open, so what is on the screen is what the
+    // answer wrote — not what a fresh read put over it.
+    let reads = 0
+    const real = w.fetch
+    w.fetch = (u, init) => {
+      if (String(u).indexOf('/rest/v1/products') !== -1) { reads += 1; return new Promise(() => {}) }
+      return real(u, init)
+    }
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(60)
+    ok('a count the database says is another tire\'s is not written on the tire pressed', countOn(w, 'p1') === '10 in stock', countOn(w, 'p1'))
+    ok('nor said as this tire\'s', said(w) === 'That sale was already logged — nothing was sold twice.', said(w))
+    ok('and the stock is read again', reads === 1, reads)
+    w.close()
+  }
+  {
+    const { w } = phone({ rows: two(), sale: (body) => reply({ id: body.p_id, already: false, product_id: 'p1', product: '205/55R16 Marchetti Primato 4', qty_before: 10, qty_left: 9, believed: 10 }) })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('a count the database says is this tire\'s is written on it', countOn(w, 'p1') === '9 in stock', countOn(w, 'p1'))
     w.close()
   }
 

@@ -143,11 +143,11 @@ function phone(opts = {}) {
       const r = rows.find((x) => x.id === body.p_product_id);
       if (!r) return reply({ message: 'That tire is not on the book any more. Nothing was sold.' }, 400);
       const was = soldIds.get(body.p_id);
-      if (was) return reply({ id: body.p_id, already: true, qty_before: was.before, qty_left: r.qty });
+      if (was) return reply({ id: body.p_id, already: true, product_id: r.id, qty_before: was.before, qty_left: r.qty });
       const before = r.qty;
       r.qty -= body.p_qty;
       soldIds.set(body.p_id, { before });
-      return reply({ id: body.p_id, already: false, product: r.size + ' ' + r.brand, qty_before: before, qty_left: r.qty, believed: body.p_believed });
+      return reply({ id: body.p_id, already: false, product_id: r.id, product: r.size + ' ' + r.brand, qty_before: before, qty_left: r.qty, believed: body.p_believed });
     }
 
     if (u.indexOf('/rest/v1/products') !== -1) {

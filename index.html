@@ -1082,7 +1082,14 @@
       // older send's 401 is about a session gone since, and signing out the one
       // made after it would be wrong.
       if (res.status === 401){
-        if (!mine()) return;
+        // An older send's 401 leaves the sale alone. But if its refresh was
+        // refused, the page is signed out now (refresh() cleared it), and says
+        // so rather than sitting on a stock screen that can no longer read
+        // (the audit of af86044).
+        if (!mine()){
+          if (!session) showLogin('Your session expired — sign in again.');
+          return;
+        }
         sale.busy = false;
         if (!retry){ sale.pendingId = null; sale.believed = undefined; dropPendingIf(pid); }
         clearSession();
@@ -1103,17 +1110,29 @@
         // THE TIRE AS IT IS NOW, not the object read before the send: a refresh
         // in between replaces the list, and writing on the old one left the row
         // and the message disagreeing.
+        //
+        // AND ONLY IF THE COUNT IS THIS TIRE'S. After a merge at the counter the
+        // sale sits on the copy kept, and its count came back written on the
+        // tire pressed (the Fable audit of af86044); the database now names the
+        // tire, and when it is another one the stock is read again instead.
+        var here = !r.product_id || r.product_id === id;
         var cur = productById(id);
         var left = figure(r.qty_left);
-        if (cur && isFinite(left)) cur.qty = left;
-        // Another sale on screen now is left alone; a second answer for the
-        // same number, after the first has been said, is not said again.
-        if (sale && sale.pendingId !== pid){ renderList(); return; }
-        if (!sale && said && said.pid === pid){ renderList(); return; }
-        openId = null; sale = null;
-        said = saleWords(r, qty);
-        said.id = id; said.pid = pid;
+        if (here && cur && isFinite(left)) cur.qty = left;
+        var words = function(){ var w = saleWords(here ? r : Object.assign({}, r, { qty_left: null }), qty); w.id = id; w.pid = pid; return w; };
+        // Another sale on screen now is left alone, but this one is still said
+        // if that one has nothing said of its own — a sale left with Leave it
+        // that landed after all is worth knowing. A second answer for the same
+        // number, after the first has been said, is not said again.
+        var saidBefore = !sale && said && said.pid === pid;
+        if (sale && sale.pendingId !== pid){
+          if (!said || said.id !== sale.id) said = words();
+        } else if (!saidBefore){
+          openId = null; sale = null;
+          said = words();
+        }
         renderList();
+        if (!here) loadStock();
       });
       // A REFUSAL IS AN ANSWER: nothing was written, so the next press is a new
       // sale. The database's own words are said, or plainer ones where it has
