@@ -194,5 +194,145 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     w.close();
   }
 
+  // ============================================================
+  // The Fable audit of 92f4171 — what it found, held.
+  // ============================================================
+
+  // ---- a server that did not finish answering is NOT a refusal ----------------
+  {
+    let n = 0
+    const { w, sales } = phone({
+      rows: two(),
+      sale: (body) => {
+        n += 1
+        if (n === 1) return Promise.resolve({ ok: false, status: 504, headers: { get: () => null }, json: () => Promise.reject(new Error('html')), text: () => Promise.resolve('<html>Gateway Timeout</html>') })
+        return reply({ id: body.p_id, already: true, qty_before: 10, qty_left: 9 })
+      },
+    })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('a gateway timeout is said as no clear answer, not "nothing was sold"', /may or may not have gone through/.test(said(w)) && !/Nothing was sold/.test(said(w)), said(w))
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('and Try again sends the same number', sales.length === 2 && sales[0].p_id === sales[1].p_id, sales.map((x) => x.p_id))
+    w.close()
+  }
+
+  // ---- signed out in the middle of a sale ------------------------------------------
+  const signIn = async (w) => {
+    w.document.getElementById('email').value = 'shop@example.test'
+    w.document.getElementById('password').value = 'x'
+    w.document.getElementById('loginForm').dispatchEvent(new w.Event('submit', { cancelable: true, bubbles: true }))
+    await wait(80)
+  }
+  {
+    const { w, sales } = phone({ rows: two(), sale: () => reply({ message: 'JWT expired' }, 401) })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(40)
+    const words = (w.document.getElementById('loginMsg') || {}).textContent || ''
+    ok('a first press turned away signed-out says nothing was sold', /sign in again\. Nothing was sold\./.test(words), words)
+    await signIn(w)
+    ok('and after signing back in the panel is not stuck on "Selling…"', ($(w, '[data-act="confirm"]') || {}).textContent === 'Confirm', ($(w, '[data-act="confirm"]') || {}).textContent)
+    ok('with nothing left waiting', w.localStorage.getItem('till_stock_phone_pending') === null)
+    w.close()
+  }
+  {
+    let n = 0
+    const { w, sales } = phone({
+      rows: two(),
+      sale: (body) => {
+        n += 1
+        if (n === 1) return Promise.reject(new Error('the signal dropped'))
+        if (n <= 3) return reply({ message: 'JWT expired' }, 401)
+        return reply({ id: body.p_id, already: true, qty_before: 10, qty_left: 9 })
+      },
+    })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '[data-act="confirm"]'); await wait(40)
+    const words = (w.document.getElementById('loginMsg') || {}).textContent || ''
+    ok('a RETRY turned away signed-out does not claim nothing was sold', /then tap Try again\. The sale may already be in/.test(words) && !/Nothing was sold/.test(words), words)
+    await signIn(w)
+    ok('after signing back in it still offers Try again', ($(w, '[data-act="confirm"]') || {}).textContent === 'Try again')
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('which sends the very same number the first press made', new Set(sales.map((x) => x.p_id)).size === 1 && sales.length === 4, sales.map((x) => x.p_id))
+    ok('and lands once', /nothing was sold twice/.test(said(w)), said(w))
+    w.close()
+  }
+
+  // ---- a reload does not lose a sale that is waiting ------------------------------
+  {
+    const kept = JSON.stringify({ id: 'sabcd1758000000000', productId: 'p1', qty: 2, believed: 10 })
+    const { w, sales } = phone({ rows: two(), seed: { till_stock_phone_pending: kept } })
+    await wait(80)
+    ok('a sale left waiting is opened again when the stock comes in', ($(w, '.row[data-id="p1"]').nextElementSibling || {}).className === 'sellpanel'
+      && ($(w, '[data-act="confirm"]') || {}).textContent === 'Try again' && panelQty(w) === '2')
+    ok('and says why', /never got a clear answer/.test(said(w)), said(w))
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('Try again sends the number from before the reload', (sales[0] || {}).p_id === 'sabcd1758000000000' && sales[0].p_qty === 2, sales[0])
+    ok('and a clear answer lets it go', w.localStorage.getItem('till_stock_phone_pending') === null)
+    w.close()
+  }
+  {
+    const { w } = phone({ rows: two(), sale: () => Promise.reject(new Error('the signal dropped')) })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    const kept = JSON.parse(w.localStorage.getItem('till_stock_phone_pending') || 'null')
+    ok('a press with no clear answer is kept on the phone', kept && /^s[a-z]{4}\d+$/.test(kept.id) && kept.productId === 'p1' && kept.qty === 1, kept)
+    w.close()
+  }
+
+  // ---- a way out, and a word when another tire is tapped ----------------------------
+  {
+    const { w, calls } = phone({ rows: two(), sale: () => Promise.reject(new Error('the signal dropped')) })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p2"]')
+    ok('another tire tapped says which sale is waiting', /A sale is still waiting on 205\/55R16 Marchetti Primato 4/.test(said(w)), said(w))
+    const reads = calls.filter((c) => c.url.indexOf('/rest/v1/products') !== -1).length
+    await tap(w, '[data-act="leave"]'); await wait(60)
+    ok('Leave it closes the sale and forgets the number', !$(w, '.sellpanel') && w.localStorage.getItem('till_stock_phone_pending') === null)
+    ok('and reads the stock again, so the count says whether it went in', calls.filter((c) => c.url.indexOf('/rest/v1/products') !== -1).length > reads)
+    w.close()
+  }
+
+  // ---- the stock read again while a sale is in the air --------------------------------
+  {
+    let release
+    const { w } = phone({ rows: two(), sale: (body) => new Promise((r) => { release = () => r(reply({ id: body.p_id, already: false, product: '205/55R16 Marchetti Primato 4', qty_before: 10, qty_left: 9, believed: 10 })) }) })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]')
+    w.document.getElementById('refreshBtn').click(); await wait(60)
+    release(); await wait(40)
+    ok('the tire shows what is left even after the list was read again underneath it', countOn(w, 'p1') === '9 in stock' && /9 left/.test(said(w)), [countOn(w, 'p1'), said(w)])
+    w.close()
+  }
+
+  // ---- whatever the database sends back is drawn as text --------------------------------
+  {
+    const rows = [row({ id: 'p"1', brand: '<img src=x onerror="window.__x=1">', qty: 5 })]
+    const { w } = phone({ rows, sale: () => reply({ code: 'P0001', message: '<b id="injected">bold</b>' }, 400) })
+    await wait(60)
+    await tap(w, '.row .name'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('a tire name with markup in it is drawn as text', !w.document.querySelector('.row img') && /<img/.test(($(w, '.row') || {}).textContent || ''))
+    ok('and so is a message from the database', !w.document.getElementById('injected') && /<b id="injected">/.test(said(w)), said(w))
+    w.close()
+  }
+
+  // ---- an answer with no figure in it ---------------------------------------------------
+  {
+    const { w } = phone({ rows: two(), sale: (body) => reply({ id: body.p_id, already: true }) })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('an "already" with no figure says so without one', said(w) === 'That sale was already logged — nothing was sold twice.', said(w))
+    w.close()
+  }
+  {
+    const { w } = phone({ rows: two(), sale: (body) => reply({ id: body.p_id, already: false, product: '205/55R16 Marchetti Primato 4', qty_before: 10 }) })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('says it sold without making a figure up, and leaves the count as it was', said(w) === '1 \u00d7 205/55R16 Marchetti Primato 4 sold.' && countOn(w, 'p1') === '10 in stock', [said(w), countOn(w, 'p1')])
+    w.close()
+  }
+
   finish('Selling a tire');
 })();

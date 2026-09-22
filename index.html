@@ -296,6 +296,8 @@
   .sp-confirm{ flex:1; min-width:0; height:54px; border:none; border-radius:12px; background:var(--accent);
     color:#fff; font-size:16px; font-weight:700; }
   .sp-confirm:disabled{ opacity:.65; }
+  .sp-leave{ height:54px; padding:0 12px; border-radius:12px; border:1px solid var(--line-strong);
+    background:var(--surface); color:var(--muted); font-size:13px; font-weight:600; flex-shrink:0; }
   .salemsg{ font-size:13px; font-weight:600; line-height:1.45; padding:9px 12px; border-radius:11px;
     color:var(--good); background:var(--good-bg); }
   .salemsg.err{ color:var(--danger); background:var(--danger-bg); }
@@ -814,6 +816,7 @@
         products = rows.map(rowToProduct);
         products.sort(function(a,b){ return String(a.size||'').localeCompare(String(b.size||''), undefined, {numeric:true}); });
         checkedAt = Date.now();
+        restorePending();
         showApp();
         renderList();
         renderFresh();
@@ -919,6 +922,7 @@
       + '<div class="sp-qty" aria-live="polite">' + sale.qty + '</div>'
       + '<button type="button" class="sp-step" data-act="plus" aria-label="One more"' + (busy || sale.pendingId ? ' disabled' : '') + '>+</button>'
       + '<button type="button" class="sp-confirm" data-act="confirm"' + (busy ? ' disabled' : '') + '>' + word + '</button>'
+      + (sale.pendingId && !busy ? '<button type="button" class="sp-leave" data-act="leave">Leave it</button>' : '')
       + '</div>';
   }
 
@@ -927,7 +931,8 @@
   function saleWords(r, qty){
     var sold = qty + ' \u00d7 ' + (r.product || 'this tire');
     var left = Number(r.qty_left);
-    if (r.already) return { text: 'That sale was already logged — nothing was sold twice. ' + left + ' left.', tone: '' };
+    var leftWords = isFinite(left) ? ' ' + left + ' left.' : '';
+    if (r.already) return { text: 'That sale was already logged — nothing was sold twice.' + leftWords, tone: '' };
     var before = Number(r.qty_before), believed = r.believed;
     if (believed !== null && believed !== undefined && Number(believed) !== before){
       if (left < 0) return { text: sold + ' sold. The shelf had ' + before + ', not ' + believed + ' — the book is now at \u2212' + Math.abs(left) + '. COUNT THIS RACK.', tone: 'warn' };
@@ -935,14 +940,45 @@
       return { text: sold + ' sold. The shelf had ' + before + ', not ' + believed + ' — the book went up somewhere else. ' + left + ' left.', tone: 'warn' };
     }
     if (left < 0) return { text: sold + ' sold. The book is now at \u2212' + Math.abs(left) + ' — count this rack.', tone: 'warn' };
-    return { text: sold + ' sold — ' + left + ' left.', tone: '' };
+    return { text: isFinite(left) ? sold + ' sold — ' + left + ' left.' : sold + ' sold.', tone: '' };
+  }
+
+  // THE SALE WAITING ON AN ANSWER, KEPT ON THE PHONE — the Fable audit of
+  // 92f4171. In memory alone it went with the page: iOS closes a backgrounded
+  // web app freely, and a reload after a dropped answer came back showing no
+  // sale in the air, so the next Confirm minted a new number. Written at the
+  // press, cleared on a clear answer, and put back when the stock comes in.
+  var PENDING_KEY = 'till_stock_phone_pending';
+  function keepPending(){
+    try {
+      if (sale && sale.pendingId) localStorage.setItem(PENDING_KEY, JSON.stringify({ id: sale.pendingId, productId: sale.id, qty: sale.qty, believed: sale.believed }));
+      else localStorage.removeItem(PENDING_KEY);
+    } catch(e){}
+  }
+  function dropPending(){ try { localStorage.removeItem(PENDING_KEY); } catch(e){} }
+  function productById(id){
+    for (var i = 0; i < products.length; i++) if (products[i].id === id) return products[i];
+    return null;
+  }
+  // After the stock is read: a sale left waiting is opened again, saying so.
+  function restorePending(){
+    if (sale) return;
+    var kept = null;
+    try { kept = JSON.parse(localStorage.getItem(PENDING_KEY) || 'null'); } catch(e){ kept = null; }
+    if (!kept || !kept.id || !kept.productId) return;
+    if (!productById(kept.productId)) return;
+    openId = kept.productId;
+    sale = { id: kept.productId, qty: Number(kept.qty) || 1, busy: false, pendingId: kept.id, believed: kept.believed };
+    said = { id: kept.productId, tone: 'err', text: 'A sale from before never got a clear answer — it may or may not have gone through. Tap Try again: it cannot sell twice.' };
   }
 
   function confirmSale(){
     if (!sale || sale.busy) return;
-    var p = null;
-    for (var i = 0; i < products.length; i++) if (products[i].id === sale.id){ p = products[i]; break; }
+    var p = productById(sale.id);
     if (!p) return;
+    // A RETRY, or a first press? Only a first press that is refused before it
+    // runs can honestly say nothing was sold.
+    var retry = !!sale.pendingId;
     if (!sale.pendingId) sale.pendingId = 's' + phoneTag() + Date.now();
     if (sale.believed === undefined) sale.believed = Number(p.qty) || 0;
     var now = new Date();
@@ -951,13 +987,39 @@
       p_date: localDay(now), p_when: localClock(now), p_believed: sale.believed
     };
     sale.busy = true;
+    keepPending();
     said = null;
     renderList();
     var qty = sale.qty, id = sale.id;
     rpc('log_sale', body).then(function(res){
-      if (res.status === 401){ clearSession(); showLogin('Your session expired — sign in again. Nothing was sold.'); return; }
+      // SIGNED OUT, WHICH IS NOT AN ANSWER ABOUT THE SALE. PostgREST turned THIS
+      // send away before it ran, so a first press sold nothing — but a retry's
+      // earlier send may have landed, and the sale stays waiting for Try again
+      // after signing back in. Either way the panel lets go of "Selling…"; left
+      // held, selling stayed dead until a reload (the audit of 92f4171).
+      if (res.status === 401){
+        sale.busy = false;
+        if (!retry){ sale.pendingId = null; sale.believed = undefined; dropPending(); }
+        clearSession();
+        showLogin(retry
+          ? 'Your session expired — sign in again, then tap Try again. The sale may already be in; it cannot go in twice.'
+          : 'Your session expired — sign in again. Nothing was sold.');
+        return;
+      }
+      // A SERVER THAT DID NOT FINISH ANSWERING IS NOT A REFUSAL — the audit of
+      // 92f4171. A gateway timeout can come back after the sale went in; read as
+      // a refusal, the next press minted a new number and sold twice.
+      if (res.status >= 500 || res.status === 408 || res.status === 409 || res.status === 429){
+        throw new Error('no clear answer (' + res.status + ')');
+      }
       if (res.ok) return res.json().then(function(r){
-        p.qty = Number(r.qty_left);
+        dropPending();
+        // THE TIRE AS IT IS NOW, not the object read before the send: a refresh
+        // in between replaces the list, and writing on the old one left the row
+        // and the message disagreeing.
+        var cur = productById(id);
+        var left = Number(r.qty_left);
+        if (cur && isFinite(left)) cur.qty = left;
         openId = null; sale = null;
         said = saleWords(r, qty);
         said.id = id;
@@ -968,6 +1030,7 @@
       // not been taught this yet.
       return res.json().catch(function(){ return {}; }).then(function(j){
         var missing = res.status === 404 || (j && j.code === 'PGRST202');
+        dropPending();
         sale.busy = false; sale.pendingId = null; sale.believed = undefined;
         said = { id: id, tone: 'err', text: missing
           ? 'The stock room book has not been taught to take a sale from the phone yet. Nothing was sold.'
@@ -982,6 +1045,19 @@
       said = { id: id, tone: 'err', text: 'No answer from the stock room — the sale may or may not have gone through. Tap Try again: it cannot sell twice.' };
       renderList();
     });
+  }
+
+  // LEAVING A SALE THAT NEVER GOT AN ANSWER — the way out the audit asked for.
+  // It forgets the number and reads the stock again, so the tire's count says
+  // whether the sale went in before anybody sells it a second time.
+  function leavePending(){
+    if (!sale || sale.busy || !sale.pendingId) return;
+    var id = sale.id;
+    dropPending();
+    openId = null; sale = null;
+    said = { id: id, tone: 'warn', text: 'Left as it is. The stock is being read again — check this tire\u2019s count before selling it again.' };
+    renderList();
+    loadStock();
   }
 
   // IT SAYS "CHECKED", NOT "UPDATED", AND THAT IS THE WHOLE OF THE CHANGE.
@@ -1092,15 +1168,26 @@
       if (what === 'minus' && sale.qty > 1 && !sale.busy && !sale.pendingId){ sale.qty -= 1; renderList(); }
       if (what === 'plus' && !sale.busy && !sale.pendingId){ sale.qty += 1; renderList(); }
       if (what === 'confirm') confirmSale();
+      if (what === 'leave') leavePending();
       return;
     }
     if (e.target.closest && e.target.closest('[data-sell]')) return;
     var row = e.target.closest ? e.target.closest('.row[data-id]') : null;
     if (!row) return;
-    // NOT WHILE A SALE IS IN THE AIR, or waiting on Try again: closing it would
-    // lose the number that makes a retry safe.
-    if (sale && (sale.busy || sale.pendingId)) return;
     var id = row.getAttribute('data-id');
+    // NOT WHILE A SALE IS IN THE AIR, or waiting on Try again: closing it would
+    // lose the number that makes a retry safe. SAID, on the tire tapped — the
+    // audit of 92f4171 found the phone silently ignoring every tap, with the
+    // waiting tire possibly scrolled away or hidden by a search.
+    if (sale && (sale.busy || sale.pendingId)){
+      if (id !== sale.id){
+        var waiting = productById(sale.id);
+        said = { id: id, tone: 'warn', text: 'A sale is still waiting on ' + (waiting ? (waiting.size + ' ' + waiting.brand).trim() : 'another tire')
+          + ' — finish it first (Try again or Leave it).' };
+        renderList();
+      }
+      return;
+    }
     said = null;
     if (openId === id){ openId = null; sale = null; }
     else { openId = id; sale = { id: id, qty: 1, busy: false, pendingId: null }; }
