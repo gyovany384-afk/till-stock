@@ -4,15 +4,27 @@ One page, `index.html`, served from GitHub Pages. Open it on a phone, sign in
 once, and look up what the **stock room** holds: size, brand, rack, code, what it
 cost and what it sells for.
 
-**It can only look.** There is nothing in this page that writes to anything. No
-counting, no corrections, no sales — just the lookup.
+**It looks, and since 21 September 2026 it can log a sale.** Tap a tire, pick
+how many, press Confirm: the sale goes into the stock room's book at the tire's
+own price, marked as sold by "Phone", and the stock room computer shows it in
+its Sales log within about ten seconds. The page works out no money — the stock
+room's database stamps the price, cost and tax the way the counter does
+(`till_stock.log_sale`). No counting and no corrections — those stay on the
+computer.
+
+**A sale that never gets a clear answer** (a dropped signal) says so and offers
+**Try again**, which sends the same sale again — the stock room finds it and
+never sells it twice. It is remembered on the phone until it gets an answer, even
+if the page is closed. **Leave it** forgets it and re-reads the stock, so the
+count shows whether it went in.
 
 ## Which book it shows
 
 It reads the **stock room computer's own book** — the one the Till Stock desktop
 app keeps. That is not the shop's live till.
 
-**So a tire sold at the counter does not change the number on here.** The banner
+**So a tire sold on the shop's Till does not change the number on here.** (A sale
+logged on this page, or on the stock room computer, does.) The banner
 at the top of the screen says so, because it matters: the figure on this page is
 the stock room's record, not today's shelf.
 
