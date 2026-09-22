@@ -114,6 +114,9 @@ function phone(opts = {}) {
   // Every sale the page sent, in order, and the numbers already sold.
   const sales = [];
   const soldIds = new Map();
+  // Every Remove the page sent, and the sales already taken out.
+  const removals = [];
+  const goneSales = new Map();
 
   function stub(url, init) {
     const u = String(url);
@@ -150,7 +153,61 @@ function phone(opts = {}) {
       return reply({ id: body.p_id, already: false, product_id: r.id, product: r.size + ' ' + r.brand, qty_before: before, qty_left: r.qty, believed: body.p_believed });
     }
 
+    // THE SALES — 22 Sep 2026, the Sales log. `opts.sales` is the log in
+    // database shape; this answers the page's own question about it, filter,
+    // order, pages and all, so a test that breaks the query sees it.
+    if (u.indexOf('/rest/v1/sales') !== -1) {
+      if (opts.salesFail) return reply({ message: 'nope' }, opts.salesFail);
+      const gte = /sold_on=gte\.([0-9-]+)/.exec(u);
+      let log = (opts.sales || []).filter((x) => !gte || String(x.sold_on) >= gte[1]);
+      // sold_on.desc, then id.desc — the order the page asks for.
+      log = log.slice().sort((a, b) => (String(b.sold_on).localeCompare(String(a.sold_on))
+        || String(b.id).localeCompare(String(a.id))));
+      const r = parseRange(headers);
+      const slice = r ? log.slice(r.from, r.to + 1) : log;
+      return reply(slice, r ? 206 : 200);
+    }
+
+    // TAKING A SALE BACK OUT. `opts.remove(body, n)` answers it when given;
+    // otherwise a stand-in for till_stock.remove_sale that takes the line out,
+    // puts the tires back on `rows`, and answers a number it has seen before
+    // with 'already' having moved nothing.
+    if (u.indexOf('/rest/v1/rpc/remove_sale') !== -1) {
+      const body = JSON.parse((init && init.body) || '{}');
+      removals.push(body);
+      if (opts.remove) return opts.remove(body, removals.length);
+      const list = opts.sales || [];
+      const at = list.findIndex((x) => x.id === body.p_id);
+      const was = goneSales.get(body.p_id);
+      if (at === -1) {
+        if (!was) return reply({ message: 'That sale is not in the log. Nothing changed — check the Sales log.' }, 400);
+        const t = rows.find((x) => x.id === was.productId) || { qty: null };
+        return reply({ id: body.p_id, already: true, product_id: was.productId, qty_back: was.qty, qty_left: t.qty });
+      }
+      const s = list[at];
+      list.splice(at, 1);
+      const tire = rows.find((x) => x.id === s.product_id);
+      if (tire) tire.qty += Number(s.qty) || 0;
+      goneSales.set(body.p_id, { productId: s.product_id, qty: Number(s.qty) || 0 });
+      return reply({ id: body.p_id, already: false, product_id: s.product_id,
+        product: (tire ? tire.size + ' ' + tire.brand : null), qty_back: Number(s.qty) || 0,
+        qty_before: tire ? tire.qty - (Number(s.qty) || 0) : null, qty_left: tire ? tire.qty : null,
+        sold_on: s.sold_on });
+    }
+
     if (u.indexOf('/rest/v1/products') !== -1) {
+      // ASKED BY ID, which is how the Sales log finds the tires its sales name.
+      // It reaches tires the stock list never sees — archived ones, and ones
+      // with nothing on the shelf — so `opts.gone` stands for those.
+      const byId = /id=in\.\(([^)]*)\)/.exec(u);
+      if (byId) {
+        const want = decodeURIComponent(byId[1]).split(',')
+          .map((x) => x.replace(/^"|"$/g, '').replace(/\\"/g, '"'));
+        const pool = rows.concat(opts.gone || []);
+        const found = want.map((id) => pool.find((x) => x.id === id)).filter(Boolean);
+        const r0 = parseRange(headers);
+        return reply(r0 ? found.slice(r0.from, r0.to + 1) : found, r0 ? 206 : 200);
+      }
       const range = parseRange(headers);
       const from = range ? range.from : 0;
       const to = range ? range.to : rows.length - 1;
@@ -181,7 +238,7 @@ function phone(opts = {}) {
     },
   });
 
-  return { w: dom.window, calls, staffAsked: () => staffAsked, sales };
+  return { w: dom.window, calls, staffAsked: () => staffAsked, sales, removals };
 }
 
 let failures = 0;
@@ -204,5 +261,19 @@ const onScreen = (w, id) => {
   return !!el && el.style.display !== 'none';
 };
 const stockCalls = (calls) => calls.filter((c) => c.url.indexOf('/rest/v1/products') !== -1);
+const salesCalls = (calls) => calls.filter((c) => c.url.indexOf('/rest/v1/sales') !== -1);
+const salesList = (w) => (w.document.getElementById('salesList') || {}).innerHTML || '';
+const sheet = (w) => (w.document.getElementById('sheet') || {}).innerHTML || '';
+const sheetOpen = (w) => {
+  const el = w.document.getElementById('sheetWrap');
+  return !!el && el.classList.contains('on');
+};
+const tap = (w, sel) => {
+  const el = w.document.querySelector(sel);
+  if (!el) return false;
+  el.dispatchEvent(new w.Event('click', { bubbles: true }));
+  return true;
+};
 
-module.exports = { phone, ok, finish, wait, list, fresh, onScreen, stockCalls, row, book, reply };
+module.exports = { phone, ok, finish, wait, list, fresh, onScreen, stockCalls, row, book, reply,
+  salesCalls, salesList, sheet, sheetOpen, tap };

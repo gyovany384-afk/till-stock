@@ -262,6 +262,11 @@
   .arrowline .arr{ color:var(--faint); font-weight:400; }
   .note{ font-size:11.5px; color:var(--muted); line-height:1.5; margin:4px 2px 0; }
 
+  /* THE HIDDEN ATTRIBUTE HAS TO WIN — 22 Sep 2026, with the two tabs. The
+     browser hides [hidden] with  at the lowest specificity there
+     is, so .list and .segrow setting display:flex beat it and BOTH lists drew
+     at once, one under the other. */
+  [hidden]{ display:none !important; }
   .list{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
     padding:10px 12px calc(24px + var(--safe-bottom)); display:flex; flex-direction:column; gap:8px; }
   .row{ background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:12px 13px;
@@ -323,46 +328,107 @@
   .center{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:var(--muted); font-size:14px; }
   @media (prefers-reduced-motion: reduce){ .spin{ animation:none; } }
 
-  /* ---------- Sales log ---------- */
+  /* ---------- Sales log — 22 Sep 2026 ----------
+     Brought back, redrawn to his mockup. The list carries NO MONEY AT ALL: a
+     card is the dot, the size, the brand, the clock and how many went out, and
+     the money is inside the sale you tap. His words: "no other numbers exist (as
+     far as money goes) outside of the card, clicking shows those details".
+     The day headings lost their totals to the same rule. */
+  #salesList{ display:flex; flex-direction:column; gap:7px; }
   #salesList > *{ flex:0 0 auto; }
-  /* Day / Week / Month / All — the same grouping the desktop Sales log offers.
-     Sits in the sticky header; scrolls sideways on a narrow phone if it must. */
+  /* Today / Yesterday / Month. Sits in the sticky header; scrolls sideways on a
+     narrow phone if it must. */
   .segrow{ display:flex; gap:7px; margin-top:10px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
   .segrow::-webkit-scrollbar{ height:0; }
-  .seg{ flex:0 0 auto; font-size:13px; font-weight:700; padding:8px 16px; border-radius:999px; white-space:nowrap;
-    border:1px solid var(--line-strong); background:var(--surface); color:var(--muted); }
+  .seg{ flex:0 0 auto; font-size:13px; font-weight:700; padding:9px 16px; border-radius:999px; white-space:nowrap;
+    border:1px solid var(--line-strong); background:var(--surface); color:var(--muted); font-family:inherit; cursor:pointer; }
   .seg.on{ border-color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, var(--surface)); color:var(--accent); }
 
-  .kpis{ display:flex; gap:8px; }
-  .kpi{ flex:1; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:13px;
-    padding:10px 12px; box-shadow:var(--shadow); }
-  .kpi .l{ font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--faint); }
-  .kpi .v{ font-size:18px; font-weight:800; letter-spacing:-.4px; margin-top:3px; white-space:nowrap; }
-  .kpi .v.pos{ color:var(--good); }
-  .kpi .v.neg{ color:var(--danger); }
+  /* Stock | Sales. The two screens this page has. */
+  .tabs{ display:flex; gap:4px; background:var(--surface-2); border-radius:13px; padding:4px; margin-top:10px; }
+  .tab{ flex:1; min-height:40px; border:none; border-radius:10px; background:none; font-family:inherit;
+    font-size:14.5px; font-weight:600; color:var(--muted); cursor:pointer; }
+  .tab.on{ background:var(--surface); color:var(--ink); font-weight:700; box-shadow:0 1px 3px rgba(0,0,0,.06); }
 
-  .srow{ background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:11px 13px; box-shadow:var(--shadow); }
-  .srow .top{ display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
-  .srow .name{ font-size:15px; font-weight:700; letter-spacing:-.1px; line-height:1.25; }
-  .srow .brandline{ margin-top:2px; font-size:12.5px; font-weight:600; color:var(--muted); }
-  .srow .sell{ font-size:16px; font-weight:800; letter-spacing:-.3px; }
-  .tag.new{ color:var(--accent); background:color-mix(in srgb, var(--accent) 13%, var(--surface)); }
-  .tag.used{ color:var(--warn); background:var(--warn-bg); }
-  .srow .ftr{ display:flex; align-items:center; gap:6px 12px; flex-wrap:wrap; margin-top:9px; font-size:12px; color:var(--muted); }
-  .srow .ftr .cost{ margin-top:0; }
-  .srow .work{ margin-left:auto; font-weight:800; color:var(--good); }
-  .srow .work.neg{ color:var(--danger); }
+  /* The day it was sold, and nothing else on the line. The rule above is why. */
+  .dayhead{ display:flex; align-items:center; gap:8px; padding:2px 4px; }
+  .dayhead .d{ font-size:12.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
+  .dayhead .rule{ flex:1; height:1px; background:var(--line); }
+  .srow + .dayhead{ margin-top:6px; }
 
-  /* True-profit slider — sits next to the title. Off shows the recorded profit
-     (COGS rounded up); on shows profit against exact, unrounded cost. */
-  .tptoggle{ display:inline-flex; align-items:center; gap:8px; border:none; background:none; padding:6px 2px; margin:0;
-    color:var(--muted); font-size:12px; font-weight:700; white-space:nowrap; }
-  .tpswitch{ width:40px; height:23px; border-radius:999px; background:var(--line-strong); position:relative; transition:background .16s; flex:0 0 auto; }
-  .tpknob{ position:absolute; top:2px; left:2px; width:19px; height:19px; border-radius:50%; background:#fff;
-    box-shadow:0 1px 2px rgba(0,0,0,.3); transition:transform .16s; }
-  .tptoggle.on{ color:var(--accent); }
-  .tptoggle.on .tpswitch{ background:var(--accent); }
-  .tptoggle.on .tpknob{ transform:translateX(17px); }
+  /* ONE CARD PER SALE, one line tall — his ask, so more of the day fits on a
+     screen. The brand is what gives way when the name is too long. */
+  .srow{ display:flex; align-items:center; gap:9px; width:100%; text-align:left; font-family:inherit; cursor:pointer;
+    min-height:46px; padding:11px 12px; background:var(--surface); border:1px solid var(--line);
+    border-radius:12px; box-shadow:var(--shadow); color:inherit; }
+  .srow:active{ background:var(--surface-2); }
+  .srow .from{ width:8px; height:8px; flex:0 0 8px; border-radius:50%; background:var(--good); }
+  .srow .from.phone{ background:var(--accent); }
+  .srow .what{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    font-size:14px; font-weight:700; }
+  .srow .what b{ font-weight:600; color:var(--muted); }
+  .srow .at{ flex:0 0 auto; font-size:11.5px; color:var(--faint); }
+  .srow .many{ flex:0 0 auto; font-size:14px; font-weight:800; letter-spacing:-.2px;
+    background:var(--surface-2); border-radius:8px; padding:3px 8px; }
+  .srow .tag{ flex:0 0 auto; font-size:10.5px; padding:2px 6px; border-radius:6px; }
+
+  /* What the two dots mean, under the list. */
+  .legend{ display:flex; align-items:center; gap:8px; padding:6px 6px 0; font-size:12.5px; color:var(--muted); }
+  .legend i{ width:8px; height:8px; border-radius:50%; background:var(--accent); display:inline-block; }
+  .legend i.counter{ background:var(--good); margin-left:12px; }
+
+  /* ---------- one sale, opened ----------
+     A sheet over the list, and the only place on this page money appears. */
+  .sheetwrap{ position:fixed; inset:0; z-index:40; display:none; }
+  .sheetwrap.on{ display:block; }
+  .scrim{ position:absolute; inset:0; background:rgba(15,18,23,.45); }
+  .sheet{ position:absolute; left:0; right:0; bottom:0; max-height:88vh; overflow-y:auto;
+    background:var(--surface); border-radius:22px 22px 0 0; box-shadow:0 -10px 40px rgba(0,0,0,.28);
+    padding:10px 18px calc(22px + env(safe-area-inset-bottom)); }
+  @media (min-width: 700px){ .sheet{ max-width:520px; margin:0 auto; border-radius:22px; bottom:24px; left:16px; right:16px; } }
+  .sheet .grab{ width:40px; height:4px; border-radius:999px; background:var(--line-strong); margin:0 auto 16px; }
+  .sheet h2{ margin:0; font-size:21px; font-weight:800; letter-spacing:-.3px; }
+  .sheet .brandline{ margin-top:3px; font-size:14.5px; font-weight:600; color:var(--muted); }
+  .sheet .whence{ margin-top:11px; display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--muted); }
+  .sheet .whence i{ width:8px; height:8px; border-radius:50%; background:var(--good); flex:0 0 8px; }
+  .sheet .whence i.phone{ background:var(--accent); }
+  .money{ margin-top:18px; background:var(--surface-2); border-radius:16px; padding:16px; }
+  .money .line{ display:flex; align-items:baseline; gap:10px; }
+  .money .line + .line{ margin-top:12px; padding-top:12px; border-top:1px solid var(--line); }
+  .money .l{ flex:1; font-size:15px; color:var(--muted); }
+  .money .line.tot .l{ font-weight:700; color:var(--ink); }
+  .money .v{ font-size:17px; font-weight:700; }
+  .money .line.tot .v{ font-size:24px; font-weight:800; letter-spacing:-.4px; }
+  .shelfnote{ margin-top:14px; border-radius:12px; padding:12px 14px; font-size:13.5px; font-weight:600; line-height:1.45;
+    background:var(--warn-bg); color:var(--warn); }
+  .sheetacts{ margin-top:18px; display:flex; flex-direction:column; gap:10px; }
+  .sheetacts button{ width:100%; min-height:50px; border-radius:14px; font-family:inherit; font-size:16px;
+    font-weight:700; cursor:pointer; }
+  .sheetacts .close{ border:none; background:var(--accent); color:#fff; }
+  .sheetacts .close:active{ background:var(--accent-deep); }
+  /* Destructive, so it is the quieter of the two and it is NOT the one under the
+     thumb: Close sits at the bottom, where the thumb lands. */
+  .sheetacts .kill{ display:flex; align-items:center; justify-content:center; gap:8px;
+    border:1px solid var(--danger); background:var(--surface); color:var(--danger); }
+  .sheetacts .kill:active{ background:var(--danger-bg); }
+  .sheetacts button:disabled{ opacity:.6; }
+  .sheetacts svg{ width:18px; height:18px; }
+  /* What Remove is about to do, said before it happens — the same two things the
+     counter's confirm says, in the same words. */
+  .areyou{ margin-top:14px; border:1px solid var(--line-strong); border-radius:14px; padding:14px 16px; }
+  .areyou .h{ font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .areyou .w{ margin-top:8px; font-size:13px; line-height:1.55; color:var(--muted); }
+  .areyou .w b{ color:var(--ink); }
+  .areyou .w .notes{ display:block; margin-top:6px; color:var(--faint); }
+  .areyou .w .older{ display:block; margin-top:8px; color:var(--warn); font-weight:700; }
+  .areyou .acts{ display:flex; gap:8px; margin-top:14px; }
+  .areyou .acts button{ flex:1; min-height:44px; border-radius:999px; font-family:inherit; font-size:14px;
+    font-weight:700; cursor:pointer; }
+  .areyou .acts .no{ border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); }
+  .areyou .acts .yes{ flex:1.4; border:none; background:var(--danger); color:#fff; }
+  .areyou .acts button:disabled{ opacity:.6; }
+  .sheetmsg{ margin-top:14px; border-radius:12px; padding:12px 14px; font-size:13.5px; font-weight:600; line-height:1.45;
+    background:var(--danger-bg); color:var(--danger); }
 
   /* ---------- the count session ---------- */
   .startcount{ display:block; width:100%; min-height:58px; margin:0 0 12px; border:none; border-radius:12px;
@@ -524,10 +590,10 @@
     sale in the stock room's book. The half about the shop's Till still holds:
     a sale rung up there does not move these numbers.
   -->
-  <div class="banner">Stock room book · tap a tire to log a sale · the shop's Till does not change this</div>
+  <div class="banner" id="banner">Stock room book · tap a tire to log a sale · the shop's Till does not change this</div>
   <div class="topbar">
     <div class="toprow">
-      <div class="title">Stock</div>
+      <div class="title" id="screenTitle">Stock</div>
       <div class="spacer"></div>
       <button class="iconbtn" id="refreshBtn" aria-label="Refresh">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
@@ -535,6 +601,21 @@
       <button class="iconbtn" id="signOutBtn" aria-label="Sign out">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
       </button>
+    </div>
+    <!--
+      TWO SCREENS, 22 Sep 2026. The Sales log came back on his ask; the count and
+      review screens deleted on 12 September did not, and the note below the app
+      says why they must not.
+    -->
+    <div class="tabs" role="tablist" aria-label="Screens">
+      <button class="tab on" type="button" id="tabStock" role="tab" aria-selected="true">Stock</button>
+      <button class="tab" type="button" id="tabSales" role="tab" aria-selected="false">Sales</button>
+    </div>
+    <!-- Sales only. Hidden rather than absent, so the header does not jump. -->
+    <div class="segrow" id="rangeRow" hidden>
+      <button class="seg on" type="button" data-range="Today">Today</button>
+      <button class="seg" type="button" data-range="Yesterday">Yesterday</button>
+      <button class="seg" type="button" data-range="Month">Month</button>
     </div>
     <div class="search" id="searchWrap">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
@@ -546,6 +627,17 @@
     </div>
   </div>
   <div class="list" id="list"></div>
+  <div class="list" id="salesList" hidden></div>
+</div>
+
+<!-- ============ ONE SALE, OPENED ============
+  The only place on this page money appears, which is his rule for this screen.
+  It is OUTSIDE #app on purpose: `only()` shows and hides whole screens by id,
+  and a sheet that belongs to one of them would be shown again by a sign-in.
+-->
+<div class="sheetwrap" id="sheetWrap">
+  <div class="scrim" id="scrim"></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Sale"></div>
 </div>
 
 <!--
@@ -784,9 +876,12 @@
     };
   }
 
-  // One page of the book. Answers rows, or null when there are no more.
-  function stockPage(from){
-    return authedGet(STOCK_PATH, {
+  // ONE PAGED READ FOR EVERY LIST ON THIS PAGE — 22 Sep 2026, when the sales
+  // log came back and brought two more reads with it. The three traps below are
+  // each a way to lose a whole read in silence, and two copies of them would be
+  // two copies waiting to disagree about what "all of it" means.
+  function pageOf(path, from){
+    return authedGet(path, {
       'Accept-Profile': SCHEMA,
       'Range-Unit': 'items',
       'Range': from + '-' + (from + PAGE - 1)
@@ -803,6 +898,8 @@
       return res.json().then(function(rows){ return { rows: Array.isArray(rows) ? rows : [] }; });
     });
   }
+  // One page of the book. Answers rows, or null when there are no more.
+  function stockPage(from){ return pageOf(STOCK_PATH, from); }
 
   // THIS READ, AND NO OTHER — 22 Sep 2026, the same rule the sale path keeps
   // (`mine()` in confirmSale). A read comes back long after it was asked for,
@@ -854,6 +951,11 @@
         clearSession(); showLogin('Your session expired — sign in again.'); return null;
       }
       if (allowed === 'no'){
+        // AND THE SALES TAB SAYS THE SAME THING — 22 Sep 2026. Row security
+        // answers a caller who is not staff with an EMPTY LIST and no error, so
+        // the sales screen would otherwise say "nothing sold yet" to somebody
+        // whose real answer is the one below.
+        doorShut = true;
         showApp();
         $('list').innerHTML = '<div class="empty">This account is not on the stock room\u2019s staff list.<br>'
           + 'Ask for it to be added on the stock room computer.</div>';
@@ -877,6 +979,7 @@
         // rounded up — a tire at nothing or below is simply not offered. How
         // many were left out is kept, so an empty screen can say which kind of
         // empty it is.
+        doorShut = false;
         var all = rows.map(rowToProduct);
         products = all.filter(function(p){ return (Number(p.qty) || 0) > 0; });
         hidden = all.length - products.length;
@@ -1271,8 +1374,13 @@
   // which is a different claim, so it makes a different one: calling a clock on
   // this phone "updated" would be passing off its own fact as the database's.
   function renderFresh(){
-    if (!checkedAt){ $('freshText').textContent = ''; return; }
-    var d = new Date(checkedAt), now = new Date();
+    // WHICHEVER SCREEN IS IN FRONT — 22 Sep 2026. The stock and the sales are
+    // two reads at two different moments, and one line saying "checked just
+    // now" over the other one's read is a claim about a read that never
+    // happened.
+    var at = tab === TAB_SALES ? salesAt : checkedAt;
+    if (!at){ $('freshText').textContent = ''; return; }
+    var d = new Date(at), now = new Date();
     var mins = Math.round((now - d)/60000);
     var t;
     if (mins < 1) t = 'just now';
@@ -1280,6 +1388,539 @@
     else if (mins < 60*24 && d.toDateString()===now.toDateString()) t = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
     else t = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
     $('freshText').innerHTML = '<span class="dot"></span>checked ' + t;
+  }
+
+  // ---------- the Sales log, back on the phone — 22 Sep 2026 ----------
+  //
+  // It was deleted on 12 September with the count and review screens. THE COUNT
+  // SCREEN'S REASON STILL HOLDS AND NOTHING HERE WEAKENS IT: that screen posted
+  // finished corrections into the SHOP's mailbox off baselines read from the
+  // stock room's book, so it is gone and stays gone. The sales log's reason was
+  // the smaller one — a sale row in this book names a product id and carries no
+  // size or brand, so a log drawn from the sales table alone was a list of
+  // "Tire" rows. That is answered by reading the tires the sales name, which is
+  // what loadSales does, and it is the only reason it can come back.
+  //
+  // NO MONEY ANYWHERE ON THE LIST. His rule for this screen, given with the
+  // mockup: "no other numbers exist (as far as money goes) outside of the card,
+  // clicking shows those details". So a card carries the dot, the size, the
+  // brand, the clock and HOW MANY went out; the day headings carry the day and
+  // no total; and every figure is inside the sale that is tapped open.
+  var TAB_STOCK = 'stock', TAB_SALES = 'sales';
+  var tab = TAB_STOCK;
+  // The sales last read, the tires they name (by product id, count and all), and
+  // when this page last looked. `tires` is read at the same moment as the sales
+  // so the confirm can say what the shelf holds without guessing: the stock list
+  // is no use for it — out-of-stock tires are dropped from that read, and a tire
+  // whose last one has just been sold is exactly the one a Remove is about.
+  var sales = [], tires = Object.create(null), salesAt = null;
+  var salesQuery = '', range = 'Today', salesErr = null, salesLoading = false;
+  // Said after a sale was taken out, above the list. Not a sale panel's `said`:
+  // there is no row left to say it under.
+  var salesSaid = null;
+  // THE DOOR, as the last stock read found it. A caller signed in but not on the
+  // staff list reads no sales at all, and row security answers that with an
+  // empty list rather than an error — so without this the Sales tab would say
+  // "nothing sold yet" to somebody whose real answer is on the other tab.
+  var doorShut = false;
+  // The sale drawn in the sheet, whether Remove has been pressed, and what came
+  // back if it failed.
+  var openSale = null, confirming = false, killBusy = false, killSaid = null;
+
+  // THE DAY AS THE BOOK WRITES IT, never through a Date. '2026-09-22' handed to
+  // `new Date()` is midnight UTC, which in this shop's time zone is the evening
+  // of the 21st — so a sale filed today would head a group called yesterday's,
+  // and Today would show nothing. Every day here is compared as text and shifted
+  // in UTC, where a date has no zone to be moved by.
+  var DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function dayParts(iso){
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+    return m ? { y: +m[1], m: +m[2], d: +m[3] } : null;
+  }
+  function dayShift(iso, by){
+    var p = dayParts(iso);
+    if (!p) return '';
+    return new Date(Date.UTC(p.y, p.m - 1, p.d + by)).toISOString().slice(0, 10);
+  }
+  // 'Tue 22 Sep'. Names, not numbers, because 09/10 is a different day on either
+  // side of the Atlantic and a shop should not have to guess which.
+  function dayWords(iso){
+    var p = dayParts(iso);
+    if (!p) return '';
+    var at = new Date(Date.UTC(p.y, p.m - 1, p.d));
+    return DAY_NAMES[at.getUTCDay()] + ' ' + p.d + ' ' + MONTH_NAMES[p.m - 1];
+  }
+  function dayHead(iso){
+    var today = localDay(new Date());
+    if (iso === today) return 'Today · ' + dayWords(iso);
+    if (iso === dayShift(today, -1)) return 'Yesterday · ' + dayWords(iso);
+    return dayWords(iso);
+  }
+
+  // THE SAME TWO RULES THE COUNTER KEEPS — clockFrom and clock12 in the desktop's
+  // src/state/today.js. A second copy of a rule is two rules waiting to
+  // disagree, and this one is taken with eyes open: this page is a different
+  // program on a different host that cannot import from that one, and what it
+  // has to read is whatever that one wrote — '14:20' from clockNow, which is
+  // what both tills store, 'Aug 30 · 17:52' from the invented book, 'Today ·
+  // just now' from before September, and ''.
+  //
+  // FOR SHOWING ONLY. Nothing here is stored and nothing is rewritten: the same
+  // minute in a different spelling, the way money() shows 12900 as $129.00.
+  function clockOf(label){
+    var m = /([0-9]{1,2}:[0-9]{2}) *$/.exec(String(label || ''));
+    return m ? m[1] : '';
+  }
+  function clock12(hhmm){
+    var m = /^([0-9]{1,2}):([0-9]{2})$/.exec(String(hhmm || ''));
+    if (!m) return '';
+    var h = Number(m[1]);
+    if (h > 23 || Number(m[2]) > 59) return '';
+    // Midnight and noon are both 12 on this clock, never 0.
+    return (h % 12 || 12) + ':' + m[2] + ' ' + (h < 12 ? 'AM' : 'PM');
+  }
+  function saleClock(s){ return clock12(clockOf(s.when)); }
+
+  // CENTS BECOME DOLLARS HERE AND NOWHERE ELSE, the same rule rowToProduct
+  // keeps and for the same reason: wire an integer straight through and a $129
+  // tire prints $12,900.00.
+  //
+  // THE LINE'S TOTAL IS MULTIPLIED IN CENTS AND DIVIDED ONCE — saleTotalCents in
+  // the desktop's src/state/stock.js does exactly this. Dividing first and
+  // multiplying after is how a line of four comes out a cent short of the
+  // counter's own figure, on a screen somebody is holding against a receipt.
+  function rowToSale(r){
+    return {
+      id: r.id,
+      productId: r.product_id,
+      day: String(r.sold_on || '').slice(0, 10),
+      when: r.when_label || '',
+      qty: Number(r.qty) || 0,
+      used: Number(r.used) || 0,
+      unitCents: Number(r.unit_cents) || 0,
+      by: r.sold_by || '',
+      shelfBefore: (r.shelf_before === null || r.shelf_before === undefined) ? null : Number(r.shelf_before)
+    };
+  }
+  function saleTotalCents(s){ return (Number(s.unitCents) || 0) * (Number(s.qty) || 0); }
+  function centsMoney(c){ return money((Number(c) || 0) / 100); }
+
+  // The columns this screen draws, named rather than `*`, the same rule the
+  // stock read keeps. Cost, tax and the reorder mark are the counter's business
+  // and are not drawn here, so they are not asked for.
+  var SALE_COLS = 'id,product_id,sold_on,when_label,qty,used,unit_cents,sold_by,shelf_before';
+  var TIRE_COLS = 'id,size,brand,type,product_code,qty';
+
+  // THE OLDEST DAY WORTH READING. The three pills are Today, Yesterday and this
+  // month, so the read is bounded by the earlier of the first of the month and
+  // yesterday — and that second half is not a nicety: on the first of the month
+  // the month starts today, and without it Yesterday would be empty every time
+  // it mattered most.
+  function salesFrom(){
+    var today = localDay(new Date());
+    var p = dayParts(today);
+    var first = p ? (p.y + '-' + pad2(p.m) + '-01') : today;
+    var back = dayShift(today, -1);
+    return back < first ? back : first;
+  }
+
+  // ORDERED ON EVERY PAGE, like the stock read: day down, then the sale number
+  // down, which is the order the counter's own log is kept in (byLogOrder in the
+  // desktop's src/state/refresh.js). A number carries the clock of the press, so
+  // within a day this puts the newest at the top.
+  function salesPath(){
+    return '/rest/v1/sales?select=' + SALE_COLS + '&sold_on=gte.' + salesFrom()
+      + '&order=sold_on.desc,id.desc';
+  }
+  // A VALUE IN `in.()` IS QUOTED AND ENCODED. A product id is free text; one with
+  // a comma in it would otherwise read as two ids and quietly fetch the wrong
+  // tires — and a tire drawn under the wrong name is worse than one drawn under
+  // none.
+  function tiresPath(ids){
+    var list = ids.map(function(id){ return '"' + String(id).replace(/"/g, '\\"') + '"'; }).join(',');
+    return '/rest/v1/products?select=' + TIRE_COLS + '&id=in.(' + encodeURIComponent(list) + ')&order=id';
+  }
+
+  // How many ids one request may name. The whole book is 1,595 tires and a month
+  // of sales names a few hundred of them; a URL has no defined limit but proxies
+  // have their own, so this is the one place a long month could have turned into
+  // a 414 that nobody could reproduce in December.
+  var ID_CHUNK = 100;
+
+  var salesGen = 0;
+  function loadSales(){
+    var mine = sessionGen, gen = ++salesGen;
+    // THE SAME THREE QUESTIONS THE STOCK READ ASKS — a read belongs to the
+    // sign-in it started under and to its own number. Signed out, signed in
+    // again, or beaten by a newer read, and this one draws nothing.
+    var stale = function(){ return sessionGen !== mine || !session || gen !== salesGen; };
+    salesLoading = true; salesErr = null;
+    if (tab === TAB_SALES) renderSales();
+
+    var rows = [];
+    function page(from, pages){
+      if (pages > MAX_PAGES) return Promise.resolve(true);
+      return pageOf(salesPath(), from).then(function(answer){
+        if (answer.expired) return 'expired';
+        rows = rows.concat(answer.rows);
+        if (answer.rows.length < PAGE) return true;
+        return page(from + PAGE, pages + 1);
+      });
+    }
+
+    return page(0, 1).then(function(done){
+      if (stale()) return null;
+      if (done === 'expired'){ clearSession(); showLogin('Your session expired — sign in again.'); return null; }
+      var got = rows.map(rowToSale);
+      // THE TIRES THOSE SALES NAME, read in the same breath. Not from the stock
+      // list: that read drops everything out of stock and everything archived,
+      // and a sale is most often about a tire in exactly that state.
+      var want = [], seen = Object.create(null);
+      got.forEach(function(s){
+        if (s.productId && !seen[s.productId]){ seen[s.productId] = true; want.push(s.productId); }
+      });
+      var chunks = [];
+      for (var i = 0; i < want.length; i += ID_CHUNK) chunks.push(want.slice(i, i + ID_CHUNK));
+      var found = Object.create(null);
+      var next = function(n){
+        if (n >= chunks.length) return Promise.resolve(true);
+        return pageOf(tiresPath(chunks[n]), 0).then(function(answer){
+          if (answer.expired) return 'expired';
+          answer.rows.forEach(function(r){
+            found[r.id] = {
+              size: r.size || '', brand: r.brand || '', type: r.type || '',
+              code: r.product_code || '', qty: Number(r.qty) || 0
+            };
+          });
+          return next(n + 1);
+        });
+      };
+      return next(0).then(function(ok){
+        if (stale()) return null;
+        if (ok === 'expired'){ clearSession(); showLogin('Your session expired — sign in again.'); return null; }
+        sales = got;
+        tires = found;
+        salesAt = Date.now();
+        salesLoading = false;
+        salesErr = null;
+        if (tab === TAB_SALES){ renderSales(); renderFresh(); }
+        // The sheet is drawn from `sales`, so a read that lands under an open
+        // one redraws it — or closes it, if the sale it was about has gone.
+        if (openSale) renderSheet();
+        return true;
+      });
+    }).catch(function(){
+      if (stale()) return null;
+      salesLoading = false;
+      salesErr = true;
+      if (tab === TAB_SALES) renderSales();
+      return null;
+    });
+  }
+
+  function saleById(id){
+    for (var i = 0; i < sales.length; i++) if (sales[i].id === id) return sales[i];
+    return null;
+  }
+  // The tire a sale was made against, as the database holds it. `null` is a real
+  // answer and the screen says so rather than inventing a name.
+  function tireOf(s){ return (s && s.productId && tires[s.productId]) || null; }
+  function saleTitle(s){
+    var t = tireOf(s);
+    if (!t) return 'A tire no longer on the book';
+    var size = String(t.size || '').trim(), brand = String(t.brand || '').trim();
+    if (size) return size;
+    if (brand) return brand;
+    return String(t.code || '').trim() || String(t.type || '').trim() || 'Item';
+  }
+  function saleBrand(s){
+    var t = tireOf(s);
+    if (!t) return '';
+    return String(t.size || '').trim() ? String(t.brand || '').trim() : '';
+  }
+  // Rung up where? 'Phone' is what till_stock.log_sale stamps; anything else is
+  // the counter, including the blank that every sale before 21 September carries.
+  function fromPhone(s){ return String(s.by || '').toLowerCase() === 'phone'; }
+
+  function inRange(s){
+    var today = localDay(new Date());
+    if (range === 'Today') return s.day === today;
+    if (range === 'Yesterday') return s.day === dayShift(today, -1);
+    // This month, as the calendar has it — the same month the counter's "This
+    // month" means.
+    return String(s.day || '').slice(0, 7) === String(today).slice(0, 7);
+  }
+  function saleMatches(s, q){
+    var t = tireOf(s) || {};
+    return (String(t.size || '') + ' ' + String(t.brand || '') + ' ' + String(t.type || '')
+      + ' ' + String(t.code || '') + ' ' + String(s.by || '')).toLowerCase().indexOf(q) !== -1;
+  }
+
+  function renderSales(){
+    var box = $('salesList');
+    if (!box) return;
+    var head = salesSaid ? '<div class="salemsg' + (salesSaid.tone ? ' ' + salesSaid.tone : '') + '" role="status">'
+      + esc(salesSaid.text) + '</div>' : '';
+    if (doorShut){
+      box.innerHTML = '<div class="empty">This account is not on the stock room’s staff list.<br>'
+        + 'Ask for it to be added on the stock room computer.</div>';
+      return;
+    }
+    if (salesLoading && !sales.length){
+      box.innerHTML = head + '<div class="center"><div class="spin"></div>Loading sales…</div>';
+      return;
+    }
+    if (salesErr && !sales.length){
+      box.innerHTML = head + '<div class="center">Couldn’t read the sales. Check your connection and tap refresh.</div>';
+      return;
+    }
+    var q = salesQuery.trim().toLowerCase();
+    var shown = sales.filter(inRange);
+    if (q) shown = shown.filter(function(s){ return saleMatches(s, q); });
+    if (!shown.length){
+      if (q){
+        box.innerHTML = head + '<div class="empty">No matches for “' + esc(salesQuery.trim()) + '”</div>';
+        return;
+      }
+      // WHAT IT DOES NOT SAY IS THAT A SALE TURNS UP BY ITSELF. Nothing on this
+      // page polls: the counter hears about a phone sale within ten seconds
+      // because it asks every ten seconds, and this page asks when somebody
+      // taps refresh or comes back to it. Saying otherwise would leave whoever
+      // is holding it waiting for a line that is never going to arrive on its
+      // own.
+      box.innerHTML = head + '<div class="empty">'
+        + '<b>' + (range === 'Today' ? 'Nothing sold yet today.'
+          : range === 'Yesterday' ? 'Nothing sold yesterday.' : 'Nothing sold this month.') + '</b>'
+        + 'A sale rung up at the counter, or here on the phone, shows up the next time this page checks — tap the refresh button at the top.</div>';
+      return;
+    }
+    var html = head, day = null;
+    shown.forEach(function(s){
+      if (s.day !== day){
+        day = s.day;
+        html += '<div class="dayhead"><div class="d">' + esc(dayHead(day)) + '</div><div class="rule"></div></div>';
+      }
+      var brand = saleBrand(s), at = saleClock(s);
+      html += '<button type="button" class="srow" data-sale="' + esc(s.id) + '">'
+        + '<span class="from' + (fromPhone(s) ? ' phone' : '') + '"></span>'
+        + '<span class="what">' + esc(saleTitle(s)) + (brand ? ' <b>' + esc(brand) + '</b>' : '') + '</span>'
+        + (s.used > 0 ? '<span class="tag used">' + (s.used >= s.qty ? 'used' : esc(s.used + ' used')) + '</span>' : '')
+        + (at ? '<span class="at">' + esc(at) + '</span>' : '')
+        + '<span class="many">×' + (Number(s.qty) || 0) + '</span>'
+        + '</button>';
+    });
+    html += '<div class="legend"><i></i>phone<i class="counter"></i>counter</div>';
+    box.innerHTML = html;
+  }
+
+  // ---------- one sale, opened ----------
+  //
+  // The only place on this page money appears, which is the whole shape of this
+  // screen: the list says what went out, the sheet says what it was worth.
+  var COUNT_WORDS = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+    'nine', 'ten', 'eleven', 'twelve'];
+  function howMany(n){ return COUNT_WORDS[n] ? COUNT_WORDS[n] : String(n); }
+
+  function renderSheet(){
+    var wrap = $('sheetWrap'), box = $('sheet');
+    if (!wrap || !box) return;
+    var s = openSale ? saleById(openSale) : null;
+    if (!s){
+      // The sale went while this was open — taken out here, or read again and no
+      // longer in the book. Either way there is nothing to draw.
+      openSale = null; confirming = false; killSaid = null;
+      wrap.classList.remove('on');
+      box.innerHTML = '';
+      return;
+    }
+    var brand = saleBrand(s), at = saleClock(s), t = tireOf(s);
+    var when = dayHead(s.day).replace(/ · .*/, '');
+    when = (when === 'Today' || when === 'Yesterday') ? when.toLowerCase() : dayWords(s.day);
+    var html = '<div class="grab"></div>'
+      + '<h2>' + (Number(s.qty) || 0) + ' × ' + esc(saleTitle(s)) + '</h2>'
+      + (brand ? '<div class="brandline">' + esc(brand) + '</div>' : '')
+      + '<div class="whence"><i class="' + (fromPhone(s) ? 'phone' : '') + '"></i>'
+      + esc((fromPhone(s) ? 'Sold on the phone' : 'Rung up at the counter') + ' · ' + when + (at ? ', ' + at : ''))
+      + '</div>';
+
+    html += '<div class="money">';
+    if ((Number(s.qty) || 0) > 1){
+      html += '<div class="line"><span class="l">Each one</span><span class="v">' + centsMoney(s.unitCents) + '</span></div>';
+      html += '<div class="line tot"><span class="l">All ' + esc(howMany(s.qty)) + '</span>'
+        + '<span class="v">' + centsMoney(saleTotalCents(s)) + '</span></div>';
+    } else {
+      html += '<div class="line tot"><span class="l">This sale</span>'
+        + '<span class="v">' + centsMoney(saleTotalCents(s)) + '</span></div>';
+    }
+    html += '</div>';
+
+    // WHAT THE RACK READ WHEN IT WAS RUNG UP. Only when there is one: every sale
+    // before 10 September carries nothing here, and a made-up reading on a money
+    // screen is worse than a missing one.
+    if (s.shelfBefore !== null){
+      html += '<div class="shelfnote">The rack held ' + s.shelfBefore + ' when this was rung up. '
+        + (s.shelfBefore - s.qty) + ' left after it.</div>';
+    }
+
+    if (killSaid) html += '<div class="sheetmsg">' + esc(killSaid.text) + '</div>';
+
+    if (confirming){
+      // THE SAME TWO THINGS THE COUNTER'S CONFIRM SAYS, in the same words
+      // (RemovePopup in the desktop's src/screens/SalesLog.jsx). A sale is
+      // money, and a button that moves money on one press is a button somebody
+      // eventually presses by accident.
+      // WHAT IT DOES, NOT WHAT THE SHELF WILL READ. The counter's own confirm
+      // says "6 becomes 10" and is entitled to: its count is never more than
+      // ten seconds old. NOTHING ON THIS PAGE POLLS — the count read beside
+      // these sales is from whenever the Sales tab last looked, which can be
+      // this morning — and a promise about a shelf made out of an old number is
+      // exactly the kind of thing somebody acts on. What the shelf actually
+      // holds is said the moment it is done, out of the database's own answer.
+      var back = t
+        ? 'Puts <b>' + (Number(s.qty) || 0) + '</b> back on the shelf.'
+        : 'This tire is no longer in the book, so there is no shelf to put anything back on.';
+      var older = s.day !== localDay(new Date());
+      html += '<div class="areyou">'
+        + '<div class="h">Take this sale out</div>'
+        + '<div class="w">' + back
+        + '<span class="notes">The sales total for <b>' + esc(dayWords(s.day)) + '</b> drops by <b>'
+        + centsMoney(saleTotalCents(s)) + '</b>. The line goes completely — nothing is left in the log to say it was here.</span>'
+        // Not a refusal. The owner lifted that rule on 5 September; it is the one
+        // thing about an older line that differs from today's, and the person
+        // pressing the button is the one who should decide whether it matters.
+        + (older ? '<span class="older">This is not today’s sale. That day has already been counted.</span>' : '')
+        + '</div>'
+        + '<div class="acts">'
+        + '<button type="button" class="no" data-act="no"' + (killBusy ? ' disabled' : '') + '>Cancel</button>'
+        + '<button type="button" class="yes" data-act="yes"' + (killBusy ? ' disabled' : '') + '>'
+        + (killBusy ? 'Taking it out…' : 'Remove sale') + '</button>'
+        + '</div></div>';
+    } else {
+      html += '<div class="sheetacts">'
+        + '<button type="button" class="kill" data-act="kill">'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'
+        + '<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/></svg>'
+        + 'Remove this sale</button>'
+        + '<button type="button" class="close" data-act="close">Close</button>'
+        + '</div>';
+    }
+    box.innerHTML = html;
+    wrap.classList.add('on');
+  }
+
+  function openSheet(id){
+    openSale = id; confirming = false; killSaid = null; killBusy = false;
+    renderSheet();
+  }
+  function closeSheet(){
+    openSale = null; confirming = false; killSaid = null; killBusy = false;
+    var wrap = $('sheetWrap');
+    if (wrap) wrap.classList.remove('on');
+    $('sheet').innerHTML = '';
+  }
+
+  // TAKING IT OUT. One call, and it is SAFE TO SEND TWICE — the number sent is
+  // the sale's own, not one minted at the press, so till_stock.remove_sale finds
+  // the sale already gone and its tombstone under that number, and answers
+  // "already" having moved nothing. That is what lets a dropped signal here be
+  // answered with "try it again" rather than the kept-number machinery a sale
+  // needs (keepPending above).
+  function killSale(){
+    var s = openSale ? saleById(openSale) : null;
+    if (!s || killBusy) return;
+    var id = s.id, qty = Number(s.qty) || 0, title = saleTitle(s);
+    // THIS SIGN-IN, AND ONLY THIS ONE — the same rule confirmSale and the two
+    // reads keep. Signed out while the answer was on its way, every line below
+    // draws over the sign-in screen: loadStock's own showLoading calls only()
+    // BEFORE it checks anything, so the app came up saying "Loading stock…"
+    // over the password box and stayed there, and the "Taken out of the log"
+    // line survived into whoever signed in next.
+    var mine = sessionGen;
+    var live = function(){ return sessionGen === mine && !!session; };
+    killBusy = true; killSaid = null; renderSheet();
+    rpc('remove_sale', { p_id: id, p_by: 'Phone' }).then(function(res){
+      if (res.status === 401){
+        killBusy = false;
+        // An answer for a sign-in that is already over says nothing about this
+        // one, and signing the new one out would be wrong.
+        if (!live()) return null;
+        clearSession();
+        closeSheet();
+        showLogin('Your session expired — sign in again. Nothing was taken out.');
+        return null;
+      }
+      // A SERVER THAT DID NOT FINISH ANSWERING IS NOT A REFUSAL, the same rule
+      // confirmSale keeps. It may well have landed; the words below say so and
+      // the button is safe to press again.
+      if (res.status >= 500 || res.status === 408 || res.status === 409 || res.status === 429){
+        throw new Error('no clear answer (' + res.status + ')');
+      }
+      if (res.ok){
+        return res.json().then(function(r){
+          killBusy = false;
+          // IT WENT IN, whoever is signed in now — but this screen is not
+          // theirs to draw on. The book is right either way; the next sign-in
+          // reads it fresh.
+          if (!live()) return null;
+          // OFF THE LIST HERE AND NOW, rather than waiting for the read below:
+          // the sheet closes onto the list, and a line still sitting there for
+          // half a second is the screen disagreeing with the book.
+          sales = sales.filter(function(x){ return x.id !== id; });
+          closeSheet();
+          var left = (r && r.qty_left !== null && r.qty_left !== undefined) ? Number(r.qty_left) : null;
+          salesSaid = { tone: 'ok', text: 'Taken out of the log: ' + qty + ' × ' + title
+            + (left === null ? '.' : ' — ' + left + ' on the shelf now.') };
+          renderSales();
+          // AND READ BOTH AGAIN. The count moved, so the stock list this page
+          // holds is out of date, and the tires map behind the sheet with it.
+          loadSales();
+          loadStock();
+          return null;
+        });
+      }
+      // A REFUSAL THE DATABASE EXPLAINED — "That sale is not in the log", most
+      // likely because the counter took it out first. It is MARKED as a clear
+      // answer, and that mark is the whole difference below: everything else
+      // that can go wrong here — a dropped signal, a gateway that gave up, a
+      // phone that lost the wifi mid-send — may well have landed, and telling
+      // somebody a refusal when the sale actually went is how a line gets
+      // removed twice by hand at the counter afterwards.
+      return res.json().catch(function(){ return {}; }).then(function(j){
+        // OR PLAINER WORDS WHERE THE DATABASE HAS NOT BEEN TAUGHT THIS YET —
+        // the same answer the sale path gives. The page can be live on GitHub
+        // Pages minutes before db/2026-09-22-remove-a-sale-from-the-phone.sql
+        // is pasted, and "Could not find the function" in front of somebody at
+        // a counter is a fault report rather than a thing to go and do.
+        var missing = res.status === 404 || (j && j.code === 'PGRST202');
+        var no = new Error(missing
+          ? 'The stock room book has not been taught to take a sale out from the phone yet. Nothing changed.'
+          : ((j && j.message) || 'It could not be taken out.'));
+        no.clear = true;
+        // AND THE LIST IS READ AGAIN, because a refusal about a sale is news
+        // about the book. The one that actually happens is "That sale is not in
+        // the log" — the counter took it out first — and the line it is about
+        // is sitting on the screen behind the message. Left alone, the phone
+        // goes on drawing a sale the book does not hold, which is the one thing
+        // the owner's rule of 5 Sep forbids outright. The missing-function
+        // answer is not news about any sale, so it does not ask.
+        no.reread = !missing;
+        throw no;
+      });
+    }).catch(function(err){
+      killBusy = false;
+      if (!live()) return;
+      // ANYTHING THAT IS NOT A CLEAR REFUSAL IS "no clear answer", and the
+      // words say what to do about it. A fetch that rejects outright — the wifi
+      // going as the phone sent — arrives here with a browser message like
+      // "Failed to fetch", and the first version of this drew that on screen:
+      // it reads as a refusal, which is the one thing it is not.
+      killSaid = { text: (err && err.clear)
+        ? err.message
+        : 'No clear answer from the stock room. It may have gone through — tap Remove sale again to find out; it cannot take the same sale out twice.' };
+      renderSheet();
+      if (err && err.reread && session) loadSales();
+    });
   }
 
   // ---------- what was here ----------
@@ -1307,6 +1948,26 @@
     VIEWS.forEach(function(v){ $(v).style.display = (v === id ? (disp || 'flex') : 'none'); });
   }
   function showLogin(msg){
+    // THE SALES SCREEN DOES NOT SURVIVE THE SIGN-IN SCREEN — 22 Sep 2026, and
+    // it is here rather than in the sign-out button because there are SEVEN
+    // ways to land on this screen and six of them are a session expiring under
+    // a read. Left alone, signing back in ran loadStock into a hidden list
+    // while the Sales tab was still in front, showing the sales from before the
+    // session went with "checked just now" under them.
+    //
+    // The sheet goes too: it lives outside #app, so only() below cannot hide
+    // it, and a signed-out phone would be showing what a sale was worth over
+    // the sign-in box.
+    closeSheet();
+    showTab(TAB_STOCK);
+    sales = []; tires = Object.create(null); salesAt = null; salesQuery = '';
+    salesSaid = null; salesErr = null; salesLoading = false; range = 'Today';
+    doorShut = false;
+    var pills = $('rangeRow').querySelectorAll('[data-range]');
+    for (var i = 0; i < pills.length; i++){
+      pills[i].classList.toggle('on', pills[i].getAttribute('data-range') === 'Today');
+    }
+    $('salesList').innerHTML = '';
     only('login');
     if (msg){ var m = $('loginMsg'); m.textContent = msg; m.className = 'msg err'; }
   }
@@ -1315,6 +1976,47 @@
     only('app');
     if (!products.length) $('list').innerHTML = '<div class="center"><div class="spin"></div>Loading stock…</div>';
   }
+
+  // TWO LISTS UNDER ONE HEADER — 22 Sep 2026. `only()` above switches whole
+  // PAGES, the sign-in and the app, and this switches the two lists inside the
+  // app. They are deliberately not the same mechanism: a tab is not a page, and
+  // must never be able to draw itself over the sign-in screen.
+  function showTab(next){
+    if (next === tab) return;
+    // THE SEARCH BOX BELONGS TO THE SCREEN IT WAS TYPED ON. One box and two
+    // lists, so carrying "205" across to the sales would hide most of the day
+    // with nothing on screen saying that was why.
+    if (tab === TAB_SALES) salesQuery = $('q').value; else query = $('q').value;
+    tab = next;
+    var onSales = tab === TAB_SALES;
+    $('tabStock').classList.toggle('on', !onSales);
+    $('tabSales').classList.toggle('on', onSales);
+    $('tabStock').setAttribute('aria-selected', onSales ? 'false' : 'true');
+    $('tabSales').setAttribute('aria-selected', onSales ? 'true' : 'false');
+    $('screenTitle').textContent = onSales ? 'Sales' : 'Stock';
+    // The banner says what the screen in front is, and both halves are true of
+    // their own screen: one is what this page can do to the book, the other is
+    // what the book holds.
+    $('banner').textContent = onSales
+      ? 'Stock room book · every tire that left the shop'
+      : 'Stock room book · tap a tire to log a sale · the shop’s Till does not change this';
+    $('rangeRow').hidden = !onSales;
+    $('list').hidden = onSales;
+    $('salesList').hidden = !onSales;
+    var box = $('q');
+    box.value = onSales ? salesQuery : query;
+    box.placeholder = onSales ? 'Search size, brand or who sold it…' : 'Search size, brand, rack, code…';
+    box.setAttribute('aria-label', onSales ? 'Search the sales' : 'Search stock');
+    $('searchWrap').classList.toggle('has', !!box.value);
+    renderFresh();
+    if (!onSales){ renderList(); return; }
+    renderSales();
+    // READ ONCE, AND AFTER THAT ONLY WHEN ASKED. The refresh button is right
+    // there; re-reading on every tap of a tab would be a request a second for
+    // somebody holding the two screens against each other.
+    if (!salesAt && !salesLoading) loadSales();
+  }
+
 
   // ---------- events ----------
   $('loginForm').addEventListener('submit', function(e){
@@ -1334,6 +2036,9 @@
     // still kept on the phone, and the next sign-in brings it back; held in
     // memory, it outlived the list it was drawn in (the audit of 3e46762).
     sale = null; openId = null; said = null;
+    // The sales screen goes with it, and showLogin below is where that is done
+    // — there are seven roads to the sign-in screen and this button is only one
+    // of them.
     clearSession(); products = []; hidden = 0; outIds = Object.create(null); checkedAt = null; renderFresh(); $('list').innerHTML = ''; $('q').value = ''; query = '';
     $('searchWrap').classList.remove('has');
     showLogin(); document.getElementById('loginMsg').className = 'msg';
@@ -1345,16 +2050,29 @@
     btn.classList.remove('spinning');
     void btn.offsetWidth;                 // restart the animation on a repeat tap
     btn.classList.add('spinning');
-    if (session) loadStock();
+    if (!session) return;
+    if (tab === TAB_SALES) loadSales(); else loadStock();
   });
   $('refreshBtn').addEventListener('animationend', function(){ this.classList.remove('spinning'); }, true);
 
   $('q').addEventListener('input', function(){
+    if (tab === TAB_SALES){
+      salesQuery = this.value;
+      $('searchWrap').classList.toggle('has', !!salesQuery);
+      renderSales();
+      return;
+    }
     query = this.value;
     $('searchWrap').classList.toggle('has', !!query);
     renderList();
   });
-  $('clrBtn').addEventListener('click', function(){ $('q').value=''; query=''; $('searchWrap').classList.remove('has'); renderList(); });
+  $('clrBtn').addEventListener('click', function(){
+    $('q').value = '';
+    $('searchWrap').classList.remove('has');
+    if (tab === TAB_SALES){ salesQuery = ''; renderSales(); return; }
+    query = '';
+    renderList();
+  });
   // A tap on a clear button must NOT pull focus off the search input — if it
   // does, the phone keyboard drops and springs back, which reads as a jarring
   // shift. Cancelling the press's default focus-steal keeps the input (and the
@@ -1403,12 +2121,57 @@
     renderList();
   });
 
+  // ---------- the Sales log's own events — 22 Sep 2026 ----------
+  $('tabStock').addEventListener('click', function(){ showTab(TAB_STOCK); });
+  $('tabSales').addEventListener('click', function(){ showTab(TAB_SALES); });
+  // A DIFFERENT SLICE OF WHAT IS ALREADY HERE, not another read. One read covers
+  // all three pills (salesFrom), so switching between them is instant and costs
+  // the shop's connection nothing.
+  $('rangeRow').addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('[data-range]') : null;
+    if (!b) return;
+    var want = b.getAttribute('data-range');
+    if (want === range) return;
+    range = want;
+    var all = $('rangeRow').querySelectorAll('[data-range]');
+    for (var i = 0; i < all.length; i++){
+      all[i].classList.toggle('on', all[i].getAttribute('data-range') === range);
+    }
+    salesSaid = null;
+    renderSales();
+  });
+  // One listener on the list rather than one per card: the cards are redrawn
+  // from scratch on every keystroke in the search.
+  $('salesList').addEventListener('click', function(e){
+    var row = e.target.closest ? e.target.closest('[data-sale]') : null;
+    if (!row) return;
+    salesSaid = null;
+    openSheet(row.getAttribute('data-sale'));
+  });
+  $('sheet').addEventListener('click', function(e){
+    var act = e.target.closest ? e.target.closest('[data-act]') : null;
+    if (!act) return;
+    var what = act.getAttribute('data-act');
+    if (what === 'close'){ closeSheet(); return; }
+    if (what === 'kill'){ confirming = true; killSaid = null; renderSheet(); return; }
+    if (what === 'no'){ if (!killBusy){ confirming = false; renderSheet(); } return; }
+    if (what === 'yes') killSale();
+  });
+  // Tapping the dark part behind the sheet closes it — but NOT while a Remove is
+  // in the air, where closing would hide the one thing that says how it went.
+  $('scrim').addEventListener('click', function(){ if (!killBusy) closeSheet(); });
+
   // Coming back to the tab after a while → refresh so stock is current.
   document.addEventListener('visibilitychange', function(){
     // ON `checkedAt`, NOT ON WHAT IS DRAWN — the Fable audit of dc60061. With
     // everything out of stock the list is empty and a read had still happened,
     // so coming back to the app would not look again until a tap on refresh.
-    if (document.visibilityState === 'visible' && session && checkedAt) loadStock();
+    if (document.visibilityState !== 'visible' || !session) return;
+    // WHICHEVER LIST IS IN FRONT, and only if it has been read once: the sales
+    // tab opened and never read is the loadSales in showTab's business, and two
+    // reads racing on one tap is how a stale answer wins.
+    if (tab === TAB_SALES){ if (salesAt) loadSales(); return; }
+    if (checkedAt) loadStock();
   });
 
   // THE ONE-A-MINUTE POLL WENT WITH THE COUNT SCREEN. It existed to notice the
