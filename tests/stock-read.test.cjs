@@ -262,6 +262,70 @@ const headerOf = (call, name) => {
     w.close();
   }
 
+  // ---- and what Leave it says is decided again on every read -------------
+  // The audit of dc9d873: chosen once, it went on saying "out of stock now"
+  // under a row the counter had since put four back on.
+  const leftOn = async (rows, after) => {
+    const { w } = phone({ rows, sale: () => Promise.reject(new Error('the signal dropped')) });
+    await wait(60);
+    w.document.querySelector('.row[data-id="p1"]').click();
+    await wait(20);
+    w.document.querySelector('[data-act="confirm"]').click();
+    await wait(30);
+    rows[0].qty = 0;                            // the sale went in after all
+    w.document.querySelector('.waiting [data-act="leave"], [data-act="leave"]').click();
+    await wait(60);
+    const first = (w.document.querySelector('.salemsg') || {}).textContent || '';
+    after(rows);
+    w.document.getElementById('refreshBtn').click();
+    await wait(60);
+    return { w, first, then: (w.document.querySelector('.salemsg') || {}).textContent || '' };
+  };
+  {
+    const rows = [row({ id: 'p1', qty: 1 }), row({ id: 'p2', size: '195/65R15', qty: 3 })];
+    const r = await leftOn(rows, (rs) => { rs[0].qty = 4 });   // the counter received four
+    ok('it said the tire was out of stock', /out of stock now/.test(r.first), r.first);
+    ok('and stops saying so once there are four on the shelf', !/out of stock now/.test(r.then) && /check this tire/.test(r.then), r.then);
+    ok('with the tire back on the list', (r.w.document.querySelector('.row[data-id="p1"]') || {}).outerHTML !== undefined);
+    r.w.close();
+  }
+  {
+    const rows = [row({ id: 'p1', qty: 1 }), row({ id: 'p2', size: '195/65R15', qty: 3 })];
+    const r = await leftOn(rows, (rs) => { rs.splice(0, 1) });  // deleted at the counter
+    ok('a tire taken off the book is said as that, not as out of stock',
+      /not on the stock list any more/.test(r.then) && !/out of stock now/.test(r.then), r.then);
+    r.w.close();
+  }
+  // A message that is NOT Leave it's is never rewritten by a read.
+  {
+    const rows = [row({ id: 'p1', qty: 1 }), row({ id: 'p2', size: '195/65R15', qty: 3 })];
+    const { w } = phone({ rows, sale: () => Promise.reject(new Error('the signal dropped')) });
+    await wait(60);
+    w.document.querySelector('.row[data-id="p1"]').click();
+    await wait(20);
+    w.document.querySelector('[data-act="confirm"]').click();
+    await wait(30);
+    rows[0].qty = 0;
+    w.document.getElementById('refreshBtn').click();
+    await wait(60);
+    const msg = (w.document.querySelector('.salemsg') || {}).textContent || '';
+    ok('a waiting sale keeps its own words through a read', /may or may not have gone through/.test(msg), msg);
+    w.close();
+  }
+  // Signed out, coming back to the app reads nothing.
+  {
+    const { w, calls } = phone({ rows: [row({ id: 'p1', qty: 2 })] });
+    await wait(80);
+    w.document.getElementById('signOutBtn').click();
+    await wait(20);
+    Object.defineProperty(w.document, 'visibilityState', { value: 'visible', configurable: true });
+    const reads = stockCalls(calls).length;
+    w.document.dispatchEvent(new w.Event('visibilitychange'));
+    await wait(60);
+    ok('coming back to the app while signed out reads nothing', stockCalls(calls).length === reads, [reads, stockCalls(calls).length]);
+    w.close();
+  }
+
   // ---- the note counts what was left out, and says it in English ---------
   {
     const { w } = phone({ rows: [row({ id: 'p1', qty: 4 }), row({ id: 'p2', qty: 0 })] });

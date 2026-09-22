@@ -614,7 +614,9 @@
   // which ones. An empty screen uses the count to say which kind of empty it
   // is; a waiting sale uses the ids, so "no longer on the stock list" is not
   // said of a tire that is simply out (the Fable audit of dc60061).
-  var hidden = 0, outIds = {};
+  // Object.create(null), not {}: an id that happened to be 'constructor' would
+  // read as out of stock on a plain object (the Fable audit of dc9d873).
+  var hidden = 0, outIds = Object.create(null);
   // THE TIRE OPENED FOR A SALE, and what the panel under it holds: the count, and
   // whether a Confirm is in the air. `pendingId` is the sale number of a press
   // that has not had a clear answer — kept so "Try again" sends the SAME sale.
@@ -842,16 +844,15 @@
         var all = rows.map(rowToProduct);
         products = all.filter(function(p){ return (Number(p.qty) || 0) > 0; });
         hidden = all.length - products.length;
-        outIds = {};
+        outIds = Object.create(null);
         for (var oi = 0; oi < all.length; oi++) if ((Number(all[oi].qty) || 0) <= 0) outIds[all[oi].id] = true;
         products.sort(function(a,b){ return String(a.size||'').localeCompare(String(b.size||''), undefined, {numeric:true}); });
         checkedAt = Date.now();
-        // …AND THE COUNT IT SENT SOMEBODY TO CHECK IS NOT HERE. Left it and the
-        // read that followed found the tire out of stock: it is not on this
-        // screen to check (the Fable audit of dc60061).
-        if (said && said.left && outIds[said.id]) {
-          said = { id: said.id, tone: 'warn', text: 'Left as it is. That tire is out of stock now, so it is not shown here — the stock room computer has its count.' };
-        }
+        // …AND WHAT "LEAVE IT" SAYS IS DECIDED AGAIN ON EVERY READ, not once
+        // (the Fable audit of dc9d873). Chosen at the one read that found the
+        // tire out, it went on saying "out of stock now" under a row the
+        // counter had since put four back on.
+        if (said && said.left) said.text = leftWords(said.id);
         restorePending();
         showApp();
         renderList();
@@ -1199,6 +1200,14 @@
     });
   }
 
+  // WHAT "LEAVE IT" SAYS, off the stock as it stands. Said again after every
+  // read while the message is up, because all three of these can become one of
+  // the others while a phone sits in a pocket (the Fable audit of dc9d873).
+  function leftWords(id){
+    if (outIds[id]) return 'Left as it is. That tire is out of stock now, so it is not shown here — the stock room computer has its count.';
+    if (!productById(id)) return 'Left as it is. That tire is not on the stock list any more — the stock room computer has its count.';
+    return 'Left as it is — check this tire’s count before selling it again.';
+  }
   // LEAVING A SALE THAT NEVER GOT AN ANSWER — the way out the audit asked for.
   // It forgets the number and reads the stock again, so the tire's count says
   // whether the sale went in before anybody sells it a second time.
@@ -1284,7 +1293,7 @@
     // still kept on the phone, and the next sign-in brings it back; held in
     // memory, it outlived the list it was drawn in (the audit of 3e46762).
     sale = null; openId = null; said = null;
-    clearSession(); products = []; hidden = 0; outIds = {}; $('q').value = ''; query = '';
+    clearSession(); products = []; hidden = 0; outIds = Object.create(null); checkedAt = null; $('q').value = ''; query = '';
     $('searchWrap').classList.remove('has');
     showLogin(); document.getElementById('loginMsg').className = 'msg';
   });
