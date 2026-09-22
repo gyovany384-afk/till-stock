@@ -601,6 +601,26 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     w.close()
   }
 
+  // ---- and with the session still good, an older send's 401 changes nothing ---------------
+  // The refresh succeeds and the older one is sent again; that send's own 401
+  // is handed on with a live session (the audit of 614bd05).
+  {
+    const h = held()
+    const { w, sales } = phone({ rows: two(), sale: h.sale })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    const pid = sales[0].p_id
+    await signOutAndIn(w)
+    await tap(w, '[data-act="confirm"]'); await wait(20)
+    h.sends[0].resolve(reply({ message: 'JWT expired' }, 401)); await wait(40)
+    ok('the older send is sent again after a good refresh', h.sends.length === 3 && sales[2].p_id === pid, sales.map((x) => x.p_id))
+    h.sends[2].resolve(reply({ message: 'JWT expired' }, 401)); await wait(30)
+    ok('an older send\'s 401 with the session still good leaves it signed in, on the stock screen',
+      w.document.getElementById('login').style.display === 'none' && w.localStorage.getItem('till_stock_session_v2') !== null)
+    ok('and the latest send still on its way, its number kept', ($(w, '[data-act="confirm"]') || {}).textContent === 'Selling…' && keptId(w) === pid)
+    w.close()
+  }
+
   // ---- an older send's success is news: the sale is in -----------------------------------
   {
     const h = held()
@@ -627,7 +647,9 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     await tap(w, '[data-act="leave"]'); await wait(60)
     await tap(w, '.row[data-id="p2"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
     const pidB = sales[1].p_id
-    h.sends[0].resolve(reply({ id: sales[0].p_id, already: false, product: '205/55R16 Marchetti Primato 4', qty_before: 10, qty_left: 9, believed: 10 })); await wait(30)
+    h.sends[0].resolve(reply({ id: sales[0].p_id, already: false, product_id: 'p1', product: '205/55R16 Marchetti Primato 4', qty_before: 10, qty_left: 9, believed: 10 })); await wait(30)
+    // Its own tire, named as the tire it pressed — not the tire on screen now.
+    ok('the late sale\'s count goes on its own tire', countOn(w, 'p1') === '9 in stock', countOn(w, 'p1'))
     ok('the other sale keeps its number', keptId(w) === pidB, keptId(w))
     ok('and the sale left with Leave it, which landed after all, is said', /1 × 205\/55R16 Marchetti Primato 4 sold — 9 left/.test(said(w)), said(w))
     ok('and stays on its way', ($(w, '[data-act="confirm"]') || {}).textContent === 'Selling…')
@@ -648,6 +670,37 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     h.sends[1].reject(new Error('the signal dropped')); await wait(30)
     h.sends[0].resolve(reply({ id: sales[0].p_id, already: false, product: '205/55R16 Marchetti Primato 4', qty_before: 10, qty_left: 9, believed: 10 })); await wait(30)
     ok('what the sale on screen says is kept when a left one lands late', /may or may not have gone through/.test(said(w)), said(w))
+    w.close()
+  }
+
+  // ---- signed out during a send, an answer naming another tire reads nothing ----------------------
+  {
+    const h = held()
+    const { w } = phone({ rows: two(), sale: h.sale })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    w.document.getElementById('signOutBtn').click(); await wait(20)
+    h.sends[0].resolve(reply({ id: 'x', already: true, product_id: 'p9', qty_before: 10, qty_left: 13 })); await wait(60)
+    const words = ((w.document.getElementById('loginMsg') || {}).textContent) || ''
+    ok('signed out during the send, the answer leaves the sign-in screen as it was', w.document.getElementById('login').style.display !== 'none' && !/expired/.test(words), words)
+    w.close()
+  }
+
+  // ---- but a passing note is not the sale's own word, and a late landing is said over it --------
+  {
+    const h = held()
+    const rows = two().concat([row({ id: 'p3', size: '225/45R17', brand: 'Kestrel Aero', qty: 6 })])
+    const { w, sales } = phone({ rows, sale: h.sale })
+    await wait(60)
+    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    await signOutAndIn(w)
+    await tap(w, '[data-act="leave"]'); await wait(60)
+    await tap(w, '.row[data-id="p2"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    h.sends[1].reject(new Error('the signal dropped')); await wait(30)
+    await tap(w, '.row[data-id="p3"]')
+    ok('(a third tire tapped says a sale is waiting)', /A sale is still waiting on/.test(said(w)), said(w))
+    h.sends[0].resolve(reply({ id: sales[0].p_id, already: false, product_id: 'p1', product: '205/55R16 Marchetti Primato 4', qty_before: 10, qty_left: 9, believed: 10 })); await wait(30)
+    ok('a left sale landing late is said over a passing note about another tire', /sold — 9 left/.test(said(w)), said(w))
     w.close()
   }
 

@@ -1132,7 +1132,9 @@
           said = words();
         }
         renderList();
-        if (!here) loadStock();
+        // Signed in only, as every other read: signed out during the send, the
+        // read would flip to the stock screen and then say the session expired.
+        if (!here && session) loadStock();
       });
       // A REFUSAL IS AN ANSWER: nothing was written, so the next press is a new
       // sale. The database's own words are said, or plainer ones where it has
