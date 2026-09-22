@@ -313,6 +313,7 @@
   .waiting .w-name{ font-size:15.5px; font-weight:700; letter-spacing:-.1px; padding:0 2px; }
   .empty{ text-align:center; color:var(--faint); font-size:14px; padding:48px 20px; line-height:1.6; }
   .empty svg{ width:34px; height:34px; margin-bottom:10px; opacity:.5; }
+  .outnote{ display:inline-block; margin-top:8px; font-size:12.5px; }
 
   .banner{ background:color-mix(in srgb, var(--accent) 12%, var(--surface)); color:var(--accent);
     font-size:11.5px; font-weight:600; text-align:center; padding:5px; }
@@ -609,6 +610,9 @@
   // its only staleness signal without ever saying so. What this page can honestly
   // know is when IT last read, so that is what the line says now.
   var session = null, products = [], checkedAt = null, query = '';
+  // How many the last read left out because there are none on the shelf. Only
+  // an empty screen uses it, to say which kind of empty it is.
+  var hidden = 0;
   // THE TIRE OPENED FOR A SALE, and what the panel under it holds: the count, and
   // whether a Confirm is in the air. `pendingId` is the sale number of a press
   // that has not had a clear answer — kept so "Try again" sends the SAME sale.
@@ -823,7 +827,19 @@
       }
       return page(0, 1).then(function(done){
         if (done === 'expired'){ clearSession(); showLogin('Your session expired — sign in again.'); return null; }
-        products = rows.map(rowToProduct);
+        // WHAT IS OUT OF STOCK IS NOT ON THIS PAGE AT ALL — 22 Sep 2026, his
+        // ask: "DONT SHOW OUT OF STOCK OR NEGATIVES IN PHONE". Dropped here, at
+        // the read, rather than hidden while drawing: a search runs over what
+        // the page holds, so a tire there is none of cannot be turned up by
+        // typing its size either, and the sale panel cannot be opened on one.
+        //
+        // THE COUNT IS STILL THE BOOK'S. Nothing is rewritten and nothing is
+        // rounded up — a tire at nothing or below is simply not offered. How
+        // many were left out is kept, so an empty screen can say which kind of
+        // empty it is.
+        var all = rows.map(rowToProduct);
+        products = all.filter(function(p){ return (Number(p.qty) || 0) > 0; });
+        hidden = all.length - products.length;
         products.sort(function(a,b){ return String(a.size||'').localeCompare(String(b.size||''), undefined, {numeric:true}); });
         checkedAt = Date.now();
         restorePending();
@@ -851,6 +867,13 @@
     if (brand) return { title: brand, brand: '' };
     return { title: p.productCode || p.type || 'Item', brand: '' };
   }
+  // Why the screen may be emptier than the book: said only when the last read
+  // actually left something out, so it is never a note about nothing.
+  function outNote(){
+    if (!hidden) return '';
+    return '<br><span class="outnote">' + hidden
+      + (hidden === 1 ? ' tire is out of stock and not shown.' : ' tires are out of stock and not shown.') + '</span>';
+  }
   function renderList(){
     var q = query.trim().toLowerCase();
     var shown = q ? products.filter(function(p){ return matches(p, q); }) : products;
@@ -860,11 +883,13 @@
       // uploaded to the cloud?" — was one message for three different causes,
       // two of which are now answered before this line is reached (see isStaff).
       // What is left here is the honest third: the door is open and the book
-      // really is empty.
-      $('list').innerHTML = top + '<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7z"/><path d="M3 7l9 4.5L21 7M12 11.5V21"/></svg>The stock room book has no tires in it.</div>';
+      // really is empty. And since 22 Sep 2026 a fourth, which is not that one:
+      // the book has tires in it and none of them are on the shelf.
+      $('list').innerHTML = top + '<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7z"/><path d="M3 7l9 4.5L21 7M12 11.5V21"/></svg>'
+        + (hidden ? 'Nothing is in stock right now.' + outNote() : 'The stock room book has no tires in it.') + '</div>';
       return;
     }
-    if (!shown.length){ $('list').innerHTML = top + '<div class="empty">No matches for “' + esc(query.trim()) + '”</div>'; return; }
+    if (!shown.length){ $('list').innerHTML = top + '<div class="empty">No matches for “' + esc(query.trim()) + '”' + outNote() + '</div>'; return; }
     var html = top;
     shown.forEach(function(p){
       var out = (Number(p.qty)||0) <= 0;
@@ -1245,7 +1270,7 @@
     // still kept on the phone, and the next sign-in brings it back; held in
     // memory, it outlived the list it was drawn in (the audit of 3e46762).
     sale = null; openId = null; said = null;
-    clearSession(); products = []; $('q').value = ''; query = '';
+    clearSession(); products = []; hidden = 0; $('q').value = ''; query = '';
     $('searchWrap').classList.remove('has');
     showLogin(); document.getElementById('loginMsg').className = 'msg';
   });

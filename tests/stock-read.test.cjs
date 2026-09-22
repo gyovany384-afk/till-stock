@@ -159,6 +159,66 @@ const headerOf = (call, name) => {
     w.close();
   }
 
+  // ---- what is out of stock is not on the phone at all — 22 Sep 2026 -----
+  // His ask: "DONT SHOW OUT OF STOCK OR NEGATIVES IN PHONE". Hidden at the
+  // read, so a search cannot turn one up either, and so the sale panel cannot
+  // be opened on a tire there is none of.
+  {
+    const rows = [
+      row({ id: 'p1', size: '205/55R16', brand: 'Marchetti Primato 4', qty: 4 }),
+      row({ id: 'p2', size: '195/65R15', brand: 'Norvell Turanto T5', qty: 0 }),
+      row({ id: 'p3', size: '215/60R16', brand: 'Perrelli Cinturo P7', qty: -2 }),
+      row({ id: 'p4', size: '225/45R17', brand: 'Kestrel Aero', qty: 1 }),
+    ];
+    const { w } = phone({ rows });
+    await wait(80);
+    const html = list(w);
+    ok('a tire at nothing is not drawn', html.indexOf('data-id="p2"') === -1, html.indexOf('data-id="p2"'));
+    ok('nor one below nothing', html.indexOf('data-id="p3"') === -1);
+    ok('and what is in stock still is', html.indexOf('data-id="p1"') !== -1 && html.indexOf('data-id="p4"') !== -1);
+    ok('nothing on the screen says "out"', html.indexOf('out</div>') === -1 && html.indexOf('−2') === -1, html.slice(0, 200));
+    // A search is over what is shown, not over the book.
+    const q = w.document.getElementById('q');
+    q.value = 'Norvell'; q.dispatchEvent(new w.Event('input', { bubbles: true }));
+    await wait(20);
+    ok('a search cannot turn one up either', list(w).indexOf('No matches') !== -1, list(w).slice(0, 200));
+    ok('and says why nothing came back', list(w).indexOf('out of stock and not shown') !== -1, list(w).slice(0, 400));
+    w.close();
+  }
+  {
+    const { w } = phone({ rows: [row({ id: 'p1', qty: 4 }), row({ id: 'p2', qty: 2 })] });
+    await wait(80);
+    const q = w.document.getElementById('q');
+    q.value = 'nothing like it'; q.dispatchEvent(new w.Event('input', { bubbles: true }));
+    await wait(20);
+    ok('with nothing left out, a search that finds nothing says only that',
+      list(w).indexOf('No matches') !== -1 && list(w).indexOf('not shown') === -1, list(w).slice(0, 300));
+    w.close();
+  }
+  {
+    const { w } = phone({ rows: [row({ id: 'p1', qty: 0 }), row({ id: 'p2', qty: -1 })] });
+    await wait(80);
+    ok('a book with nothing in stock says that, not that the book is empty',
+      list(w).indexOf('Nothing is in stock') !== -1 && list(w).indexOf('no tires in it') === -1, list(w).slice(0, 300));
+    w.close();
+  }
+  // The tire the phone itself sells down to nothing keeps its row until the
+  // next read, so the count it just moved can be seen.
+  {
+    const { w } = phone({ rows: [row({ id: 'p1', qty: 1 })] });
+    await wait(60);
+    w.document.querySelector('.row[data-id="p1"]').click();
+    await wait(20);
+    w.document.querySelector('[data-act="confirm"]').click();
+    await wait(40);
+    ok('a tire sold down to nothing stays on screen with its new count',
+      list(w).indexOf('data-id="p1"') !== -1 && list(w).indexOf('0') !== -1 && /sold/.test(list(w)), list(w).slice(0, 300));
+    w.document.getElementById('refreshBtn').click();
+    await wait(60);
+    ok('and is gone at the next read', list(w).indexOf('data-id="p1"') === -1 && list(w).indexOf('Nothing is in stock') !== -1, list(w).slice(0, 300));
+    w.close();
+  }
+
   // ---- the retry that used to drop its headers --------------------------
   // The page refreshes its token once on a 401 and reads again. If that retry
   // does not carry the schema header and the range, the phone works perfectly
@@ -179,11 +239,32 @@ const headerOf = (call, name) => {
 
   // ---- a tire the book says is oversold ---------------------------------
   // The desktop dropped its "not below nought" constraint on purpose on 4 Sep, so
-  // a tire can legitimately sit at -3. Nobody had looked at this screen with one.
+  // a tire can legitimately sit at -3. This screen used to draw it, as it was
+  // stored; since 22 Sep 2026 it is not offered at all ("DONT SHOW OUT OF STOCK
+  // OR NEGATIVES IN PHONE"). Nothing is rounded up to nought to do it — the book
+  // still says -3, and the desktop still shows it.
   {
     const { w } = phone({ rows: [row({ qty: -3 })] });
     await wait(60);
-    ok('a count below nought is drawn as it is stored', list(w).indexOf('-3') !== -1, list(w).slice(0, 300));
+    ok('a tire the book has at -3 is not offered on the phone',
+      list(w).indexOf('data-id="p1"') === -1 && list(w).indexOf('-3') === -1, list(w).slice(0, 300));
+    ok('and the screen says that is why it is empty', list(w).indexOf('Nothing is in stock') !== -1, list(w).slice(0, 300));
+    w.close();
+  }
+  // Where a count below nought IS still drawn: the phone sold the last of them
+  // and more. It keeps its row until the next read, and says what the book says.
+  {
+    const { w } = phone({ rows: [row({ qty: 1 })] });
+    await wait(60);
+    w.document.querySelector('.row[data-id="p1"]').click();
+    await wait(20);
+    w.document.querySelector('[data-act="plus"]').click();
+    await wait(20);
+    w.document.querySelector('[data-act="plus"]').click();
+    await wait(20);
+    w.document.querySelector('[data-act="confirm"]').click();
+    await wait(40);
+    ok('a tire sold past nothing shows the count the book now holds', list(w).indexOf('−2') !== -1, list(w).slice(0, 400));
     w.close();
   }
 
