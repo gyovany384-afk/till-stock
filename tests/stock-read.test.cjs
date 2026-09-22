@@ -10,13 +10,14 @@
 //
 //   node tests/stock-read.test.cjs
 // ============================================================
-const { phone, ok, finish, wait, list, fresh, onScreen, stockCalls, row, book } = require('./harness.cjs');
+const { phone, ok, finish, wait, list, fresh, onScreen, stockCalls, row, book, reply } = require('./harness.cjs');
 
 const headerOf = (call, name) => {
   const h = call.headers || {};
   const key = Object.keys(h).find((k) => k.toLowerCase() === name.toLowerCase());
   return key ? h[key] : null;
 };
+const countOn = (w, id) => (((w.document.querySelector('.row[data-id="' + id + '"] .count')) || {}).textContent || '').trim();
 
 (async function run() {
   console.log('\nThe stock read\n');
@@ -351,6 +352,123 @@ const headerOf = (call, name) => {
     ok('and it does not claim to have checked just now', fresh(w).indexOf('checked') === -1, fresh(w));
     w.close();
   }
+  // …AND THE SAME FOR A READ THAT COMES BACK BADLY. Three more ways out of a
+  // read, each of which drew the app screen over the sign-in screen — where the
+  // refresh button does nothing, because it asks for a session.
+  const heldRead = async (what, answer) => {
+    let release = null;
+    const { w } = phone({ rows: [row({ id: 'p1', qty: 4 })] });
+    await wait(80);
+    const real = w.fetch;
+    w.fetch = (u, init) => (String(u).indexOf(what) !== -1
+      ? new Promise((res, rej) => { release = () => answer(res, rej, real(u, init)) })
+      : real(u, init));
+    w.document.getElementById('refreshBtn').click();
+    await wait(30);
+    w.document.getElementById('signOutBtn').click();
+    await wait(20);
+    release();
+    await wait(60);
+    return w;
+  };
+  {
+    const w = await heldRead('/rest/v1/products', (res, rej) => rej(new Error('offline')));
+    ok('a stock read that FAILS after signing out leaves the sign-in screen up',
+      onScreen(w, 'login') && !onScreen(w, 'app') && list(w).indexOf('Couldn') === -1, list(w).slice(0, 200));
+    w.close();
+  }
+  {
+    const w = await heldRead('/rpc/is_staff', (res, rej) => rej(new Error('offline')));
+    ok('an access check that fails after signing out leaves it up too',
+      onScreen(w, 'login') && !onScreen(w, 'app') && list(w).indexOf('check your access') === -1, list(w).slice(0, 200));
+    w.close();
+  }
+  {
+    const w = await heldRead('/rpc/is_staff', (res) => res({ ok: true, status: 200, headers: { get: () => null }, json: () => Promise.resolve(false), text: () => Promise.resolve('false') }));
+    ok('and so does an answer that the account is not staff',
+      onScreen(w, 'login') && !onScreen(w, 'app') && list(w).indexOf('staff list') === -1, list(w).slice(0, 200));
+    w.close();
+  }
+  // A deliberate sign-out is not an expired session, and must not say it was.
+  {
+    let release = null;
+    const { w } = phone({ rows: [row({ id: 'p1', qty: 4 })] });
+    await wait(80);
+    const real = w.fetch;
+    w.fetch = (u, init) => (String(u).indexOf('/rpc/is_staff') !== -1
+      ? new Promise((res) => { release = () => res({ ok: false, status: 401, headers: { get: () => null }, json: () => Promise.resolve({ message: 'JWT expired' }), text: () => Promise.resolve('') }) })
+      : real(u, init));
+    w.document.getElementById('refreshBtn').click();
+    await wait(30);
+    w.document.getElementById('signOutBtn').click();
+    await wait(20);
+    release();
+    await wait(60);
+    const words = (w.document.getElementById('loginMsg') || {}).textContent || '';
+    ok('signing out by hand is never reported as an expired session', words.indexOf('expired') === -1, words);
+    w.close();
+  }
+
+  // ---- and the newest read wins, not the one that answers last -----------
+  // Two taps on refresh, or Leave it and then coming back to the app: the older
+  // read used to land last and put its count back, with "checked just now"
+  // under it.
+  {
+    let release = null;
+    const rows = [row({ id: 'p1', qty: 4 })];
+    const { w } = phone({ rows });
+    await wait(80);
+    const real = w.fetch;
+    // The held read answers with the book AS IT WAS when it was asked — a copy,
+    // or it would quietly answer with the newer count and prove nothing.
+    const snapshot = rows.map((p) => ({ ...p }));
+    w.fetch = (u, init) => {
+      if (String(u).indexOf('/rest/v1/products') === -1 || release) return real(u, init);
+      return new Promise((res) => { release = () => res(reply(snapshot)) });
+    };
+    w.document.getElementById('refreshBtn').click();   // read one, held at qty 4
+    await wait(30);
+    rows[0].qty = 1;                                   // the counter sold three
+    w.document.getElementById('refreshBtn').click();   // read two, answers now
+    await wait(60);
+    ok('(the newer read is on screen)', countOn(w, 'p1') === '1 in stock', countOn(w, 'p1'));
+    release();
+    await wait(60);
+    ok('an older read that answers last does not put its count back',
+      countOn(w, 'p1') === '1 in stock', countOn(w, 'p1'));
+    w.close();
+  }
+
+  // The same across a sign-out and a sign-in: the old session's rows are not
+  // the new one's, however truthy the sign-in is.
+  {
+    let release = null;
+    const rows = [row({ id: 'p1', qty: 4 })];
+    const { w } = phone({ rows });
+    await wait(80);
+    const real = w.fetch;
+    const snapshot = rows.map((p) => ({ ...p }));
+    w.fetch = (u, init) => {
+      if (String(u).indexOf('/rest/v1/products') === -1 || release) return real(u, init);
+      return new Promise((res) => { release = () => res(reply(snapshot)) });
+    };
+    w.document.getElementById('refreshBtn').click();
+    await wait(30);
+    w.document.getElementById('signOutBtn').click();
+    await wait(20);
+    rows[0].qty = 1;                                   // the counter sold three
+    w.document.getElementById('email').value = 'shop@example.test';
+    w.document.getElementById('password').value = 'x';
+    w.document.getElementById('loginForm').dispatchEvent(new w.Event('submit', { cancelable: true, bubbles: true }));
+    await wait(80);
+    ok('(signing back in reads the stock as it is)', countOn(w, 'p1') === '1 in stock', countOn(w, 'p1'));
+    release();
+    await wait(60);
+    ok('a read from before the sign-out does not put its count back',
+      countOn(w, 'p1') === '1 in stock', countOn(w, 'p1'));
+    w.close();
+  }
+
   // Signing out clears the line that says when the stock was last checked.
   {
     const { w } = phone({ rows: [row({ id: 'p1', qty: 4 })] });

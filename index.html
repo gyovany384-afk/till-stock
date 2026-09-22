@@ -636,7 +636,13 @@
     };
     try { if (session.remember) localStorage.setItem(SESSION_KEY, JSON.stringify(session)); else localStorage.removeItem(SESSION_KEY); } catch(e){}
   }
-  function clearSession(){ session = null; try { localStorage.removeItem(SESSION_KEY); } catch(e){} }
+  // EVERY TIME THE SESSION IS DROPPED, this counts up: signed out by hand,
+  // turned away as expired, or a refresh refused. A read in the air belongs to
+  // the sign-in it started under, and this is what tells them apart — NOT the
+  // session object, which a plain token refresh replaces halfway through a
+  // perfectly good read. See loadStock.
+  var sessionGen = 0;
+  function clearSession(){ sessionGen += 1; session = null; try { localStorage.removeItem(SESSION_KEY); } catch(e){} }
 
   function login(email, password){
     return fetch(SUPA_URL + '/auth/v1/token?grant_type=password', {
@@ -798,7 +804,33 @@
     });
   }
 
+  // THIS READ, AND NO OTHER — 22 Sep 2026, the same rule the sale path keeps
+  // (`mine()` in confirmSale). A read comes back long after it was asked for,
+  // and three things can have happened meanwhile:
+  //
+  //   SIGNED OUT. The first fix asked `if (!session)` at the ONE exit where the
+  //   stock is drawn, and left the three where a read comes back BADLY — not
+  //   staff, could not check, could not read. Each of those drew the app screen
+  //   over the sign-in screen, where the refresh button does nothing because it
+  //   asks for a session: stranded, with nothing on screen saying to reload.
+  //
+  //   SIGNED IN AGAIN, as the same person or another. `session` is truthy then,
+  //   so the old read sailed through that guard and drew its rows over the new
+  //   ones — with `checked just now` under a count read minutes ago.
+  //
+  //   A NEWER READ ALREADY ANSWERED. Two taps on refresh, or Leave it and then
+  //   coming back to the app: whichever answered LAST won, not whichever was
+  //   newest. That one has nothing to do with signing out and was here all
+  //   along; it is the same root, so it is fixed here.
+  var readGen = 0;
   function loadStock(){
+    var mine = sessionGen, gen = ++readGen;
+    // THREE QUESTIONS, and the third is belt and braces: signing in always
+    // starts a read of its own, so a read from before a sign-out is already
+    // beaten by the newer one's number. It is kept because that is an
+    // invariant of another function, and a sign-in added one day that does not
+    // read would weaken this one silently.
+    var stale = function(){ return sessionGen !== mine || !session || gen !== readGen; };
     showLoading();
     var rows = [];
 
@@ -815,6 +847,9 @@
 
     // THE DOOR IS ASKED ABOUT FIRST, the way the desktop does it. See isStaff.
     return isStaff().then(function(allowed){
+      // Before any of the four answers below: a sign-out in the meantime is not
+      // an expired session either, and said so in red.
+      if (stale()) return null;
       if (allowed === 'signed-out'){
         clearSession(); showLogin('Your session expired — sign in again.'); return null;
       }
@@ -830,6 +865,7 @@
         return null;
       }
       return page(0, 1).then(function(done){
+        if (stale()) return null;
         if (done === 'expired'){ clearSession(); showLogin('Your session expired — sign in again.'); return null; }
         // WHAT IS OUT OF STOCK IS NOT ON THIS PAGE AT ALL — 22 Sep 2026, his
         // ask: "DONT SHOW OUT OF STOCK OR NEGATIVES IN PHONE". Dropped here, at
@@ -841,11 +877,6 @@
         // rounded up — a tire at nothing or below is simply not offered. How
         // many were left out is kept, so an empty screen can say which kind of
         // empty it is.
-        // SIGNED OUT WHILE THIS WAS ON ITS WAY, and it is not wanted now — the
-        // Fable audit of 8eb441d. A read started by Leave it, the refresh
-        // button or coming back to the app landed after Sign out and put the
-        // stock list, prices and all, over the sign-in screen.
-        if (!session) return null;
         var all = rows.map(rowToProduct);
         products = all.filter(function(p){ return (Number(p.qty) || 0) > 0; });
         hidden = all.length - products.length;
@@ -865,6 +896,10 @@
         return true;
       });
     }).catch(function(){
+      // A read that failed after a sign-out, a sign-in or a newer read has no
+      // error to report to anybody: the screen it would draw it on is not this
+      // read's any more.
+      if (stale()) return null;
       $('list').innerHTML = aboveTheList([], true) + '<div class="center">Couldn\u2019t load stock. Check your connection and tap refresh.</div>';
       showApp();
     });
