@@ -841,6 +841,11 @@
         // rounded up — a tire at nothing or below is simply not offered. How
         // many were left out is kept, so an empty screen can say which kind of
         // empty it is.
+        // SIGNED OUT WHILE THIS WAS ON ITS WAY, and it is not wanted now — the
+        // Fable audit of 8eb441d. A read started by Leave it, the refresh
+        // button or coming back to the app landed after Sign out and put the
+        // stock list, prices and all, over the sign-in screen.
+        if (!session) return null;
         var all = rows.map(rowToProduct);
         products = all.filter(function(p){ return (Number(p.qty) || 0) > 0; });
         hidden = all.length - products.length;
@@ -1216,7 +1221,8 @@
     var id = sale.id;
     dropPendingIf(sale.pendingId);
     openId = null; sale = null;
-    said = { id: id, tone: 'warn', left: true, text: 'Left as it is. The stock is being read again — check this tire\u2019s count before selling it again.' };
+    // Seeded from the stock as it stands, and said again when the read lands.
+    said = { id: id, tone: 'warn', left: true, text: leftWords(id) };
     renderList();
     loadStock();
   }
@@ -1293,7 +1299,7 @@
     // still kept on the phone, and the next sign-in brings it back; held in
     // memory, it outlived the list it was drawn in (the audit of 3e46762).
     sale = null; openId = null; said = null;
-    clearSession(); products = []; hidden = 0; outIds = Object.create(null); checkedAt = null; $('q').value = ''; query = '';
+    clearSession(); products = []; hidden = 0; outIds = Object.create(null); checkedAt = null; renderFresh(); $('list').innerHTML = ''; $('q').value = ''; query = '';
     $('searchWrap').classList.remove('has');
     showLogin(); document.getElementById('loginMsg').className = 'msg';
   });

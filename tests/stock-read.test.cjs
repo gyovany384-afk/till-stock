@@ -326,6 +326,58 @@ const headerOf = (call, name) => {
     w.close();
   }
 
+  // ---- a read that lands after Sign out shows nobody the stock -----------
+  // The audit of 8eb441d: a read started by Leave it, the refresh button or
+  // coming back to the app landed afterwards and put the list, prices and all,
+  // over the sign-in screen.
+  {
+    let release = null;
+    const rows = [row({ id: 'p1', qty: 4 })];
+    const { w } = phone({ rows });
+    await wait(80);
+    // Hold the next stock read open, then sign out while it is in the air.
+    const real = w.fetch;
+    w.fetch = (u, init) => (String(u).indexOf('/rest/v1/products') !== -1
+      ? new Promise((res) => { release = () => res(real(u, init)) })
+      : real(u, init));
+    w.document.getElementById('refreshBtn').click();
+    await wait(30);
+    w.document.getElementById('signOutBtn').click();
+    await wait(20);
+    release();
+    await wait(60);
+    ok('the sign-in screen stays up', onScreen(w, 'login') && !onScreen(w, 'app'));
+    ok('and no stock is drawn behind it', list(w).indexOf('data-id="p1"') === -1, list(w).slice(0, 200));
+    ok('and it does not claim to have checked just now', fresh(w).indexOf('checked') === -1, fresh(w));
+    w.close();
+  }
+  // Signing out clears the line that says when the stock was last checked.
+  {
+    const { w } = phone({ rows: [row({ id: 'p1', qty: 4 })] });
+    await wait(80);
+    ok('(the line is there while signed in)', fresh(w).indexOf('checked') !== -1, fresh(w));
+    w.document.getElementById('signOutBtn').click();
+    await wait(20);
+    ok('signing out clears it', fresh(w) === '', fresh(w));
+    w.close();
+  }
+  // An id that happens to be the name of something every object has.
+  {
+    const { w } = phone({ rows: [row({ id: 'constructor', qty: 5 }), row({ id: 'p2', size: '195/65R15', qty: 2 })],
+      sale: () => Promise.reject(new Error('the signal dropped')) });
+    await wait(80);
+    ok('a tire whose id is a word every object knows is still drawn', list(w).indexOf('data-id="constructor"') !== -1, list(w).slice(0, 200));
+    w.document.querySelector('.row[data-id="constructor"]').click();
+    await wait(20);
+    w.document.querySelector('[data-act="confirm"]').click();
+    await wait(30);
+    w.document.querySelector('[data-act="leave"]').click();
+    await wait(60);
+    const msg = (w.document.querySelector('.salemsg') || {}).textContent || '';
+    ok('and is not called out of stock', /check this tire/.test(msg) && !/out of stock/.test(msg), msg);
+    w.close();
+  }
+
   // ---- the note counts what was left out, and says it in English ---------
   {
     const { w } = phone({ rows: [row({ id: 'p1', qty: 4 }), row({ id: 'p2', qty: 0 })] });
