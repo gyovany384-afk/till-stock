@@ -818,7 +818,7 @@
       }
       if (allowed === 'unknown'){
         showApp();
-        $('list').innerHTML = '<div class="center">Couldn\u2019t check your access. Check your connection and tap refresh.</div>';
+        $('list').innerHTML = aboveTheList([], true) + '<div class="center">Couldn\u2019t check your access. Check your connection and tap refresh.</div>';
         return null;
       }
       return page(0, 1).then(function(done){
@@ -833,7 +833,7 @@
         return true;
       });
     }).catch(function(){
-      $('list').innerHTML = '<div class="center">Couldn\u2019t load stock. Check your connection and tap refresh.</div>';
+      $('list').innerHTML = aboveTheList([], true) + '<div class="center">Couldn\u2019t load stock. Check your connection and tap refresh.</div>';
       showApp();
     });
   }
@@ -894,20 +894,27 @@
   // counter archived or merged it while the sale waited on an answer, or a
   // search hides it: Try again and Leave it were then drawn nowhere, and every
   // tap on another tire said "finish it first" with no way to. Drawn above the
-  // list instead, with whatever was said about it. A message about a tire no
-  // longer on the book goes there too, or it would be said to nobody.
-  function aboveTheList(shown){
+  // list instead, with whatever was said about it. A message about a tire not
+  // on the screen goes there too — gone from the book, or hidden by a search
+  // (the audit of 69438f3) — or it would be said to nobody.
+  //
+  // `unread` is for a stock read that failed: the list is not drawn at all, and
+  // the way out of a waiting sale is drawn over the error rather than lost
+  // under it until a read succeeds (the audit of 69438f3).
+  function aboveTheList(shown, unread){
     var onScreen = function(id){ for (var i = 0; i < shown.length; i++) if (shown[i].id === id) return true; return false; };
     if (sale && (sale.busy || sale.pendingId) && !onScreen(sale.id)){
-      var gone = !productById(sale.id);
+      var head = unread ? 'Waiting sale — the stock list could not be read'
+        : !productById(sale.id) ? 'Waiting sale — this tire is no longer on the stock list'
+        : 'Waiting sale — hidden by your search';
       return '<div class="waiting" data-sell="1">'
-        + '<div class="w-head">' + (gone ? 'Waiting sale — this tire is no longer on the stock list' : 'Waiting sale — hidden by your search') + '</div>'
+        + '<div class="w-head">' + head + '</div>'
         + '<div class="w-name">' + esc(sale.qty + ' × ' + (sale.name || 'a tire')) + '</div>'
         + sellPanel()
         + (said && said.id === sale.id ? saidHtml(said) : '')
         + '</div>';
     }
-    if (said && !productById(said.id)) return saidHtml(said);
+    if (said && !onScreen(said.id)) return saidHtml(said);
     return '';
   }
   // ---------- selling a tire — 21 Sep 2026 ----------
@@ -958,15 +965,19 @@
       + '</div>';
   }
 
+  // A FIGURE THE DATABASE DID NOT SEND IS NO FIGURE, not nought: Number(null)
+  // is 0, and "0 left" was said of a tire whose count never came back (the
+  // Fable audit of 69438f3).
+  function figure(v){ return (v === null || v === undefined || v === '') ? NaN : Number(v); }
   // What the sale says, in the counter's own words (logSale in the stock room's
   // src/state/stock.js), with how many are left on the end.
   function saleWords(r, qty){
     var sold = qty + ' \u00d7 ' + (r.product || 'this tire');
-    var left = Number(r.qty_left);
+    var left = figure(r.qty_left);
     var leftWords = isFinite(left) ? ' ' + left + ' left.' : '';
     if (r.already) return { text: 'That sale was already logged — nothing was sold twice.' + leftWords, tone: '' };
-    var before = Number(r.qty_before), believed = r.believed;
-    if (believed !== null && believed !== undefined && Number(believed) !== before){
+    var before = figure(r.qty_before), believed = r.believed;
+    if (isFinite(before) && isFinite(left) && believed !== null && believed !== undefined && Number(believed) !== before){
       if (left < 0) return { text: sold + ' sold. The shelf had ' + before + ', not ' + believed + ' — the book is now at \u2212' + Math.abs(left) + '. COUNT THIS RACK.', tone: 'warn' };
       if (before < Number(believed)) return { text: sold + ' sold. The shelf had ' + before + ', not ' + believed + ' — it was sold somewhere else first. ' + left + ' left.', tone: 'warn' };
       return { text: sold + ' sold. The shelf had ' + before + ', not ' + believed + ' — the book went up somewhere else. ' + left + ' left.', tone: 'warn' };
@@ -988,7 +999,15 @@
       else localStorage.removeItem(PENDING_KEY);
     } catch(e){}
   }
-  function dropPending(){ try { localStorage.removeItem(PENDING_KEY); } catch(e){} }
+  // ONLY ITS OWN NUMBER LETS THE KEPT SALE GO. An answer about one sale once
+  // wiped whatever was kept, which by then could be another sale's (the Fable
+  // audit of 69438f3).
+  function dropPendingIf(pid){
+    try {
+      var kept = JSON.parse(localStorage.getItem(PENDING_KEY) || 'null');
+      if (kept && kept.id === pid) localStorage.removeItem(PENDING_KEY);
+    } catch(e){}
+  }
   function productById(id){
     for (var i = 0; i < products.length; i++) if (products[i].id === id) return products[i];
     return null;
@@ -1042,20 +1061,30 @@
     keepPending();
     said = null;
     renderList();
-    var qty = sale.qty, id = sale.id;
+    var qty = sale.qty, id = sale.id, pid = sale.pendingId;
+    // THIS SEND, AND NO OTHER — the Fable audit of 69438f3. Signed out while a
+    // sale was on its way and back in, the kept number came back for Try again
+    // with the first send still in the air, and that first send's answer —
+    // matched only by tire — reset the second: a refusal or a stale 401 let the
+    // number go while the second was still travelling, and the next press sold
+    // under a new one. Only the LATEST send's answer moves the sale now. An
+    // older send is about the same number, which the latest answers for
+    // itself; the one exception is a success, which is news whichever it was.
+    var send = {};
+    sale.send = send;
+    var mine = function(){ return !!sale && sale.send === send; };
     rpc('log_sale', body).then(function(res){
       // SIGNED OUT, WHICH IS NOT AN ANSWER ABOUT THE SALE. PostgREST turned THIS
       // send away before it ran, so a first press sold nothing — but a retry's
       // earlier send may have landed, and the sale stays waiting for Try again
       // after signing back in. Either way the panel lets go of "Selling…"; left
-      // held, selling stayed dead until a reload (the audit of 92f4171).
+      // held, selling stayed dead until a reload (the audit of 92f4171). An
+      // older send's 401 is about a session gone since, and signing out the one
+      // made after it would be wrong.
       if (res.status === 401){
-        if (!retry) dropPending();
-        // `sale` is gone if they signed out while this was on its way.
-        if (sale && sale.id === id){
-          sale.busy = false;
-          if (!retry){ sale.pendingId = null; sale.believed = undefined; }
-        }
+        if (!mine()) return;
+        sale.busy = false;
+        if (!retry){ sale.pendingId = null; sale.believed = undefined; dropPendingIf(pid); }
         clearSession();
         showLogin(retry
           ? 'Your session expired — sign in again, then tap Try again. The sale may already be in; it cannot go in twice.'
@@ -1069,25 +1098,32 @@
         throw new Error('no clear answer (' + res.status + ')');
       }
       if (res.ok) return res.json().then(function(r){
-        dropPending();
+        // THE SALE IS IN, whichever send this answers.
+        dropPendingIf(pid);
         // THE TIRE AS IT IS NOW, not the object read before the send: a refresh
         // in between replaces the list, and writing on the old one left the row
         // and the message disagreeing.
         var cur = productById(id);
-        var left = Number(r.qty_left);
+        var left = figure(r.qty_left);
         if (cur && isFinite(left)) cur.qty = left;
+        // Another sale on screen now is left alone; a second answer for the
+        // same number, after the first has been said, is not said again.
+        if (sale && sale.pendingId !== pid){ renderList(); return; }
+        if (!sale && said && said.pid === pid){ renderList(); return; }
         openId = null; sale = null;
         said = saleWords(r, qty);
-        said.id = id;
+        said.id = id; said.pid = pid;
         renderList();
       });
       // A REFUSAL IS AN ANSWER: nothing was written, so the next press is a new
       // sale. The database's own words are said, or plainer ones where it has
-      // not been taught this yet.
+      // not been taught this yet. Only the latest send's: an older one's is
+      // about a number the latest is still asking after.
       return res.json().catch(function(){ return {}; }).then(function(j){
+        if (!mine()) return;
         var missing = res.status === 404 || (j && j.code === 'PGRST202');
-        dropPending();
-        if (sale && sale.id === id){ sale.busy = false; sale.pendingId = null; sale.believed = undefined; }
+        dropPendingIf(pid);
+        sale.busy = false; sale.pendingId = null; sale.believed = undefined;
         said = { id: id, tone: 'err', text: missing
           ? 'The stock room book has not been taught to take a sale from the phone yet. Nothing was sold.'
           : ((j && j.message) || 'The stock room refused the sale. Nothing was sold.') };
@@ -1096,7 +1132,7 @@
     }).catch(function(){
       // NO ANSWER IS NOT A NO. The sale may have landed; Try again sends the same
       // number, which cannot sell twice.
-      if (!sale || sale.id !== id) return;
+      if (!mine()) return;
       sale.busy = false;
       said = { id: id, tone: 'err', text: 'No answer from the stock room — the sale may or may not have gone through. Tap Try again: it cannot sell twice.' };
       renderList();
@@ -1109,7 +1145,7 @@
   function leavePending(){
     if (!sale || sale.busy || !sale.pendingId) return;
     var id = sale.id;
-    dropPending();
+    dropPendingIf(sale.pendingId);
     openId = null; sale = null;
     said = { id: id, tone: 'warn', text: 'Left as it is. The stock is being read again — check this tire\u2019s count before selling it again.' };
     renderList();
