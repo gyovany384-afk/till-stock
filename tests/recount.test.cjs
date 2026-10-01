@@ -135,7 +135,55 @@ const two = () => [row({ id: 'p1', qty: 6 }), row({ id: 'p2', size: '195/65R15',
     await tap(w, '[data-act="csave"]'); await wait(30);
     ok('Save again repeats the same count against the same picture',
       recounts.length === 2 && recounts[1].p_qty === 2 && recounts[1].p_seen === 6, JSON.stringify(recounts));
-    ok('"already" closes it, with the book\'s number', !$(w, '.recount') && countOn(w, 'p1') === '2 in stock' && /already said so/.test(said(w)), said(w));
+    ok('UNDER THE SAME SAVE NUMBER — what lets the database find its own line', recounts[1].p_id === recounts[0].p_id);
+    ok('"already" closes it, with the book\'s number', !$(w, '.recount') && countOn(w, 'p1') === '2 in stock' && /already gone in/.test(said(w)), said(w));
+    w.close();
+  }
+  {
+    // "already" with a sale since: the card shows the book as it is NOW.
+    const { w } = phone({ rows: two(),
+      recount: (body) => reply({ product_id: 'p1', already: true, qty_before: 6, qty_after: 2, qty_now: 1 }) });
+    await wait(60);
+    await tap(w, '.row[data-id="p1"] .main'); await type(w, '2');
+    await tap(w, '[data-act="csave"]'); await wait(30);
+    ok('"already" puts the book\'s count now on the card, and says so', countOn(w, 'p1') === '1 in stock' && /says 1 now/.test(said(w)), countOn(w, 'p1') + ' / ' + said(w));
+    w.close();
+  }
+  {
+    // A number changed after no answer is a new Save, with a new number.
+    const { w, recounts } = phone({ rows: two(), recount: (body, n) => (n === 1 ? Promise.reject(new Error('dropped')) : reply({ product_id: 'p1', moved: true, qty_now: 3 })) });
+    await wait(60);
+    await tap(w, '.row[data-id="p1"] .main'); await type(w, '2');
+    await tap(w, '[data-act="csave"]'); await wait(30);
+    await type(w, '5');
+    await tap(w, '[data-act="csave"]'); await wait(30);
+    ok('a different count typed after no answer goes under a new number', recounts.length === 2 && recounts[1].p_id !== recounts[0].p_id, JSON.stringify(recounts));
+    ok('every Save number has the phone\'s shape', recounts.every((r) => /^r[a-z]{4}[0-9]+$/.test(r.p_id)), JSON.stringify(recounts.map((r) => r.p_id)));
+    w.close();
+  }
+  {
+    // After "moved", the next Save is a new one: the picture changed.
+    const { w, recounts } = phone({ rows: two(), recount: (body, n) => reply(n === 1 ? { product_id: 'p1', moved: true, qty_now: 5 } : { product_id: 'p1', already: false, qty_before: 5, qty_after: 2 }) });
+    await wait(60);
+    await tap(w, '.row[data-id="p1"] .main'); await type(w, '2');
+    await tap(w, '[data-act="csave"]'); await wait(30);
+    await tap(w, '[data-act="csave"]'); await wait(30);
+    ok('after "moved", Save again is a new Save number', recounts.length === 2 && recounts[1].p_id !== recounts[0].p_id && recounts[1].p_seen === 5);
+    w.close();
+  }
+  {
+    const { w } = phone({ rows: two(), recount: () => reply({ product_id: 'p1', unchanged: true, qty_before: 2, qty_after: 2 }) });
+    await wait(60);
+    await tap(w, '.row[data-id="p1"] .main'); await type(w, '2');
+    await tap(w, '[data-act="csave"]'); await wait(30);
+    ok('"unchanged" says there was nothing to change', /Nothing to change/.test(said(w)) && !$(w, '.recount'), said(w));
+    w.close();
+  }
+  {
+    const { w } = phone({ rows: two() });
+    await wait(60);
+    await tap(w, '.row[data-id="p1"] .main'); await type(w, '4a');
+    ok('a letter typed does not stay in the box', (box(w) || {}).value === '4', (box(w) || {}).value);
     w.close();
   }
   {

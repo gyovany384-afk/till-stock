@@ -1443,9 +1443,17 @@
   // set from a stale picture, it wipes out whatever moved the book meanwhile.
   // It is safe here because the page sends the count it SAW as well, and
   // till_stock.recount sets the new one only while the book still holds that.
-  // A sale in between comes back "moved" and nothing changes. A Save sent twice
-  // comes back "already", so Save again after no answer cannot do harm.
+  // A sale in between comes back "moved" and nothing changes.
+  //
+  // EACH SAVE CARRIES ITS OWN NUMBER — the Fable audit of 6083228. "r", this
+  // phone's four letters, the time: a phone sale's shape with an r. Save again
+  // after no answer sends the SAME number, and the database finds its own line
+  // and answers "already". Judged by the count alone, a sale that happened to
+  // land the book on the number he typed read as "already saved" and was lost.
   var MAX_COUNT = 9999;
+  // The recount panel's own buttons, by name: a prefix would also catch the
+  // sale panel's confirm and the sheet's close (the Fable audit of 6083228).
+  var COUNT_ACTS = { cminus: true, cplus: true, csave: true };
   function countPanel(){
     var busy = count.busy, d = count.qty - count.seen;
     var words = d === 0 ? 'Same as the book (' + count.seen + ')'
@@ -1463,6 +1471,8 @@
   function countTyped(v){
     if (!count || count.busy) return;
     var digits = String(v || '').replace(/[^0-9]/g, '').slice(0, 4);
+    var bx = $('rcQty');
+    if (bx && bx.value !== digits) bx.value = digits;
     count.qty = digits === '' ? count.seen : Math.min(MAX_COUNT, Number(digits));
     count.blank = digits === '';
     var d = count.qty - count.seen, s = $('rcSaid'), b = document.querySelector('.recount [data-act="csave"]');
@@ -1491,9 +1501,15 @@
       outIds[id] = true; hidden += 1;
     }
   }
+  // The Save in hand is the one waiting on an answer only while the count and
+  // the picture it was sent with are still what the panel holds.
+  function c_sameSave(c){ return !!c.saveId && c.saveQty === c.qty && c.saveSeen === c.seen; }
   function saveCount(){
     if (!count || count.busy || count.blank || count.qty === count.seen) return;
-    var c = count, id = c.id, qty = c.qty, seen = c.seen;
+    // A SAVE THAT NEVER GOT AN ANSWER is sent again under its own number, but
+    // only for the same count: a different number typed since is a new Save.
+    if (!c_sameSave(count)){ count.saveId = 'r' + phoneTag() + Date.now(); count.saveQty = count.qty; count.saveSeen = count.seen; }
+    var c = count, id = c.id, qty = c.qty, seen = c.seen, saveId = c.saveId;
     c.busy = true;
     said = null;
     renderList();
@@ -1502,7 +1518,7 @@
     // panel on screen.
     var mine = function(){ return count === c; };
     var name = c.name;
-    rpc('recount', { p_product_id: id, p_qty: qty, p_seen: seen }).then(function(res){
+    rpc('recount', { p_id: saveId, p_product_id: id, p_qty: qty, p_seen: seen }).then(function(res){
       if (res.status === 401){
         // Turned away before it ran: nothing was changed.
         if (!mine()){ if (!session) showLogin('Your session expired — sign in again.'); return; }
@@ -1525,6 +1541,8 @@
           if (isFinite(now)) placeByQty(id, now);
           if (mine()){
             c.busy = false;
+            // A new picture: the next Save is a new one, with a new number.
+            c.saveId = null;
             if (isFinite(now)) c.seen = now;
           }
           said = { id: id, tone: 'warn', text: 'Not saved. The book changed to ' + (isFinite(now) ? now : 'another number')
@@ -1532,18 +1550,29 @@
           renderList();
           return;
         }
-        var after = figure(r.qty_after), before = figure(r.qty_before);
-        if (isFinite(after)) placeByQty(id, after);
+        var after = figure(r.qty_after), before = figure(r.qty_before), now2 = figure(r.qty_now);
+        // "already" is this Save found in the book: the card takes the count
+        // the book holds NOW, which a sale since may have moved on.
+        var onCard = r.already ? (isFinite(now2) ? now2 : after) : after;
+        // AFTER A MERGE the line sits on the copy kept; the stock is read
+        // again rather than writing its count on the tire pressed.
+        var here = !r.product_id || r.product_id === id;
+        if (here && isFinite(onCard)) placeByQty(id, onCard);
         if (mine()) count = null;
-        said = { id: id, tone: '', text: r.already
-          ? 'Count saved: ' + (isFinite(after) ? after : qty) + ' — ' + name + '. The book already said so.'
-          : 'Count saved: ' + (isFinite(after) ? after : qty) + ' — ' + name + (isFinite(before) ? ', was ' + before + '.' : '.') };
+        var shown = isFinite(after) ? after : qty;
+        said = { id: id, tone: '', text: r.unchanged
+          ? 'Nothing to change — the book already says ' + shown + ' for ' + name + '.'
+          : r.already
+          ? 'Count saved: ' + shown + ' — ' + name + '. It had already gone in; nothing was counted twice.'
+            + (here && isFinite(now2) && now2 !== shown ? ' The book says ' + now2 + ' now.' : '')
+          : 'Count saved: ' + shown + ' — ' + name + (isFinite(before) ? ', was ' + before + '.' : '.') };
         renderList();
+        if (!here && session) loadStock();
       });
       return res.json().catch(function(){ return {}; }).then(function(j){
         if (!mine()) return;
         var missing = res.status === 404 || (j && j.code === 'PGRST202');
-        c.busy = false;
+        c.busy = false; c.saveId = null;
         said = { id: id, tone: 'err', text: missing
           ? 'The stock room book has not been taught to take a recount yet. Nothing was changed.'
           : ((j && j.message) || 'The stock room refused the count. Nothing was changed.') };
@@ -2151,6 +2180,10 @@
     // it, and a signed-out phone would be showing what a sale was worth over
     // the sign-in box.
     closeSheet();
+    // THE RECOUNT GOES TOO — the Fable audit of 6083228. Six of the seven roads
+    // here are a session expiring under a read, and the panel's picture of the
+    // book is from before it.
+    count = null;
     showTab(TAB_STOCK);
     sales = []; tires = Object.create(null); salesAt = null; salesQuery = '';
     salesSaid = null; salesErr = null; salesLoading = false; range = 'Today';
@@ -2283,7 +2316,7 @@
     if (act && act.getAttribute('data-act') === 'without'){
       withOut = true; renderList(); return;
     }
-    if (act && count && /^c/.test(act.getAttribute('data-act'))){
+    if (act && count && COUNT_ACTS[act.getAttribute('data-act')]){
       var cwhat = act.getAttribute('data-act');
       if (!count.busy){
         if (cwhat === 'cminus' && count.qty > 0){ count.qty -= 1; count.blank = false; renderList(); }

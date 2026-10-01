@@ -119,6 +119,7 @@ function phone(opts = {}) {
   const goneSales = new Map();
   // Every recount the page sent, in order.
   const recounts = [];
+  const countIds = new Map();
 
   function stub(url, init) {
     const u = String(url);
@@ -156,19 +157,26 @@ function phone(opts = {}) {
     }
 
     // A RECOUNT — 1 Oct 2026. `opts.recount(body, n)` answers it when given;
-    // otherwise a stand-in for till_stock.recount: the count is set only while
-    // the book still holds what the phone saw, a count it already holds is
-    // "already", and anything else is "moved" with nothing changed.
+    // otherwise a stand-in for till_stock.recount, in ITS order: a Save number
+    // already in is "already"; a book that no longer holds what the phone saw
+    // is "moved" with nothing changed; a count it already holds is
+    // "unchanged"; otherwise the count is set.
     if (u.indexOf('/rest/v1/rpc/recount') !== -1) {
       const body = JSON.parse((init && init.body) || '{}');
       recounts.push(body);
       if (opts.recount) return opts.recount(body, recounts.length, rows);
+      const was = countIds.get(body.p_id);
+      if (was) {
+        const t = rows.find((x) => x.id === was.productId) || { qty: null };
+        return reply({ product_id: was.productId, already: true, qty_before: was.before, qty_after: was.after, qty_now: t.qty });
+      }
       const r = rows.find((x) => x.id === body.p_product_id);
       if (!r) return reply({ message: 'That tire is not on the book any more. Nothing was changed.' }, 400);
-      if (r.qty === body.p_qty) return reply({ product_id: r.id, already: true, qty_before: r.qty, qty_after: r.qty });
       if (r.qty !== body.p_seen) return reply({ product_id: r.id, moved: true, qty_now: r.qty });
+      if (r.qty === body.p_qty) return reply({ product_id: r.id, unchanged: true, qty_before: r.qty, qty_after: r.qty });
       const before = r.qty;
       r.qty = body.p_qty;
+      countIds.set(body.p_id, { productId: r.id, before, after: r.qty });
       return reply({ product_id: r.id, already: false, qty_before: before, qty_after: r.qty });
     }
 
