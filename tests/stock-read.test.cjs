@@ -183,7 +183,9 @@ const countOn = (w, id) => (((w.document.querySelector('.row[data-id="' + id + '
     q.value = 'Norvell'; q.dispatchEvent(new w.Event('input', { bubbles: true }));
     await wait(20);
     ok('a search cannot turn one up either', list(w).indexOf('No matches') !== -1, list(w).slice(0, 200));
-    ok('and says why nothing came back', list(w).indexOf('out of stock and not shown') !== -1, list(w).slice(0, 400));
+    // 1 Oct 2026: a search that finds nothing offers the out-of-stock tires
+    // behind a button, rather than only saying they exist.
+    ok('and offers to look among the out of stock', list(w).indexOf('Search out of stock/negative') !== -1, list(w).slice(0, 400));
     w.close();
   }
   {

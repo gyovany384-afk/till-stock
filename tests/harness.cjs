@@ -117,6 +117,8 @@ function phone(opts = {}) {
   // Every Remove the page sent, and the sales already taken out.
   const removals = [];
   const goneSales = new Map();
+  // Every recount the page sent, in order.
+  const recounts = [];
 
   function stub(url, init) {
     const u = String(url);
@@ -151,6 +153,23 @@ function phone(opts = {}) {
       r.qty -= body.p_qty;
       soldIds.set(body.p_id, { before });
       return reply({ id: body.p_id, already: false, product_id: r.id, product: r.size + ' ' + r.brand, qty_before: before, qty_left: r.qty, believed: body.p_believed });
+    }
+
+    // A RECOUNT — 1 Oct 2026. `opts.recount(body, n)` answers it when given;
+    // otherwise a stand-in for till_stock.recount: the count is set only while
+    // the book still holds what the phone saw, a count it already holds is
+    // "already", and anything else is "moved" with nothing changed.
+    if (u.indexOf('/rest/v1/rpc/recount') !== -1) {
+      const body = JSON.parse((init && init.body) || '{}');
+      recounts.push(body);
+      if (opts.recount) return opts.recount(body, recounts.length, rows);
+      const r = rows.find((x) => x.id === body.p_product_id);
+      if (!r) return reply({ message: 'That tire is not on the book any more. Nothing was changed.' }, 400);
+      if (r.qty === body.p_qty) return reply({ product_id: r.id, already: true, qty_before: r.qty, qty_after: r.qty });
+      if (r.qty !== body.p_seen) return reply({ product_id: r.id, moved: true, qty_now: r.qty });
+      const before = r.qty;
+      r.qty = body.p_qty;
+      return reply({ product_id: r.id, already: false, qty_before: before, qty_after: r.qty });
     }
 
     // THE SALES — 22 Sep 2026, the Sales log. `opts.sales` is the log in
@@ -238,7 +257,7 @@ function phone(opts = {}) {
     },
   });
 
-  return { w: dom.window, calls, staffAsked: () => staffAsked, sales, removals };
+  return { w: dom.window, calls, staffAsked: () => staffAsked, sales, removals, recounts };
 }
 
 let failures = 0;

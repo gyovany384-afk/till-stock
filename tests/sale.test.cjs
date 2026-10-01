@@ -37,14 +37,14 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const { w } = phone({ rows: two() });
     await wait(60);
     ok('no tire is open to start with', !$(w, '.sellpanel'));
-    await tap(w, '.row[data-id="p1"] .name')
+    await tap(w, '.row[data-id="p1"] .prices')
     ok('a tap on a tire opens the panel under it, at one', Boolean($(w, '.sellpanel')) && panelQty(w) === '1', panelQty(w));
     ok('the panel sits right after the tire tapped', ($(w, '.row[data-id="p1"]').nextElementSibling || {}).className === 'sellpanel');
-    ok('the tire says it is open', $(w, '.row[data-id="p1"]').getAttribute('aria-expanded') === 'true');
-    await tap(w, '.row[data-id="p2"]')
+    ok('the tire says it is open', $(w, '.row[data-id="p1"] .prices').getAttribute('aria-expanded') === 'true');
+    await tap(w, '.row[data-id="p2"] .prices')
     ok('a tap on another tire moves the panel there — one open at a time',
       w.document.querySelectorAll('.sellpanel').length === 1 && ($(w, '.row[data-id="p2"]').nextElementSibling || {}).className === 'sellpanel');
-    await tap(w, '.row[data-id="p2"]')
+    await tap(w, '.row[data-id="p2"] .prices')
     ok('a tap on the open tire closes it', !$(w, '.sellpanel'));
     w.close();
   }
@@ -53,7 +53,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
   {
     const { w, sales } = phone({ rows: two() });
     await wait(60);
-    await tap(w, '.row[data-id="p1"]')
+    await tap(w, '.row[data-id="p1"] .prices')
     ok('minus is off at one', $(w, '[data-act="minus"]').disabled === true);
     await tap(w, '[data-act="plus"]'); await tap(w, '[data-act="plus"]')
     ok('plus counts up', panelQty(w) === '3', panelQty(w));
@@ -69,7 +69,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
   {
     const { w, calls, sales } = phone({ rows: two() });
     await wait(60);
-    await tap(w, '.row[data-id="p1"]')
+    await tap(w, '.row[data-id="p1"] .prices')
     await tap(w, '[data-act="plus"]')
     const before = new Date()
     await tap(w, '[data-act="confirm"]')
@@ -96,8 +96,8 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
   {
     const { w, sales } = phone({ rows: two() });
     await wait(60);
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
-    await tap(w, '.row[data-id="p2"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p2"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     const tags = sales.map((s) => (s.p_id || '').slice(1, 5))
     ok('two sales, two numbers, one phone\'s four letters', sales.length === 2 && sales[0].p_id !== sales[1].p_id && tags[0] === tags[1], sales.map((s) => s.p_id));
     ok('kept on the phone', w.localStorage.getItem('till_stock_phone_tag') === tags[0]);
@@ -117,11 +117,11 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
       },
     });
     await wait(60);
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     ok('no answer is said as no answer, not as a failure', /may or may not have gone through/.test(said(w)), said(w));
     ok('the panel stays open, offering Try again', ($(w, '[data-act="confirm"]') || {}).textContent === 'Try again');
     ok('and the count cannot be changed under it', $(w, '[data-act="plus"]').disabled && $(w, '[data-act="minus"]').disabled);
-    await tap(w, '.row[data-id="p2"]')
+    await tap(w, '.row[data-id="p2"] .prices')
     ok('nor can another tire be opened and lose the number', ($(w, '.row[data-id="p1"]').nextElementSibling || {}).className === 'sellpanel');
     await tap(w, '[data-act="confirm"]'); await wait(30)
     ok('Try again sends the very same sale number', sales.length === 2 && sales[0].p_id === sales[1].p_id, sales.map((s) => s.p_id));
@@ -136,7 +136,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
       sale: () => reply({ code: 'P0001', message: 'That tire is not on the book any more. Nothing was sold.' }, 400),
     });
     await wait(60);
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     ok('the stock room\'s own words are said', said(w) === 'That tire is not on the book any more. Nothing was sold.', said(w));
     ok('the count on the phone is left alone', countOn(w, 'p1') === '10 in stock');
     await tap(w, '[data-act="confirm"]'); await wait(30)
@@ -148,7 +148,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
   {
     const { w } = phone({ rows: two(), sale: () => reply({ code: 'PGRST202', message: 'Could not find the function' }, 404) });
     await wait(60);
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     ok('says the stock room has not been taught it yet', said(w) === 'The stock room book has not been taught to take a sale from the phone yet. Nothing was sold.', said(w));
     w.close();
   }
@@ -158,7 +158,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     let release
     const { w, sales } = phone({ rows: two(), sale: (body) => new Promise((r) => { release = () => r(reply({ id: body.p_id, already: false, product: 'x', qty_before: 10, qty_left: 9 })) }) });
     await wait(60);
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]')
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]')
     ok('while it is in the air the button says so and is off', ($(w, '[data-act="confirm"]') || {}).textContent === 'Selling…' && $(w, '[data-act="confirm"]').disabled);
     await tap(w, '[data-act="confirm"]'); await tap(w, '[data-act="confirm"]')
     ok('and more presses send nothing more', sales.length === 1, sales.length);
@@ -171,14 +171,14 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
   {
     const { w } = phone({ rows: [row({ id: 'p1', qty: 1 })] });
     await wait(60);
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="plus"]'); await tap(w, '[data-act="plus"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="plus"]'); await tap(w, '[data-act="plus"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
     ok('more than the shelf holds goes through, and says to count the rack', /book is now at −2 — count this rack/.test(said(w)) && countOn(w, 'p1') === '-2 out', [said(w), countOn(w, 'p1')]);
     w.close();
   }
   {
     const { w } = phone({ rows: two(), sale: (body) => reply({ id: body.p_id, already: false, product: '205/55R16 Marchetti Primato 4', qty_before: 7, qty_left: 6, believed: body.p_believed }) });
     await wait(60);
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     ok('a shelf that had moved since the phone read it is said, in the counter\'s words',
       said(w) === '1 × 205/55R16 Marchetti Primato 4 sold. The shelf had 7, not 10 — it was sold somewhere else first. 6 left.', said(w));
     w.close();
@@ -210,7 +210,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
       },
     })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     ok('a gateway timeout is said as no clear answer, not "nothing was sold"', /may or may not have gone through/.test(said(w)) && !/Nothing was sold/.test(said(w)), said(w))
     await tap(w, '[data-act="confirm"]'); await wait(30)
     ok('and Try again sends the same number', sales.length === 2 && sales[0].p_id === sales[1].p_id, sales.map((x) => x.p_id))
@@ -227,7 +227,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
   {
     const { w, sales } = phone({ rows: two(), sale: () => reply({ message: 'JWT expired' }, 401) })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(40)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(40)
     const words = (w.document.getElementById('loginMsg') || {}).textContent || ''
     ok('a first press turned away signed-out says nothing was sold', /sign in again\. Nothing was sold\./.test(words), words)
     await signIn(w)
@@ -247,7 +247,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
       },
     })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     await tap(w, '[data-act="confirm"]'); await wait(40)
     const words = (w.document.getElementById('loginMsg') || {}).textContent || ''
     ok('a RETRY turned away signed-out does not claim nothing was sold', /then tap Try again\. The sale may already be in/.test(words) && !/Nothing was sold/.test(words), words)
@@ -275,7 +275,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
   {
     const { w } = phone({ rows: two(), sale: () => Promise.reject(new Error('the signal dropped')) })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     const kept = JSON.parse(w.localStorage.getItem('till_stock_phone_pending') || 'null')
     ok('a press with no clear answer is kept on the phone', kept && /^s[a-z]{4}\d+$/.test(kept.id) && kept.productId === 'p1' && kept.qty === 1, kept)
     w.close()
@@ -285,8 +285,8 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
   {
     const { w, calls } = phone({ rows: two(), sale: () => Promise.reject(new Error('the signal dropped')) })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
-    await tap(w, '.row[data-id="p2"]')
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p2"] .prices')
     ok('another tire tapped says which sale is waiting', /A sale is still waiting on 205\/55R16 Marchetti Primato 4/.test(said(w)), said(w))
     const reads = calls.filter((c) => c.url.indexOf('/rest/v1/products') !== -1).length
     await tap(w, '[data-act="leave"]'); await wait(60)
@@ -300,7 +300,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     let release
     const { w } = phone({ rows: two(), sale: (body) => new Promise((r) => { release = () => r(reply({ id: body.p_id, already: false, product: '205/55R16 Marchetti Primato 4', qty_before: 10, qty_left: 9, believed: 10 })) }) })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]')
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]')
     w.document.getElementById('refreshBtn').click(); await wait(60)
     release(); await wait(40)
     ok('the tire shows what is left even after the list was read again underneath it', countOn(w, 'p1') === '9 in stock' && /9 left/.test(said(w)), [countOn(w, 'p1'), said(w)])
@@ -312,7 +312,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const rows = [row({ id: 'p"1', brand: '<img src=x onerror="window.__x=1">', qty: 5 })]
     const { w } = phone({ rows, sale: () => reply({ code: 'P0001', message: '<b id="injected">bold</b>' }, 400) })
     await wait(60)
-    await tap(w, '.row .name'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     ok('a tire name with markup in it is drawn as text', !w.document.querySelector('.row img') && /<img/.test(($(w, '.row') || {}).textContent || ''))
     ok('and so is a message from the database', !w.document.getElementById('injected') && /<b id="injected">/.test(said(w)), said(w))
     w.close()
@@ -322,14 +322,14 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
   {
     const { w } = phone({ rows: two(), sale: (body) => reply({ id: body.p_id, already: true }) })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     ok('an "already" with no figure says so without one', said(w) === 'That sale was already logged — nothing was sold twice.', said(w))
     w.close()
   }
   {
     const { w } = phone({ rows: two(), sale: (body) => reply({ id: body.p_id, already: false, product: '205/55R16 Marchetti Primato 4', qty_before: 10 }) })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     ok('says it sold without making a figure up, and leaves the count as it was', said(w) === '1 \u00d7 205/55R16 Marchetti Primato 4 sold.' && countOn(w, 'p1') === '10 in stock', [said(w), countOn(w, 'p1')])
     w.close()
   }
@@ -357,14 +357,14 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
       },
     })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     rows.splice(0, 1)   // archived at the counter while the answer was lost
     w.document.getElementById('refreshBtn').click(); await wait(60)
     const top = $(w, '#list > .waiting')
     ok('a sale waiting on a tire taken off the list is drawn above the list',
       Boolean(top) && /no longer on the stock list/.test(top.textContent) && /1 × 205\/55R16 Marchetti Primato 4/.test(top.textContent), top && top.textContent)
     ok('with Try again and Leave it to press', ($(w, '.waiting [data-act="confirm"]') || {}).textContent === 'Try again' && Boolean($(w, '.waiting [data-act="leave"]')))
-    await tap(w, '.row[data-id="p2"]')
+    await tap(w, '.row[data-id="p2"] .prices')
     ok('another tire tapped still names the sale waiting', /A sale is still waiting on 205\/55R16 Marchetti Primato 4/.test(said(w)), said(w))
     await tap(w, '.waiting [data-act="confirm"]'); await wait(30)
     ok('Try again sends the same number, tire, day and clock',
@@ -379,7 +379,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const rows = two()
     const { w } = phone({ rows, sale: () => Promise.reject(new Error('the signal dropped')) })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     rows.splice(0, 1)
     w.document.getElementById('refreshBtn').click(); await wait(60)
     await tap(w, '.waiting [data-act="leave"]'); await wait(60)
@@ -400,7 +400,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
       },
     })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     rows.splice(0, 1)
     w.document.getElementById('refreshBtn').click(); await wait(60)
     await tap(w, '.waiting [data-act="confirm"]'); await wait(30)
@@ -448,7 +448,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
       },
     })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     const keptNow = JSON.parse(w.localStorage.getItem(PENDING) || 'null') || {}
     ok('the day and clock of the press are kept with the waiting sale', keptNow.day === sales[0].p_date && keptNow.clock === sales[0].p_when, keptNow)
     const Real = w.Date
@@ -468,7 +468,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
   {
     const { w } = phone({ rows: two(), sale: () => Promise.reject(new Error('the signal dropped')) })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     const q = w.document.getElementById('q')
     q.value = 'Norvell'; q.dispatchEvent(new w.Event('input', { bubbles: true })); await wait(20)
     ok('a waiting sale a search hides is drawn above the results, with its way out',
@@ -482,7 +482,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
   {
     const { w } = phone({ rows: two() })
     await wait(60)
-    await tap(w, '.row[data-id="p2"]')
+    await tap(w, '.row[data-id="p2"] .prices')
     w.document.getElementById('signOutBtn').click(); await wait(20)
     await signIn(w)
     ok('a tire open before signing out is not open after signing back in', !$(w, '.sellpanel'))
@@ -492,7 +492,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const rows = two()
     const { w } = phone({ rows, sale: () => Promise.reject(new Error('the signal dropped')) })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     rows.splice(0, 1)
     w.document.getElementById('signOutBtn').click(); await wait(20)
     await signIn(w)
@@ -513,7 +513,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
       },
     })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     ok('a ' + status + ' is said as no clear answer', /may or may not have gone through/.test(said(w)) && !/Nothing was sold/.test(said(w)), said(w))
     ok('and the sale stays kept on the phone', w.localStorage.getItem(PENDING) !== null)
     await tap(w, '[data-act="confirm"]'); await wait(30)
@@ -523,7 +523,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
   {
     const { w } = phone({ rows: two(), sale: () => reply({ code: 'P0001', message: 'That tire is not on the book any more. Nothing was sold.' }, 400) })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     ok('a refusal is an answer: nothing is kept waiting on the phone', w.localStorage.getItem(PENDING) === null && /not on the book any more/.test(said(w)), said(w))
     w.close()
   }
@@ -549,7 +549,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const h = held()
     const { w, sales } = phone({ rows: two(), sale: h.sale })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(20)
     const pid = sales[0].p_id
     await signOutAndIn(w)
     ok('after signing back in, the sale still in the air is offered as Try again', ($(w, '[data-act="confirm"]') || {}).textContent === 'Try again')
@@ -568,7 +568,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const h = held()
     const { w } = phone({ rows: two(), sale: h.sale })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(20)
     await signOutAndIn(w)
     await tap(w, '[data-act="confirm"]'); await wait(20)
     h.sends[0].reject(new Error('the signal dropped')); await wait(30)
@@ -583,7 +583,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const h = held()
     const { w, sales } = phone({ rows: two(), sale: h.sale })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(20)
     const pid = sales[0].p_id
     await signOutAndIn(w)
     await tap(w, '[data-act="confirm"]'); await wait(20)
@@ -608,7 +608,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const h = held()
     const { w, sales } = phone({ rows: two(), sale: h.sale })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(20)
     const pid = sales[0].p_id
     await signOutAndIn(w)
     await tap(w, '[data-act="confirm"]'); await wait(20)
@@ -626,7 +626,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const h = held()
     const { w, sales } = phone({ rows: two(), sale: h.sale })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(20)
     const pid = sales[0].p_id
     await signOutAndIn(w)
     await tap(w, '[data-act="confirm"]'); await wait(20)
@@ -642,10 +642,10 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const h = held()
     const { w, sales } = phone({ rows: two(), sale: h.sale })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(20)
     await signOutAndIn(w)
     await tap(w, '[data-act="leave"]'); await wait(60)
-    await tap(w, '.row[data-id="p2"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    await tap(w, '.row[data-id="p2"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(20)
     const pidB = sales[1].p_id
     h.sends[0].resolve(reply({ id: sales[0].p_id, already: false, product_id: 'p1', product: '205/55R16 Marchetti Primato 4', qty_before: 10, qty_left: 9, believed: 10 })); await wait(30)
     // Its own tire, named as the tire it pressed — not the tire on screen now.
@@ -663,10 +663,10 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const h = held()
     const { w, sales } = phone({ rows: two(), sale: h.sale })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(20)
     await signOutAndIn(w)
     await tap(w, '[data-act="leave"]'); await wait(60)
-    await tap(w, '.row[data-id="p2"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    await tap(w, '.row[data-id="p2"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(20)
     h.sends[1].reject(new Error('the signal dropped')); await wait(30)
     h.sends[0].resolve(reply({ id: sales[0].p_id, already: false, product: '205/55R16 Marchetti Primato 4', qty_before: 10, qty_left: 9, believed: 10 })); await wait(30)
     ok('what the sale on screen says is kept when a left one lands late', /may or may not have gone through/.test(said(w)), said(w))
@@ -678,7 +678,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const h = held()
     const { w } = phone({ rows: two(), sale: h.sale })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(20)
     w.document.getElementById('signOutBtn').click(); await wait(20)
     h.sends[0].resolve(reply({ id: 'x', already: true, product_id: 'p9', qty_before: 10, qty_left: 13 })); await wait(60)
     const words = ((w.document.getElementById('loginMsg') || {}).textContent) || ''
@@ -692,12 +692,12 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const rows = two().concat([row({ id: 'p3', size: '225/45R17', brand: 'Kestrel Aero', qty: 6 })])
     const { w, sales } = phone({ rows, sale: h.sale })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(20)
     await signOutAndIn(w)
     await tap(w, '[data-act="leave"]'); await wait(60)
-    await tap(w, '.row[data-id="p2"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    await tap(w, '.row[data-id="p2"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(20)
     h.sends[1].reject(new Error('the signal dropped')); await wait(30)
-    await tap(w, '.row[data-id="p3"]')
+    await tap(w, '.row[data-id="p3"] .prices')
     ok('(a third tire tapped says a sale is waiting)', /A sale is still waiting on/.test(said(w)), said(w))
     h.sends[0].resolve(reply({ id: sales[0].p_id, already: false, product_id: 'p1', product: '205/55R16 Marchetti Primato 4', qty_before: 10, qty_left: 9, believed: 10 })); await wait(30)
     ok('a left sale landing late is said over a passing note about another tire', /sold — 9 left/.test(said(w)), said(w))
@@ -716,7 +716,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
       if (String(u).indexOf('/rest/v1/products') !== -1) { reads += 1; return new Promise(() => {}) }
       return real(u, init)
     }
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(60)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(60)
     ok('a count the database says is another tire\'s is not written on the tire pressed', countOn(w, 'p1') === '10 in stock', countOn(w, 'p1'))
     ok('nor said as this tire\'s', said(w) === 'That sale was already logged — nothing was sold twice.', said(w))
     ok('and the stock is read again', reads === 1, reads)
@@ -725,7 +725,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
   {
     const { w } = phone({ rows: two(), sale: (body) => reply({ id: body.p_id, already: false, product_id: 'p1', product: '205/55R16 Marchetti Primato 4', qty_before: 10, qty_left: 9, believed: 10 }) })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     ok('a count the database says is this tire\'s is written on it', countOn(w, 'p1') === '9 in stock', countOn(w, 'p1'))
     w.close()
   }
@@ -734,14 +734,14 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
   {
     const { w } = phone({ rows: two(), sale: (body) => reply({ id: body.p_id, already: true, qty_before: 10, qty_left: null }) })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     ok('"already" with no count says no count, not "0 left"', said(w) === 'That sale was already logged — nothing was sold twice.' && countOn(w, 'p1') === '10 in stock', [said(w), countOn(w, 'p1')])
     w.close()
   }
   {
     const { w } = phone({ rows: two(), sale: (body) => reply({ id: body.p_id, already: false, product: '205/55R16 Marchetti Primato 4', qty_before: null, qty_left: 9, believed: 10 }) })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     ok('a sale with no "before" figure makes no claim about the shelf', said(w) === '1 × 205/55R16 Marchetti Primato 4 sold — 9 left.', said(w))
     w.close()
   }
@@ -751,7 +751,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const h = held()
     const { w } = phone({ rows: two(), sale: h.sale })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(20)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(20)
     const q = w.document.getElementById('q')
     q.value = 'Norvell'; q.dispatchEvent(new w.Event('input', { bubbles: true })); await wait(20)
     h.sends[0].resolve(reply({ id: 'x', already: false, product: '205/55R16 Marchetti Primato 4', qty_before: 10, qty_left: 9, believed: 10 })); await wait(30)
@@ -763,7 +763,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
   for (const what of ['/rest/v1/products', '/rest/v1/rpc/is_staff']) {
     const { w } = phone({ rows: two(), sale: () => Promise.reject(new Error('the signal dropped')) })
     await wait(60)
-    await tap(w, '.row[data-id="p1"]'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     const real = w.fetch
     w.fetch = (u, init) => (String(u).indexOf(what) !== -1 ? Promise.reject(new Error('offline')) : real(u, init))
     w.document.getElementById('refreshBtn').click(); await wait(60)

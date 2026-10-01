@@ -306,6 +306,32 @@
   .sellpanel{ flex-wrap:wrap; }
   .sp-leave{ flex-basis:100%; height:44px; padding:0 12px; border-radius:12px; border:1px solid var(--line-strong);
     background:var(--surface); color:var(--muted); font-size:13px; font-weight:600; }
+  /* ---------- One card, two halves — 1 Oct 2026 ----------
+     His picture: a line down the card, the left half recounts, the right half
+     sells. Same layout as before inside each half; only the padding moved from
+     the card onto the halves, so each half is its own tap target edge to edge. */
+  .row.split{ padding:0; gap:0; align-items:stretch; overflow:hidden; }
+  .row.split .half{ padding:12px 13px; }
+  .row.split .prices{ border-left:1px dashed var(--line-strong); display:flex; flex-direction:column; align-items:flex-end; }
+  .row.split .half:active, .row.split .half.on{ background:color-mix(in srgb, var(--accent) 9%, var(--surface)); }
+  .row.split .main.on, .row.split .main:active{ background:color-mix(in srgb, var(--warn) 10%, var(--surface)); }
+  .row.split.counting{ border-color:var(--warn); }
+  .row.split .hint{ margin-top:7px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:var(--faint); text-align:inherit; line-height:1.2; }
+  .row.split .half.on .hint{ color:var(--accent); }
+  .row.split .main.on .hint{ color:var(--warn); }
+  .half:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
+  /* The recount panel: the sale panel's shape in amber, the colour the old
+     count used for "needs a look", so the two are never mistaken. */
+  .recount{ border-color:var(--warn); background:color-mix(in srgb, var(--warn) 8%, var(--surface)); }
+  .recount .sp-confirm{ background:var(--warn); }
+  .rc-qty{ width:64px; height:54px; border-radius:12px; border:1px solid var(--line-strong); background:var(--surface);
+    color:var(--ink); text-align:center; font-size:22px; font-weight:800; font-family:inherit; outline:none; flex-shrink:0; padding:0; }
+  .rc-qty:focus{ border-color:var(--warn); }
+  .rc-said{ flex-basis:100%; text-align:center; font-size:13px; font-weight:700; color:var(--warn); }
+  .rc-said.same{ color:var(--muted); }
+  .outbtn{ width:100%; min-height:48px; border-radius:12px; border:1.5px dashed var(--line-strong); background:var(--surface);
+    color:var(--accent); font-family:inherit; font-size:14.5px; font-weight:700; padding:12px; }
+  .outbtn:active{ background:var(--surface-2); }
   .salemsg{ font-size:13px; font-weight:600; line-height:1.45; padding:9px 12px; border-radius:11px;
     color:var(--good); background:var(--good-bg); }
   .salemsg.err{ color:var(--danger); background:var(--danger-bg); }
@@ -520,6 +546,7 @@
     /* The sale panel and what it says span the width, under the tile tapped. */
     #list > .sellpanel,
     #list > .waiting,
+    #list > .outbtn,
     #list > .salemsg{ grid-column:1 / -1; }
 
     .crow{ padding:13px 15px; }
@@ -590,7 +617,7 @@
     sale in the stock room's book. The half about the shop's Till still holds:
     a sale rung up there does not move these numbers.
   -->
-  <div class="banner" id="banner">Stock room book · tap a tire to log a sale · the shop's Till does not change this</div>
+  <div class="banner" id="banner">Stock room book · left side recounts, right side sells · the shop's Till does not change this</div>
   <div class="topbar">
     <div class="toprow">
       <div class="title" id="screenTitle">Stock</div>
@@ -714,6 +741,17 @@
   // that has not had a clear answer — kept so "Try again" sends the SAME sale.
   // `said` is the last thing a sale said, drawn under the tire it was about.
   var openId = null, sale = null, said = null;
+  // THE TIRE OPENED FOR A RECOUNT — 1 Oct 2026, the left half of a card. `seen`
+  // is the count the book held when it was opened: till_stock.recount sets the
+  // new number only while the book still holds it, so a sale that lands while
+  // he counts is never wiped out by a number counted before it.
+  var count = null;
+  // OUT OF STOCK, KEPT ASIDE RATHER THAN THROWN AWAY — 1 Oct 2026. Still not
+  // on the list (his 22 Sep rule), but a search that finds nothing offers
+  // "Search out of stock/negative", because a tire at 0 is exactly the one a
+  // recount needs to bring back. `withOut` is that button pressed; clearing the
+  // search lets it go.
+  var outProducts = [], withOut = false;
 
   try { session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e){ session = null; }
 
@@ -985,7 +1023,9 @@
         hidden = all.length - products.length;
         outIds = Object.create(null);
         for (var oi = 0; oi < all.length; oi++) if ((Number(all[oi].qty) || 0) <= 0) outIds[all[oi].id] = true;
-        products.sort(function(a,b){ return String(a.size||'').localeCompare(String(b.size||''), undefined, {numeric:true}); });
+        outProducts = all.filter(function(p){ return (Number(p.qty) || 0) <= 0; });
+        products.sort(bySize);
+        outProducts.sort(bySize);
         checkedAt = Date.now();
         // …AND WHAT "LEAVE IT" SAYS IS DECIDED AGAIN ON EVERY READ, not once
         // (the Fable audit of dc9d873). Chosen at the one read that found the
@@ -1031,7 +1071,7 @@
   function renderList(){
     var q = query.trim().toLowerCase();
     var shown = q ? products.filter(function(p){ return matches(p, q); }) : products;
-    var top = aboveTheList(shown);
+    var top = aboveTheList(withOut && q ? shown.concat(outProducts.filter(function(p){ return matches(p, q); })) : shown);
     if (!products.length){
       // IT NO LONGER NAMES A MACHINE. The old wording — "Has your shop computer
       // uploaded to the cloud?" — was one message for three different causes,
@@ -1043,9 +1083,18 @@
         + (hidden ? 'Nothing is in stock right now.' + outNote() : 'The stock room book has no tires in it.') + '</div>';
       return;
     }
-    if (!shown.length){ $('list').innerHTML = top + '<div class="empty">No matches for “' + esc(query.trim()) + '”' + outNote() + '</div>'; return; }
+    // The out-of-stock tires this search would turn up, offered behind a button
+    // and drawn under their own heading once it is pressed.
+    var outShown = q ? outProducts.filter(function(p){ return matches(p, q); }) : [];
+    var outButton = q && !withOut && outShown.length
+      ? '<button type="button" class="outbtn" data-act="without">Search out of stock/negative</button>' : '';
+    if (!withOut) outShown = [];
+    if (!shown.length && !outShown.length){
+      $('list').innerHTML = top + '<div class="empty">No matches for “' + esc(query.trim()) + '”' + (outButton ? '' : outNote()) + '</div>' + outButton;
+      return;
+    }
     var html = top;
-    shown.forEach(function(p){
+    var draw = function(p){
       var out = (Number(p.qty)||0) <= 0;
       var nm = nameLines(p);
       var subBits = [];
@@ -1053,21 +1102,34 @@
       if (p.location) subBits.push('📍 ' + esc(p.location));
       if (p.section) subBits.push(esc(p.section));
       if (p.productCode) subBits.push('#' + esc(p.productCode));
-      var isOpen = openId === p.id;
-      html += '<div class="row' + (isOpen ? ' open' : '') + '" data-id="' + esc(p.id) + '" role="button" aria-expanded="' + (isOpen ? 'true' : 'false') + '">'
-        + '<div class="main"><div class="name">' + esc(nm.title) + '</div>'
+      // ONE CARD, TWO HALVES — 1 Oct 2026, his picture: "splitting the card in
+      // half with a line, left opens recount, right the sale". The words under
+      // each half stay; he asked for them back.
+      var selling = openId === p.id && !!sale, counting = !!count && count.id === p.id;
+      html += '<div class="row split' + (selling || counting ? ' open' : '') + (counting ? ' counting' : '') + '" data-id="' + esc(p.id) + '">'
+        + '<div class="main half' + (counting ? ' on' : '') + '" data-side="count" role="button" tabindex="0" aria-expanded="' + (counting ? 'true' : 'false') + '">'
+        + '<div class="name">' + esc(nm.title) + '</div>'
         + (nm.brand ? '<div class="brandline">' + esc(nm.brand) + '</div>' : '')
         + (subBits.length ? '<div class="sub">' + subBits.join('<span>·</span>') + '</div>' : '')
-        + '</div>'
-        + '<div class="prices"><div class="sell">' + money(p.sellPrice) + '</div>'
+        + '<div class="hint">Recount</div></div>'
+        + '<div class="prices half' + (selling ? ' on' : '') + '" data-side="sell" role="button" tabindex="0" aria-expanded="' + (selling ? 'true' : 'false') + '">'
+        + '<div class="sell">' + money(p.sellPrice) + '</div>'
         + '<div class="cost">cost ' + money(p.buyPrice) + '</div>'
         + '<div class="count' + (out?' out':'') + '">' + (Number(p.qty)||0) + (out?' out':' in stock') + '</div>'
-        + '</div></div>';
-      if (isOpen && sale) html += sellPanel();
+        + '<div class="hint">Sell</div></div></div>';
+      if (selling) html += sellPanel();
+      if (counting) html += countPanel();
       if (said && said.id === p.id) html += saidHtml(said);
-    });
+    };
+    shown.forEach(draw);
+    if (outShown.length){
+      html += '<div class="grouphead">Out of stock / negative <span>' + outShown.length + '</span></div>';
+      outShown.forEach(draw);
+    }
+    html += outButton;
     $('list').innerHTML = html;
   }
+  function bySize(a, b){ return String(a.size||'').localeCompare(String(b.size||''), undefined, {numeric:true}); }
   function saidHtml(s){ return '<div class="salemsg' + (s.tone ? ' ' + s.tone : '') + '" role="status">' + esc(s.text) + '</div>'; }
   // A SALE WHOSE TIRE IS NOT ON THE SCREEN — the Fable audit of 3e46762. The
   // counter archived or merged it while the sale waited on an answer, or a
@@ -1193,6 +1255,10 @@
   }
   function productById(id){
     for (var i = 0; i < products.length; i++) if (products[i].id === id) return products[i];
+    // A tire at nothing or below is still a tire on the book — 1 Oct 2026. The
+    // out-of-stock button draws it, so a sale or a recount opened on it has to
+    // find it. The "out of stock" wording elsewhere asks outIds first.
+    for (var j = 0; j < outProducts.length; j++) if (outProducts[j].id === id) return outProducts[j];
     return null;
   }
   // The tire as the messages name it: size and brand, else the code.
@@ -1363,6 +1429,132 @@
     said = { id: id, tone: 'warn', left: true, text: leftWords(id) };
     renderList();
     loadStock();
+  }
+
+  // ---------- recounting a tire — 1 Oct 2026 ----------
+  //
+  // His ask: "phone, i need to add a quick count like inventory where i can
+  // adjust how many of what there is", and off the mockup: "recount updates the
+  // stock qty, not a sale". So no money, no Sales log — the number is set to
+  // what is on the shelf, and the counter's stock history shows it as "Phone
+  // count".
+  //
+  // A FINISHED NUMBER, AND THAT IS WHY THE COUNT SCREEN WAS DELETED ON 12 SEP:
+  // set from a stale picture, it wipes out whatever moved the book meanwhile.
+  // It is safe here because the page sends the count it SAW as well, and
+  // till_stock.recount sets the new one only while the book still holds that.
+  // A sale in between comes back "moved" and nothing changes. A Save sent twice
+  // comes back "already", so Save again after no answer cannot do harm.
+  var MAX_COUNT = 9999;
+  function countPanel(){
+    var busy = count.busy, d = count.qty - count.seen;
+    var words = d === 0 ? 'Same as the book (' + count.seen + ')'
+      : 'Book ' + count.seen + ' → ' + count.qty + ' · ' + Math.abs(d) + (d < 0 ? ' fewer' : ' more');
+    return '<div class="sellpanel recount" data-sell="1">'
+      + '<button type="button" class="sp-step" data-act="cminus" aria-label="One fewer"' + (busy || count.qty <= 0 ? ' disabled' : '') + '>&minus;</button>'
+      + '<input class="rc-qty" id="rcQty" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" aria-label="How many are on the shelf" value="' + count.qty + '"' + (busy ? ' disabled' : '') + '>'
+      + '<button type="button" class="sp-step" data-act="cplus" aria-label="One more"' + (busy || count.qty >= MAX_COUNT ? ' disabled' : '') + '>+</button>'
+      + '<button type="button" class="sp-confirm" data-act="csave"' + (busy || d === 0 ? ' disabled' : '') + '>' + (busy ? 'Saving…' : 'Save count') + '</button>'
+      + '<div class="rc-said' + (d === 0 ? ' same' : '') + '" id="rcSaid">' + esc(words) + '</div>'
+      + '</div>';
+  }
+  // Typing in the box redraws only the words and the button, never the list:
+  // a redraw would take the keyboard away mid-number.
+  function countTyped(v){
+    if (!count || count.busy) return;
+    var digits = String(v || '').replace(/[^0-9]/g, '').slice(0, 4);
+    count.qty = digits === '' ? count.seen : Math.min(MAX_COUNT, Number(digits));
+    count.blank = digits === '';
+    var d = count.qty - count.seen, s = $('rcSaid'), b = document.querySelector('.recount [data-act="csave"]');
+    if (s){
+      s.className = 'rc-said' + (d === 0 ? ' same' : '');
+      s.textContent = d === 0 ? 'Same as the book (' + count.seen + ')'
+        : 'Book ' + count.seen + ' → ' + count.qty + ' · ' + Math.abs(d) + (d < 0 ? ' fewer' : ' more');
+    }
+    if (b) b.disabled = d === 0 || count.blank;
+  }
+  // A tire whose count crosses nothing changes lists, the way the next read
+  // would put it: the stock list holds what is on the shelf, the rest waits
+  // behind the out-of-stock button.
+  function placeByQty(id, qty){
+    var p = productById(id);
+    if (!p) return;
+    p.qty = qty;
+    var inList = products.indexOf(p) !== -1;
+    if (qty > 0 && !inList){
+      outProducts = outProducts.filter(function(x){ return x !== p; });
+      products.push(p); products.sort(bySize);
+      delete outIds[id]; hidden = Math.max(0, hidden - 1);
+    } else if (qty <= 0 && inList){
+      products = products.filter(function(x){ return x !== p; });
+      outProducts.push(p); outProducts.sort(bySize);
+      outIds[id] = true; hidden += 1;
+    }
+  }
+  function saveCount(){
+    if (!count || count.busy || count.blank || count.qty === count.seen) return;
+    var c = count, id = c.id, qty = c.qty, seen = c.seen;
+    c.busy = true;
+    said = null;
+    renderList();
+    // THIS RECOUNT, AND NO OTHER: signed out, closed or replaced while it was
+    // on its way, its answer is still news about the book but not about the
+    // panel on screen.
+    var mine = function(){ return count === c; };
+    var name = c.name;
+    rpc('recount', { p_product_id: id, p_qty: qty, p_seen: seen }).then(function(res){
+      if (res.status === 401){
+        // Turned away before it ran: nothing was changed.
+        if (!mine()){ if (!session) showLogin('Your session expired — sign in again.'); return; }
+        count = null;
+        clearSession();
+        showLogin('Your session expired — sign in again. The count was not saved.');
+        return;
+      }
+      // NO CLEAR ANSWER IS NOT A NO: it may have gone in. Save again is safe.
+      if (res.status >= 500 || res.status === 408 || res.status === 409 || res.status === 429){
+        throw new Error('no clear answer (' + res.status + ')');
+      }
+      if (res.ok) return res.json().then(function(r){
+        r = r || {};
+        // A SALE OR A VAN LANDED WHILE HE WAS COUNTING. Nothing changed; the
+        // card takes the book's number, and the panel stays open on what he
+        // typed so he can look at the shelf again and press Save once more.
+        if (r.moved){
+          var now = figure(r.qty_now);
+          if (isFinite(now)) placeByQty(id, now);
+          if (mine()){
+            c.busy = false;
+            if (isFinite(now)) c.seen = now;
+          }
+          said = { id: id, tone: 'warn', text: 'Not saved. The book changed to ' + (isFinite(now) ? now : 'another number')
+            + ' while you were counting — a sale or a delivery. Check the shelf, then Save count again.' };
+          renderList();
+          return;
+        }
+        var after = figure(r.qty_after), before = figure(r.qty_before);
+        if (isFinite(after)) placeByQty(id, after);
+        if (mine()) count = null;
+        said = { id: id, tone: '', text: r.already
+          ? 'Count saved: ' + (isFinite(after) ? after : qty) + ' — ' + name + '. The book already said so.'
+          : 'Count saved: ' + (isFinite(after) ? after : qty) + ' — ' + name + (isFinite(before) ? ', was ' + before + '.' : '.') };
+        renderList();
+      });
+      return res.json().catch(function(){ return {}; }).then(function(j){
+        if (!mine()) return;
+        var missing = res.status === 404 || (j && j.code === 'PGRST202');
+        c.busy = false;
+        said = { id: id, tone: 'err', text: missing
+          ? 'The stock room book has not been taught to take a recount yet. Nothing was changed.'
+          : ((j && j.message) || 'The stock room refused the count. Nothing was changed.') };
+        renderList();
+      });
+    }).catch(function(){
+      if (!mine()) return;
+      c.busy = false;
+      said = { id: id, tone: 'err', text: 'No answer from the stock room — the count may or may not have saved. Tap Save count again: it cannot count twice.' };
+      renderList();
+    });
   }
 
   // IT SAYS "CHECKED", NOT "UPDATED", AND THAT IS THE WHOLE OF THE CHANGE.
@@ -2035,11 +2227,11 @@
     // THE SALE ON SCREEN GOES WITH THE SIGN-OUT. One waiting on an answer is
     // still kept on the phone, and the next sign-in brings it back; held in
     // memory, it outlived the list it was drawn in (the audit of 3e46762).
-    sale = null; openId = null; said = null;
+    sale = null; openId = null; said = null; count = null;
     // The sales screen goes with it, and showLogin below is where that is done
     // — there are seven roads to the sign-in screen and this button is only one
     // of them.
-    clearSession(); products = []; hidden = 0; outIds = Object.create(null); checkedAt = null; renderFresh(); $('list').innerHTML = ''; $('q').value = ''; query = '';
+    clearSession(); products = []; outProducts = []; withOut = false; hidden = 0; outIds = Object.create(null); checkedAt = null; renderFresh(); $('list').innerHTML = ''; $('q').value = ''; query = '';
     $('searchWrap').classList.remove('has');
     showLogin(); document.getElementById('loginMsg').className = 'msg';
   });
@@ -2063,6 +2255,7 @@
       return;
     }
     query = this.value;
+    if (!query.trim()) withOut = false;
     $('searchWrap').classList.toggle('has', !!query);
     renderList();
   });
@@ -2070,7 +2263,7 @@
     $('q').value = '';
     $('searchWrap').classList.remove('has');
     if (tab === TAB_SALES){ salesQuery = ''; renderSales(); return; }
-    query = '';
+    query = ''; withOut = false;
     renderList();
   });
   // A tap on a clear button must NOT pull focus off the search input — if it
@@ -2087,6 +2280,18 @@
   // from scratch on every keystroke in the search.
   $('list').addEventListener('click', function(e){
     var act = e.target.closest ? e.target.closest('[data-act]') : null;
+    if (act && act.getAttribute('data-act') === 'without'){
+      withOut = true; renderList(); return;
+    }
+    if (act && count && /^c/.test(act.getAttribute('data-act'))){
+      var cwhat = act.getAttribute('data-act');
+      if (!count.busy){
+        if (cwhat === 'cminus' && count.qty > 0){ count.qty -= 1; count.blank = false; renderList(); }
+        if (cwhat === 'cplus' && count.qty < MAX_COUNT){ count.qty += 1; count.blank = false; renderList(); }
+        if (cwhat === 'csave') saveCount();
+      }
+      return;
+    }
     if (act && sale){
       var what = act.getAttribute('data-act');
       if (what === 'minus' && sale.qty > 1 && !sale.busy && !sale.pendingId){ sale.qty -= 1; renderList(); }
@@ -2099,6 +2304,13 @@
     var row = e.target.closest ? e.target.closest('.row[data-id]') : null;
     if (!row) return;
     var id = row.getAttribute('data-id');
+    var half = e.target.closest('[data-side]');
+    var side = half ? half.getAttribute('data-side') : 'sell';
+    // NOT WHILE A COUNT IS SAVING: its answer belongs to the panel it came from.
+    if (count && count.busy){
+      if (id !== count.id){ said = { id: id, tone: 'warn', text: 'A count is still saving — wait a moment.' }; renderList(); }
+      return;
+    }
     // NOT WHILE A SALE IS IN THE AIR, or waiting on Try again: closing it would
     // lose the number that makes a retry safe. SAID, on the tire tapped — the
     // audit of 92f4171 found the phone silently ignoring every tap, with the
@@ -2113,12 +2325,36 @@
       return;
     }
     said = null;
-    if (openId === id){ openId = null; sale = null; }
-    else {
-      var tapped = productById(id);
+    var tapped = productById(id);
+    // ONE PANEL OPEN AT A TIME. The same half again closes it; the other half
+    // of the same tire, or another tire, swaps to that.
+    var wasSelling = openId === id && !!sale, wasCounting = !!count && count.id === id;
+    openId = null; sale = null; count = null;
+    if (side === 'count' && !wasCounting && tapped){
+      var book = Number(tapped.qty) || 0;
+      count = { id: id, seen: book, qty: Math.max(0, book), busy: false, blank: false, name: tireName(tapped) };
+    } else if (side === 'sell' && !wasSelling){
       openId = id; sale = { id: id, qty: 1, busy: false, pendingId: null, name: tapped ? tireName(tapped) : 'a tire' };
     }
     renderList();
+  });
+
+  // THE RECOUNT BOX: typed numbers redraw only the words under it, and Enter
+  // saves, as the phone keyboard's Go key expects.
+  $('list').addEventListener('input', function(e){
+    if (e.target && e.target.id === 'rcQty') countTyped(e.target.value);
+  });
+  $('list').addEventListener('keydown', function(e){
+    if (e.target && e.target.id === 'rcQty' && e.key === 'Enter'){ e.preventDefault(); saveCount(); return; }
+    // A half is a button to a keyboard too.
+    if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.getAttribute && e.target.getAttribute('data-side')){
+      e.preventDefault(); e.target.click();
+    }
+  });
+  // Leaving the box blank puts back the number it held, rather than saving
+  // a blank as nothing.
+  $('list').addEventListener('focusout', function(e){
+    if (e.target && e.target.id === 'rcQty' && count && count.blank){ count.blank = false; renderList(); }
   });
 
   // ---------- the Sales log's own events — 22 Sep 2026 ----------
