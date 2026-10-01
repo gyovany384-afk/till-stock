@@ -310,7 +310,18 @@
      His picture: a line down the card, the left half recounts, the right half
      sells. Same layout as before inside each half; only the padding moved from
      the card onto the halves, so each half is its own tap target edge to edge. */
-  .row.split{ padding:0; gap:0; align-items:stretch; overflow:hidden; }
+  .row.split{ padding:0; gap:0; align-items:stretch; }
+  /* The halves carry the card's rounded corners themselves. NOT overflow:hidden
+     on the card: that takes away its floor (min-height:auto) in the phone's flex
+     list AND the tablet's grid, and with the whole book in them every card was
+     squeezed to a thin line (his phone, 1 Oct 2026). */
+  .row.split .main{ border-radius:12px 0 0 12px; }
+  .row.split .prices{ border-radius:0 12px 12px 0; }
+  /* NEVER SQUEEZED — 1 Oct 2026, his phone showed every card as a thin line.
+     Belt and braces with the note above: the list is a fixed-height flex
+     column, and nothing in it is ever to be shrunk to fit. Four tires on the
+     bench fit, which is why nothing showed until the real book did. */
+  #list > *{ flex:0 0 auto; }
   .row.split .half{ padding:12px 13px; }
   .row.split .prices{ border-left:1px dashed var(--line-strong); display:flex; flex-direction:column; align-items:flex-end; }
   .row.split .half:active, .row.split .half.on{ background:color-mix(in srgb, var(--accent) 9%, var(--surface)); }
