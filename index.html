@@ -381,7 +381,67 @@
     border:1px solid var(--line-strong); background:var(--surface); color:var(--muted); font-family:inherit; cursor:pointer; }
   .seg.on{ border-color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, var(--surface)); color:var(--accent); }
 
-  /* Stock | Sales. The two screens this page has. */
+  /* ---------- from the phone, for the counter to review — 5 Oct 2026 ---------- */
+  /* The keyboard switch in the search box: the number pad first, letters a tap away. */
+  .search input{ padding-right:96px; }
+  .search .kbtn{ position:absolute; right:48px; top:50%; transform:translateY(-50%); z-index:2;
+    min-width:44px; height:30px; padding:0 8px; border-radius:8px; border:1px solid var(--line-strong);
+    background:var(--surface); color:var(--muted); font-size:12px; font-weight:800; letter-spacing:.04em; }
+  .search:not(.has) .kbtn{ right:8px; }
+  .search .kbtn:active{ background:var(--line); }
+  /* Quick sale | Add to stock, under a search. */
+  .phoneadd{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .phoneadd button{ min-height:48px; border-radius:12px; font-family:inherit; font-size:14.5px; font-weight:700;
+    border:1.5px solid var(--accent); background:var(--surface); color:var(--accent); padding:10px; }
+  .phoneadd button.add{ border-color:var(--good); color:var(--good); }
+  .phoneadd button:active{ background:var(--surface-2); }
+  .phoneaddnote{ font-size:12px; color:var(--faint); text-align:center; line-height:1.5; padding:0 8px; }
+  /* A row the counter has not finished: no halves, nothing to tap. */
+  .row.pend{ cursor:default; border-style:dashed; border-color:color-mix(in srgb, var(--good) 55%, transparent); }
+  .row.pend .newtag{ display:inline-block; margin-left:6px; font-size:10.5px; font-weight:800; letter-spacing:.04em;
+    padding:2px 6px; border-radius:6px; color:var(--good); background:var(--good-bg); vertical-align:2px; }
+  .row.pend .pq{ font-size:18px; font-weight:800; }
+  .srow.pend{ cursor:default; border-style:dashed; }
+  .srow.pend .from{ background:var(--warn); }
+  .grouphead.pend{ color:var(--warn); }
+  .grouphead.pend.add{ color:var(--good); }
+  /* The two forms and the note editor, in the sheet. */
+  .form .fld{ display:flex; flex-direction:column; gap:6px; margin-top:14px; }
+  .form .fld > span{ font-size:12px; font-weight:700; color:var(--muted); display:flex; justify-content:space-between; gap:8px;
+    text-transform:uppercase; letter-spacing:.04em; }
+  .form .fld > span em{ text-transform:none; letter-spacing:0; }
+  .form .fld > span em{ font-style:normal; font-weight:600; color:var(--faint); }
+  .form .boxrow{ display:flex; gap:8px; align-items:center; }
+  .form input, .form textarea{ width:100%; padding:12px 13px; font-size:17px; border:1.5px solid var(--line-strong);
+    border-radius:12px; background:var(--surface); color:var(--ink); font-family:inherit; }
+  .form textarea{ min-height:180px; font-size:16px; line-height:1.5; resize:vertical; }
+  .form input:disabled, .form textarea:disabled{ opacity:.6; }
+  .form .chip{ flex:0 0 auto; min-width:52px; height:46px; border-radius:12px; border:1px solid var(--line-strong);
+    background:var(--surface-2); color:var(--muted); font-family:inherit; font-size:12.5px; font-weight:800; }
+  .form .two{ display:grid; grid-template-columns:1fr 132px; gap:10px; }
+  .form .stepper{ display:flex; align-items:center; justify-content:space-between; border:1.5px solid var(--line-strong);
+    border-radius:12px; height:50px; }
+  .form .stepper button{ width:44px; height:46px; border:none; background:none; font-size:22px; color:var(--accent); font-family:inherit; }
+  .form .stepper button:disabled{ opacity:.35; }
+  .form .stepper b{ font-size:18px; }
+  .form .see{ font-size:12.5px; color:var(--accent); font-weight:700; min-height:1em; }
+  .form .small{ font-size:12.5px; color:var(--muted); line-height:1.5; margin-top:12px; }
+  .form .go{ margin-top:16px; width:100%; min-height:52px; border:none; border-radius:14px; background:var(--accent); color:#fff;
+    font-family:inherit; font-size:16px; font-weight:800; }
+  .form .go.add{ background:var(--good); }
+  .form .go:disabled{ opacity:.55; }
+  .form .quiet{ margin-top:10px; width:100%; min-height:46px; border:1px solid var(--line-strong); border-radius:14px;
+    background:var(--surface); color:var(--ink); font-family:inherit; font-size:15px; font-weight:700; }
+  /* The notes, one card each. */
+  .note{ display:block; width:100%; text-align:left; font-family:inherit; cursor:pointer; background:var(--surface);
+    border:1px solid var(--line); border-radius:13px; padding:12px 13px; color:var(--ink); }
+  .note:active{ background:var(--surface-2); }
+  .note .t{ font-size:15px; font-weight:700; }
+  .note .b{ margin-top:3px; font-size:13px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .note .d{ margin-top:5px; font-size:11.5px; color:var(--faint); }
+  #notesList > *{ flex:0 0 auto; }
+
+  /* Stock | Sales | Notes. The three screens this page has. */
   .tabs{ display:flex; gap:4px; background:var(--surface-2); border-radius:13px; padding:4px; margin-top:10px; }
   .tab{ flex:1; min-height:40px; border:none; border-radius:10px; background:none; font-family:inherit;
     font-size:14.5px; font-weight:600; color:var(--muted); cursor:pointer; }
@@ -648,6 +708,8 @@
     <div class="tabs" role="tablist" aria-label="Screens">
       <button class="tab on" type="button" id="tabStock" role="tab" aria-selected="true">Stock</button>
       <button class="tab" type="button" id="tabSales" role="tab" aria-selected="false">Sales</button>
+      <!-- 5 Oct 2026: the counter's notes, read and written here too. -->
+      <button class="tab" type="button" id="tabNotes" role="tab" aria-selected="false">Notes</button>
     </div>
     <!-- Sales only. Hidden rather than absent, so the header does not jump. -->
     <div class="segrow" id="rangeRow" hidden>
@@ -657,7 +719,9 @@
     </div>
     <div class="search" id="searchWrap">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input id="q" type="search" enterkeyhint="search" autocapitalize="off" autocomplete="off" placeholder="Search size, brand, rack, code…" aria-label="Search stock">
+      <input id="q" type="search" inputmode="numeric" enterkeyhint="search" autocapitalize="off" autocomplete="off" placeholder="Search size, brand, rack, code…" aria-label="Search stock">
+      <!-- THE NUMBER PAD FIRST, 5 Oct 2026: "default to numberpad text secondary when searching". -->
+      <button type="button" class="kbtn" id="kbBtn" aria-label="Switch to letters">ABC</button>
       <button type="button" class="clr" id="clrBtn" aria-label="Clear search">&times;</button>
     </div>
     <div class="statusline">
@@ -666,6 +730,7 @@
   </div>
   <div class="list" id="list"></div>
   <div class="list" id="salesList" hidden></div>
+  <div class="list" id="notesList" hidden></div>
 </div>
 
 <!-- ============ ONE SALE, OPENED ============
@@ -1047,6 +1112,9 @@
         showApp();
         renderList();
         renderFresh();
+        // What the phone sent and the counter has not finished, read beside
+        // the book it is waiting to join.
+        loadPending();
         return true;
       });
     }).catch(function(){
@@ -1063,7 +1131,18 @@
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function money(n){ var v = Number(n)||0; return '$' + v.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2}); }
   function matches(p, q){
-    return (String(p.size||'')+' '+String(p.brand||'')+' '+String(p.type||'')+' '+String(p.location||'')+' '+String(p.ply||'')+' '+String(p.productCode||'')).toLowerCase().indexOf(q) !== -1;
+    return (String(p.size||'')+' '+String(p.brand||'')+' '+String(p.type||'')+' '+String(p.location||'')+' '+String(p.ply||'')+' '+String(p.productCode||'')).toLowerCase().indexOf(q) !== -1
+      || digitsHit(p.size, q);
+  }
+  // A SIZE TYPED ON THE NUMBER PAD HAS NO SLASHES — 5 Oct 2026, when the search
+  // started on the number pad. "2055516" is 205/55/16 (or 205/55R16): digits
+  // against digits, and only when the search is nothing but a size, so "16"
+  // still finds rack 16 by its letters above and not every 16-inch tire twice.
+  function digitsOf(v){ return String(v == null ? '' : v).replace(/\D/g, ''); }
+  function digitsHit(size, q){
+    var qd = digitsOf(q);
+    if (qd.length < 3 || qd !== String(q).replace(/[\s\/rR-]/g, '')) return false;
+    return digitsOf(size).indexOf(qd) !== -1;
   }
   function nameLines(p){
     var size = (p.size && String(p.size).trim()) ? String(p.size).trim() : '';
@@ -1091,7 +1170,9 @@
       // really is empty. And since 22 Sep 2026 a fourth, which is not that one:
       // the book has tires in it and none of them are on the shelf.
       $('list').innerHTML = top + '<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7z"/><path d="M3 7l9 4.5L21 7M12 11.5V21"/></svg>'
-        + (hidden ? 'Nothing is in stock right now.' + outNote() : 'The stock room book has no tires in it.') + '</div>';
+        + (hidden ? 'Nothing is in stock right now.' + outNote() : 'The stock room book has no tires in it.') + '</div>'
+        // Still somewhere to add one (the Opus audit).
+        + pendingAddsHtml(q) + (q ? phoneAddButtons() : '');
       return;
     }
     // The out-of-stock tires this search would turn up, offered behind a button
@@ -1100,11 +1181,16 @@
     var outButton = q && !withOut && outShown.length
       ? '<button type="button" class="outbtn" data-act="without">Search out of stock/negative</button>' : '';
     if (!withOut) outShown = [];
+    // WHAT THE PHONE ADDED AND THE COUNTER HAS NOT FINISHED, and the two ways
+    // to add more — 5 Oct 2026. See "from the phone" below.
+    var pend = pendingAddsHtml(q), adders = q ? phoneAddButtons() : '';
     if (!shown.length && !outShown.length){
-      $('list').innerHTML = top + '<div class="empty">No matches for “' + esc(query.trim()) + '”' + (outButton ? '' : outNote()) + '</div>' + outButton;
+      $('list').innerHTML = top + phoneSaidHtml() + pend
+        + (pend ? '' : '<div class="empty">No matches for “' + esc(query.trim()) + '”' + (outButton ? '' : outNote()) + '</div>')
+        + outButton + adders;
       return;
     }
-    var html = top;
+    var html = top + phoneSaidHtml() + pend;
     var draw = function(p){
       var out = (Number(p.qty)||0) <= 0;
       var nm = nameLines(p);
@@ -1137,7 +1223,7 @@
       html += '<div class="grouphead">Out of stock / negative <span>' + outShown.length + '</span></div>';
       outShown.forEach(draw);
     }
-    html += outButton;
+    html += outButton + adders;
     $('list').innerHTML = html;
   }
   function bySize(a, b){ return String(a.size||'').localeCompare(String(b.size||''), undefined, {numeric:true}); }
@@ -1638,7 +1724,7 @@
   // clicking shows those details". So a card carries the dot, the size, the
   // brand, the clock and HOW MANY went out; the day headings carry the day and
   // no total; and every figure is inside the sale that is tapped open.
-  var TAB_STOCK = 'stock', TAB_SALES = 'sales';
+  var TAB_STOCK = 'stock', TAB_SALES = 'sales', TAB_NOTES = 'notes';
   var tab = TAB_STOCK;
   // The sales last read, the tires they name (by product id, count and all), and
   // when this page last looked. `tires` is read at the same moment as the sales
@@ -1837,6 +1923,7 @@
         salesLoading = false;
         salesErr = null;
         if (tab === TAB_SALES){ renderSales(); renderFresh(); }
+        loadPending();
         // The sheet is drawn from `sales`, so a read that lands under an open
         // one redraws it — or closes it, if the sale it was about has gone.
         if (openSale) renderSheet();
@@ -1886,7 +1973,8 @@
   function saleMatches(s, q){
     var t = tireOf(s) || {};
     return (String(t.size || '') + ' ' + String(t.brand || '') + ' ' + String(t.type || '')
-      + ' ' + String(t.code || '') + ' ' + String(s.by || '')).toLowerCase().indexOf(q) !== -1;
+      + ' ' + String(t.code || '') + ' ' + String(s.by || '')).toLowerCase().indexOf(q) !== -1
+      || digitsHit(t.size, q);
   }
 
   function renderSales(){
@@ -1910,6 +1998,10 @@
     var q = salesQuery.trim().toLowerCase();
     var shown = sales.filter(inRange);
     if (q) shown = shown.filter(function(s){ return saleMatches(s, q); });
+    // QUICK SALES WAITING FOR THE COUNTER — 5 Oct 2026. Above the day, whatever
+    // the pill says, because they are on no day's total yet: his choice was
+    // that a quick sale counts only once the counter has given it a tire.
+    head += pendingSalesHtml(q);
     if (!shown.length){
       if (q){
         box.innerHTML = head + '<div class="empty">No matches for “' + esc(salesQuery.trim()) + '”</div>';
@@ -1957,6 +2049,10 @@
   function renderSheet(){
     var wrap = $('sheetWrap'), box = $('sheet');
     if (!wrap || !box) return;
+    // The sheet also carries the two phone forms and the note editor — 5 Oct
+    // 2026. One at a time: opening any of them closes the others.
+    if (form){ box.innerHTML = formHtml(); wrap.classList.add('on'); return; }
+    if (noteEdit){ box.innerHTML = noteHtml(); wrap.classList.add('on'); return; }
     var s = openSale ? saleById(openSale) : null;
     if (!s){
       // The sale went while this was open — taken out here, or read again and no
@@ -2043,10 +2139,12 @@
 
   function openSheet(id){
     openSale = id; confirming = false; killSaid = null; killBusy = false;
+    form = null; noteEdit = null;
     renderSheet();
   }
   function closeSheet(){
     openSale = null; confirming = false; killSaid = null; killBusy = false;
+    form = null; noteEdit = null;
     var wrap = $('sheetWrap');
     if (wrap) wrap.classList.remove('on');
     $('sheet').innerHTML = '';
@@ -2155,6 +2253,367 @@
     });
   }
 
+  // ---------- from the phone, for the counter to review — 5 Oct 2026 ----------
+  //
+  // His ask: "quick log a sale of a product that is non existent on phone",
+  // and "when walking count if product not in inventory user can add". Off his
+  // approved mockup: under a search, + Quick sale (size or number, brand and
+  // model, price) and + Add to stock (size or number, brand and model, how
+  // many, rack). He chose that NEITHER touches the book until the counter
+  // finishes it: a quick sale is in no total yet, and a tire added here cannot
+  // be sold until the counter has given it a cost and a price.
+  //
+  // SO THIS PAGE WRITES ONE ROW AND NOTHING ELSE, through
+  // till_stock.phone_pending_add (the stock room's
+  // db/2026-10-05-phone-to-review.sql). No product, no sale, no count moves.
+  // The row's number is made here at the first press — p, this phone's four
+  // letters, the clock — and a Try again sends the same one, so a press whose
+  // answer was lost never adds twice.
+  //
+  // THE PRICE IS THE ONE FIGURE THIS PAGE TURNS INTO CENTS, because it is the
+  // one figure typed here. By string, never through a float: "129.95" is
+  // 129 × 100 + 95, and nothing in between can round.
+  var pendingRows = null;     // null: not read yet, or the database has no such list
+  var phoneSaid = null;       // what the last Quick sale / Add to stock said, above the list
+  var form = null;            // the form in the sheet, or null
+
+  var PENDING_PATH = '/rest/v1/phone_pending?select=id,kind,size,name,qty,price_cents,rack,sold_on,when_label'
+    + '&resolved_at=is.null&order=sent_at';
+  var pendingGen = 0;
+  function loadPending(){
+    var mine = sessionGen, gen = ++pendingGen;
+    return pageOf(PENDING_PATH, 0).then(function(answer){
+      if (sessionGen !== mine || !session || gen !== pendingGen || answer.expired) return null;
+      pendingRows = answer.rows.map(function(r){
+        return { id: r.id, kind: r.kind, size: r.size || '', name: r.name || '', qty: Number(r.qty) || 0,
+          priceCents: (r.price_cents === null || r.price_cents === undefined) ? null : Number(r.price_cents),
+          rack: r.rack || '', day: String(r.sold_on || '').slice(0, 10), when: r.when_label || '' };
+      });
+      // NOT UNDER AN OPEN RECOUNT (the Opus audit): a redraw takes the
+      // keyboard out of the count box mid-number. The next redraw picks it up.
+      if (tab === TAB_STOCK && !count) renderList();
+      if (tab === TAB_SALES) renderSales();
+      return true;
+    }).catch(function(){
+      // Not there yet (the counter's database not taught this), or no signal:
+      // what is drawn stays as it was and nothing claims "nothing waiting".
+      return null;
+    });
+  }
+
+  // 2454518 is 245/45/18 — the book's own spelling. Anything else as typed.
+  function fmtSize(v){
+    var t = String(v == null ? '' : v).trim();
+    return /^\d{7}$/.test(t) ? t.slice(0, 3) + '/' + t.slice(3, 5) + '/' + t.slice(5) : t;
+  }
+  // "129", "129.5", "$129.95" -> cents; anything else -> null.
+  function typedCents(v){
+    var t = String(v == null ? '' : v).trim().replace(/^\$\s*/, '');
+    var m = /^(\d{1,6})(?:\.(\d{1,2}))?$/.exec(t);
+    if (!m) return null;
+    return Number(m[1]) * 100 + Number(((m[2] || '') + '00').slice(0, 2));
+  }
+
+  function pendingAddsHtml(q){
+    var rows = (pendingRows || []).filter(function(r){
+      return r.kind === 'add' && (!q || (r.size + ' ' + r.name + ' ' + r.rack).toLowerCase().indexOf(q) !== -1 || digitsHit(r.size, q));
+    });
+    if (!rows.length) return '';
+    var html = '<div class="grouphead pend add">Added on the phone · not for sale yet <span>' + rows.length + '</span></div>';
+    rows.forEach(function(r){
+      html += '<div class="row pend" data-pend="' + esc(r.id) + '"><div class="main">'
+        + '<div class="name">' + esc(r.size) + '<span class="newtag">NEW</span></div>'
+        + '<div class="brandline">' + esc(r.name) + '</div>'
+        + '<div class="sub">' + (r.rack ? '📍 ' + esc(r.rack) + '<span>·</span>' : '') + 'waiting for the counter</div>'
+        + '</div><div class="prices"><div class="pq">' + r.qty + '</div><div class="cost">on the shelf</div></div></div>';
+    });
+    return html;
+  }
+  function pendingSalesHtml(q){
+    var rows = (pendingRows || []).filter(function(r){
+      return r.kind === 'sale' && (!q || (r.size + ' ' + r.name).toLowerCase().indexOf(q) !== -1 || digitsHit(r.size, q));
+    });
+    if (!rows.length) return '';
+    var html = '<div class="grouphead pend">Waiting for the counter · not in the totals <span>' + rows.length + '</span></div>';
+    rows.forEach(function(r){
+      html += '<div class="srow pend" data-pend="' + esc(r.id) + '">'
+        + '<span class="from"></span>'
+        + '<span class="what">' + esc(r.size) + ' <b>' + esc(r.name) + '</b></span>'
+        + '<span class="at">' + esc(clock12(r.when) || '') + '</span>'
+        + '<span class="many">×' + r.qty + '</span></div>';
+    });
+    return html + '<div class="dayhead"><div class="rule"></div></div>';
+  }
+  function phoneAddButtons(){
+    return '<div class="phoneadd">'
+      + '<button type="button" data-act="quick">+ Quick sale</button>'
+      + '<button type="button" class="add" data-act="addstock">+ Add to stock</button>'
+      + '</div><div class="phoneaddnote">Not in the book? <b>Quick sale</b> when you’re selling it now, <b>Add to stock</b> when you find it while counting. The counter finishes both.</div>';
+  }
+  function phoneSaidHtml(){ return phoneSaid ? saidHtml(phoneSaid) : ''; }
+
+  function openForm(kind){
+    var typed = query.trim();
+    var digits = /^\d+$/.test(typed);
+    openSale = null; confirming = false; noteEdit = null;
+    form = { kind: kind, size: digits ? typed : '', name: digits ? '' : typed, price: '', rack: '', qty: 1,
+      sizeKb: 'numeric', busy: false, said: null, sendId: null, unsure: false, day: null, when: null };
+    phoneSaid = null;
+    renderSheet();
+    var first = $(form.size ? 'fName' : 'fSize');
+    if (first) first.focus();
+  }
+
+  function formHtml(){
+    var f = form, sale = f.kind === 'sale', lock = f.busy || f.unsure;
+    var dis = lock ? ' disabled' : '';
+    var see = fmtSize(f.size) !== f.size.trim() ? '→ ' + fmtSize(f.size) : '';
+    var html = '<div class="grab"></div><div class="form">'
+      + '<h2>' + (sale ? 'Quick sale' : 'Add to stock') + '</h2>'
+      + '<div class="brandline">' + (sale ? 'A tire that isn’t in the book, sold now.' : 'A tire found on the shelf that isn’t in the book.') + '</div>'
+      + '<label class="fld"><span>Size or number <em class="see" id="fSee">' + esc(see) + '</em></span><div class="boxrow">'
+      + '<input id="fSize" inputmode="' + f.sizeKb + '" autocomplete="off" autocapitalize="characters" placeholder="2454518 or LT245/75R16" value="' + esc(f.size) + '"' + dis + '>'
+      + '<button type="button" class="chip" data-act="fkb"' + dis + '>' + (f.sizeKb === 'numeric' ? 'ABC' : '123') + '</button></div></label>'
+      + '<label class="fld"><span>Brand / model</span>'
+      + '<input id="fName" autocomplete="off" autocapitalize="words" placeholder="e.g. Ironman All Country AT" value="' + esc(f.name) + '"' + dis + '></label>'
+      + '<div class="two">'
+      + (sale
+        ? '<label class="fld"><span>Price each</span><input id="fPrice" inputmode="decimal" autocomplete="off" placeholder="$0.00" value="' + esc(f.price) + '"' + dis + '></label>'
+        : '<label class="fld"><span>Rack <em>optional</em></span><input id="fRack" autocomplete="off" autocapitalize="characters" placeholder="e.g. E2" value="' + esc(f.rack) + '"' + dis + '></label>')
+      + '<div class="fld"><span>' + (sale ? 'How many' : 'On the shelf') + '</span><div class="stepper">'
+      + '<button type="button" data-act="fminus" aria-label="One fewer"' + (lock || f.qty <= 1 ? ' disabled' : '') + '>&minus;</button>'
+      + '<b>' + f.qty + '</b>'
+      + '<button type="button" data-act="fplus" aria-label="One more"' + (lock || f.qty >= 999 ? ' disabled' : '') + '>+</button></div></div>'
+      + '</div>';
+    if (f.said) html += '<div class="sheetmsg">' + esc(f.said) + '</div>';
+    var word = f.busy ? 'Sending…' : f.unsure ? 'Try again' : sale ? 'Log sale' : 'Add ' + f.qty + ' to stock';
+    html += '<button type="button" class="go' + (sale ? '' : ' add') + '" data-act="fsend"' + (f.busy ? ' disabled' : '') + '>' + word + '</button>'
+      + '<button type="button" class="quiet" data-act="close"' + (f.busy ? ' disabled' : '') + '>' + (f.unsure ? 'Leave it' : 'Cancel') + '</button>'
+      + '<div class="small">' + (sale
+        ? 'Nothing in stock changes and it isn’t in the sales totals yet. The counter picks the tire it was, and then it counts.'
+        : 'It shows here marked NEW straight away, but can’t be sold until the counter adds its cost and price.') + '</div>'
+      + '</div>';
+    return html;
+  }
+
+  function sendForm(){
+    var f = form;
+    if (!f || f.busy) return;
+    var size = fmtSize(f.size), name = String(f.name || '').trim(), cents = null;
+    if (!size){ f.said = 'Type the size or number.'; renderSheet(); return; }
+    if (!name){ f.said = 'Type the brand and model.'; renderSheet(); return; }
+    if (f.kind === 'sale'){
+      cents = typedCents(f.price);
+      if (cents === null){ f.said = 'Type the price each, like 125 or 125.50.'; renderSheet(); return; }
+    }
+    // THE NUMBER AND THE CLOCK ARE KEPT FROM THE FIRST PRESS, so Try again is
+    // the same row on the same day — not a second one a minute later.
+    if (!f.sendId){
+      var now = new Date();
+      f.sendId = 'p' + phoneTag() + now.getTime();
+      f.day = localDay(now); f.when = localClock(now);
+    }
+    f.busy = true; f.said = null; renderSheet();
+    var mine = sessionGen;
+    var live = function(){ return sessionGen === mine && !!session && form === f; };
+    rpc('phone_pending_add', {
+      p_id: f.sendId, p_kind: f.kind, p_size: size, p_name: name, p_qty: f.qty,
+      p_price_cents: cents, p_rack: f.kind === 'add' ? String(f.rack || '').trim() : '',
+      p_date: f.kind === 'sale' ? f.day : null, p_when: f.kind === 'sale' ? f.when : ''
+    }).then(function(res){
+      if (res.status === 401){
+        if (!live()) return null;
+        clearSession(); closeSheet();
+        showLogin('Your session expired — sign in again. Nothing was saved.');
+        return null;
+      }
+      // NOT A REFUSAL — it may well have landed. Said so, and Try again sends
+      // the same number (confirmSale's rule).
+      if (res.status >= 500 || res.status === 408 || res.status === 409 || res.status === 429){
+        throw new Error('no clear answer (' + res.status + ')');
+      }
+      if (res.ok){
+        if (!live()) return null;
+        var what = f.qty + ' × ' + size + ' ' + name;
+        closeSheet();
+        phoneSaid = { tone: 'ok', text: f.kind === 'sale'
+          ? 'Quick sale logged: ' + what + '. The counter reviews it before it counts.'
+          : 'Added: ' + what + '. It shows here marked NEW until the counter finishes it.' };
+        if (tab === TAB_STOCK) renderList(); else renderSales();
+        loadPending();
+        return null;
+      }
+      return res.json().catch(function(){ return {}; }).then(function(j){
+        var missing = res.status === 404 || (j && j.code === 'PGRST202');
+        var no = new Error(missing
+          ? 'The stock room book has not been taught this yet. Nothing was saved.'
+          : ((j && j.message) || 'It was not saved.'));
+        no.clear = true;
+        throw no;
+      });
+    }).catch(function(err){
+      if (!live()) return;
+      f.busy = false;
+      if (err && err.clear){
+        // A CLEAR NO SAVED NOTHING, so the next press is a new row.
+        f.sendId = null; f.unsure = false; f.said = err.message;
+      } else {
+        f.unsure = true;
+        f.said = 'No clear answer from the stock room. It may have gone through — tap Try again; it cannot be added twice.';
+      }
+      renderSheet();
+    });
+  }
+
+  // ---------- the notes — 5 Oct 2026 ----------
+  //
+  // The same notes as the blue Notes button on the counter (till_stock.notes),
+  // read here and written here. He chose read, add and edit; deleting stays on
+  // the counter, where the 30-day Deleted tab is.
+  //
+  // AN EDIT SAVES ONLY OVER THE NOTE IT OPENED. The write names the note's
+  // updated_at as it was read; if the counter changed it since, nothing comes
+  // back and nothing is written, and the phone says so rather than wiping out
+  // what was typed there.
+  var notes = [], notesAt = null, notesLoading = false, notesErr = null, notesQuery = '';
+  var noteEdit = null;
+  var NOTES_PATH = '/rest/v1/notes?select=id,title,body,updated_at&deleted_at=is.null&order=updated_at.desc';
+
+  function authedSend(method, path, body, extra, retried){
+    var headers = {
+      'apikey': ANON, 'Content-Type': 'application/json',
+      'Content-Profile': SCHEMA, 'Accept-Profile': SCHEMA, 'Prefer': 'return=representation'
+    };
+    if (session && session.access_token) headers['Authorization'] = 'Bearer ' + session.access_token;
+    if (extra) for (var k in extra) if (extra.hasOwnProperty(k)) headers[k] = extra[k];
+    return fetch(SUPA_URL + path, { method: method, headers: headers, body: JSON.stringify(body) }).then(function(res){
+      if (res.status === 401 && !retried && session && session.refresh_token){
+        return refresh().then(function(ok){ return ok ? authedSend(method, path, body, extra, true) : res; });
+      }
+      return res;
+    });
+  }
+
+  var notesGen = 0;
+  function loadNotes(){
+    var mine = sessionGen, gen = ++notesGen;
+    var stale = function(){ return sessionGen !== mine || !session || gen !== notesGen; };
+    notesLoading = true; notesErr = null;
+    if (tab === TAB_NOTES) renderNotes();
+    return pageOf(NOTES_PATH, 0).then(function(answer){
+      if (stale()) return null;
+      if (answer.expired){ clearSession(); showLogin('Your session expired — sign in again.'); return null; }
+      notes = answer.rows.map(function(r){
+        return { id: r.id, title: r.title || '', body: r.body || '', updatedAt: r.updated_at || '' };
+      });
+      notesAt = Date.now(); notesLoading = false;
+      if (tab === TAB_NOTES){ renderNotes(); renderFresh(); }
+      return true;
+    }).catch(function(){
+      if (stale()) return null;
+      notesLoading = false; notesErr = true;
+      if (tab === TAB_NOTES) renderNotes();
+      return null;
+    });
+  }
+
+  function noteWhen(iso){
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    var day = localDay(d), today = localDay(new Date());
+    return (day === today ? 'Today' : day === dayShift(today, -1) ? 'Yesterday' : dayWords(day)) + ', ' + clock12(localClock(d));
+  }
+  function renderNotes(){
+    var box = $('notesList');
+    if (!box) return;
+    if (doorShut){
+      box.innerHTML = '<div class="empty">This account is not on the stock room’s staff list.<br>Ask for it to be added on the stock room computer.</div>';
+      return;
+    }
+    var html = '<button type="button" class="outbtn" data-act="newnote">+ New note</button>';
+    if (notesLoading && !notes.length){ box.innerHTML = html + '<div class="center"><div class="spin"></div>Loading notes…</div>'; return; }
+    if (notesErr && !notes.length){ box.innerHTML = html + '<div class="center">Couldn’t read the notes. Check your connection and tap refresh.</div>'; return; }
+    var q = notesQuery.trim().toLowerCase();
+    var shown = q ? notes.filter(function(n){ return (n.title + ' ' + n.body).toLowerCase().indexOf(q) !== -1; }) : notes;
+    if (!shown.length){
+      box.innerHTML = html + '<div class="empty">' + (q ? 'No notes match “' + esc(notesQuery.trim()) + '”' : 'No notes yet.') + '</div>';
+      return;
+    }
+    shown.forEach(function(n){
+      var first = String(n.body || '').split('\n')[0];
+      html += '<button type="button" class="note" data-note="' + esc(n.id) + '">'
+        + '<div class="t">' + esc(n.title || first || 'Untitled') + '</div>'
+        + (n.title && first ? '<div class="b">' + esc(first) + '</div>' : '')
+        + '<div class="d">' + esc(noteWhen(n.updatedAt)) + '</div></button>';
+    });
+    html += '<div class="phoneaddnote">The same notes as the Notes button on the counter. Delete them there.</div>';
+    box.innerHTML = html;
+  }
+
+  function openNote(id){
+    var n = null;
+    for (var i = 0; i < notes.length; i++) if (notes[i].id === id) n = notes[i];
+    openSale = null; confirming = false; form = null;
+    noteEdit = n
+      ? { id: n.id, title: n.title, body: n.body, seen: n.updatedAt, isNew: false, busy: false, said: null }
+      : { id: 'note-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+          title: '', body: '', seen: null, isNew: true, busy: false, said: null };
+    renderSheet();
+    if (noteEdit.isNew && $('nTitle')) $('nTitle').focus();
+  }
+  function noteHtml(){
+    var n = noteEdit, dis = n.busy ? ' disabled' : '';
+    return '<div class="grab"></div><div class="form">'
+      + '<h2>' + (n.isNew ? 'New note' : 'Note') + '</h2>'
+      + '<label class="fld"><span>Title</span><input id="nTitle" autocomplete="off" value="' + esc(n.title) + '"' + dis + '></label>'
+      + '<label class="fld"><span>Note</span><textarea id="nBody"' + dis + '>' + esc(n.body) + '</textarea></label>'
+      + (n.said ? '<div class="sheetmsg">' + esc(n.said) + '</div>' : '')
+      + '<button type="button" class="go" data-act="nsave"' + dis + '>' + (n.busy ? 'Saving…' : 'Save') + '</button>'
+      + '<button type="button" class="quiet" data-act="close"' + dis + '>Close</button>'
+      + '</div>';
+  }
+  function saveNote(){
+    var n = noteEdit;
+    if (!n || n.busy) return;
+    if (!String(n.title).trim() && !String(n.body).trim()){ n.said = 'Type something first.'; renderSheet(); return; }
+    n.busy = true; n.said = null; renderSheet();
+    var mine = sessionGen;
+    var live = function(){ return sessionGen === mine && !!session && noteEdit === n; };
+    var send = n.isNew
+      ? authedSend('POST', '/rest/v1/notes', { id: n.id, title: n.title, body: n.body })
+      : authedSend('PATCH', '/rest/v1/notes?id=eq.' + encodeURIComponent(n.id) + '&updated_at=eq.' + encodeURIComponent(n.seen),
+          { title: n.title, body: n.body });
+    send.then(function(res){
+      if (res.status === 401){
+        if (!live()) return null;
+        clearSession(); closeSheet(); showLogin('Your session expired — sign in again. The note was not saved.');
+        return null;
+      }
+      // A NEW NOTE ALREADY THERE is this note's own first press landing with
+      // its answer lost: its number is made once, here, for this note.
+      if (n.isNew && res.status === 409) return [{ id: n.id }];
+      if (!res.ok) throw new Error('not saved (' + res.status + ')');
+      return res.json();
+    }).then(function(rows){
+      if (!rows || !live()) return;
+      n.busy = false;
+      if (!Array.isArray(rows) || rows.length !== 1){
+        n.said = n.isNew
+          ? 'The stock room did not keep the note. Nothing was saved.'
+          : 'This note was changed on the counter since you opened it, or deleted there. Nothing was saved — copy what you typed, close it and open it again.';
+        renderSheet();
+        return;
+      }
+      closeSheet();
+      loadNotes();
+    }).catch(function(){
+      if (!live()) return;
+      n.busy = false;
+      n.said = 'No clear answer from the stock room. It may have saved — check the list after closing, or tap Save again.';
+      renderSheet();
+    });
+  }
+
   // ---------- what was here ----------
   //
   // The count screen's code (about 890 lines) and the sales log's (about 130)
@@ -2199,6 +2658,10 @@
     sales = []; tires = Object.create(null); salesAt = null; salesQuery = '';
     salesSaid = null; salesErr = null; salesLoading = false; range = 'Today';
     doorShut = false;
+    // And what the phone sent, and the notes: another sign-in reads its own.
+    pendingRows = null; phoneSaid = null;
+    notes = []; notesAt = null; notesLoading = false; notesErr = null; notesQuery = '';
+    $('notesList').innerHTML = '';
     var pills = $('rangeRow').querySelectorAll('[data-range]');
     for (var i = 0; i < pills.length; i++){
       pills[i].classList.toggle('on', pills[i].getAttribute('data-range') === 'Today');
@@ -2219,39 +2682,68 @@
   // must never be able to draw itself over the sign-in screen.
   function showTab(next){
     if (next === tab) return;
-    // THE SEARCH BOX BELONGS TO THE SCREEN IT WAS TYPED ON. One box and two
+    // THE SEARCH BOX BELONGS TO THE SCREEN IT WAS TYPED ON. One box and three
     // lists, so carrying "205" across to the sales would hide most of the day
     // with nothing on screen saying that was why.
-    if (tab === TAB_SALES) salesQuery = $('q').value; else query = $('q').value;
+    if (tab === TAB_SALES) salesQuery = $('q').value;
+    else if (tab === TAB_NOTES) notesQuery = $('q').value;
+    else query = $('q').value;
     tab = next;
-    var onSales = tab === TAB_SALES;
-    $('tabStock').classList.toggle('on', !onSales);
-    $('tabSales').classList.toggle('on', onSales);
-    $('tabStock').setAttribute('aria-selected', onSales ? 'false' : 'true');
-    $('tabSales').setAttribute('aria-selected', onSales ? 'true' : 'false');
-    $('screenTitle').textContent = onSales ? 'Sales' : 'Stock';
-    // The banner says what the screen in front is, and both halves are true of
-    // their own screen: one is what this page can do to the book, the other is
-    // what the book holds.
+    var onSales = tab === TAB_SALES, onNotes = tab === TAB_NOTES, onStock = tab === TAB_STOCK;
+    [['tabStock', onStock], ['tabSales', onSales], ['tabNotes', onNotes]].forEach(function(t){
+      $(t[0]).classList.toggle('on', t[1]);
+      $(t[0]).setAttribute('aria-selected', t[1] ? 'true' : 'false');
+    });
+    $('screenTitle').textContent = onSales ? 'Sales' : onNotes ? 'Notes' : 'Stock';
+    // The banner says what the screen in front is, and each is true of its
+    // own screen: what this page can do to the book, what the book holds, and
+    // whose notes these are.
     $('banner').textContent = onSales
       ? 'Stock room book · every tire that left the shop'
+      : onNotes ? 'Stock room notes · the same notes as the counter'
       : 'Stock room book · tap a tire to log a sale · the shop’s Till does not change this';
     $('rangeRow').hidden = !onSales;
-    $('list').hidden = onSales;
+    $('list').hidden = !onStock;
     $('salesList').hidden = !onSales;
+    $('notesList').hidden = !onNotes;
     var box = $('q');
-    box.value = onSales ? salesQuery : query;
-    box.placeholder = onSales ? 'Search size, brand or who sold it…' : 'Search size, brand, rack, code…';
-    box.setAttribute('aria-label', onSales ? 'Search the sales' : 'Search stock');
+    box.value = onSales ? salesQuery : onNotes ? notesQuery : query;
+    box.placeholder = onSales ? 'Search size, brand or who sold it…' : onNotes ? 'Search the notes…' : 'Search size, brand, rack, code…';
+    box.setAttribute('aria-label', onSales ? 'Search the sales' : onNotes ? 'Search the notes' : 'Search stock');
+    // Notes are words; the number pad is for sizes.
+    setKb(onNotes ? 'text' : kbMode, true);
+    $('kbBtn').hidden = onNotes;
     $('searchWrap').classList.toggle('has', !!box.value);
     renderFresh();
-    if (!onSales){ renderList(); return; }
+    if (onStock){ renderList(); return; }
+    if (onNotes){
+      renderNotes();
+      if (!notesAt && !notesLoading) loadNotes();
+      return;
+    }
     renderSales();
     // READ ONCE, AND AFTER THAT ONLY WHEN ASKED. The refresh button is right
     // there; re-reading on every tap of a tab would be a request a second for
     // somebody holding the two screens against each other.
     if (!salesAt && !salesLoading) loadSales();
   }
+
+  // THE SEARCH KEYBOARD — 5 Oct 2026, "default to numberpad text secondary
+  // when searching". The number pad first, because a size is what is searched
+  // most; ABC switches to letters for a brand or a rack, and 123 back. The
+  // choice is remembered on this phone. A keyboard already up only changes
+  // when the box is focused again, so the switch does that.
+  var KB_KEY = 'till_stock_search_kb';
+  var kbMode = 'numeric';
+  try { if (localStorage.getItem(KB_KEY) === 'text') kbMode = 'text'; } catch(e){}
+  function setKb(mode, quiet){
+    var box = $('q');
+    box.setAttribute('inputmode', mode);
+    $('kbBtn').textContent = mode === 'numeric' ? 'ABC' : '123';
+    $('kbBtn').setAttribute('aria-label', mode === 'numeric' ? 'Switch to letters' : 'Switch to the number pad');
+    if (!quiet && document.activeElement === box){ box.blur(); box.focus(); }
+  }
+  setKb(kbMode, true);
 
 
   // ---------- events ----------
@@ -2287,11 +2779,17 @@
     void btn.offsetWidth;                 // restart the animation on a repeat tap
     btn.classList.add('spinning');
     if (!session) return;
-    if (tab === TAB_SALES) loadSales(); else loadStock();
+    if (tab === TAB_SALES) loadSales(); else if (tab === TAB_NOTES) loadNotes(); else loadStock();
   });
   $('refreshBtn').addEventListener('animationend', function(){ this.classList.remove('spinning'); }, true);
 
   $('q').addEventListener('input', function(){
+    if (tab === TAB_NOTES){
+      notesQuery = this.value;
+      $('searchWrap').classList.toggle('has', !!notesQuery);
+      renderNotes();
+      return;
+    }
     if (tab === TAB_SALES){
       salesQuery = this.value;
       $('searchWrap').classList.toggle('has', !!salesQuery);
@@ -2299,6 +2797,7 @@
       return;
     }
     query = this.value;
+    phoneSaid = null;
     if (!query.trim()) withOut = false;
     $('searchWrap').classList.toggle('has', !!query);
     renderList();
@@ -2307,6 +2806,7 @@
     $('q').value = '';
     $('searchWrap').classList.remove('has');
     if (tab === TAB_SALES){ salesQuery = ''; renderSales(); return; }
+    if (tab === TAB_NOTES){ notesQuery = ''; renderNotes(); return; }
     query = ''; withOut = false;
     renderList();
   });
@@ -2316,7 +2816,13 @@
   // keyboard) put; the click still fires and clears the text.
   // One clear button left, and the loop stays a loop so the next one added gets
   // the same treatment without anybody remembering why.
-  ['clrBtn'].forEach(function(id){
+  // The keyboard switch keeps the box focused for the same reason.
+  $('kbBtn').addEventListener('click', function(){
+    kbMode = $('q').getAttribute('inputmode') === 'numeric' ? 'text' : 'numeric';
+    try { localStorage.setItem(KB_KEY, kbMode); } catch(e){}
+    setKb(kbMode);
+  });
+  ['clrBtn', 'kbBtn'].forEach(function(id){
     $(id).addEventListener('mousedown', function(e){ e.preventDefault(); });
   });
   // A TAP ON A TIRE OPENS IT FOR A SALE; a tap on it again closes it. One
@@ -2327,6 +2833,11 @@
     if (act && act.getAttribute('data-act') === 'without'){
       withOut = true; renderList(); return;
     }
+    if (act && (act.getAttribute('data-act') === 'quick' || act.getAttribute('data-act') === 'addstock')){
+      openForm(act.getAttribute('data-act') === 'quick' ? 'sale' : 'add'); return;
+    }
+    // A tire the phone added and the counter has not finished: nothing to open.
+    if (e.target.closest && e.target.closest('[data-pend]')) return;
     if (act && count && COUNT_ACTS[act.getAttribute('data-act')]){
       var cwhat = act.getAttribute('data-act');
       if (!count.busy){
@@ -2404,6 +2915,13 @@
   // ---------- the Sales log's own events — 22 Sep 2026 ----------
   $('tabStock').addEventListener('click', function(){ showTab(TAB_STOCK); });
   $('tabSales').addEventListener('click', function(){ showTab(TAB_SALES); });
+  $('tabNotes').addEventListener('click', function(){ showTab(TAB_NOTES); });
+  $('notesList').addEventListener('click', function(e){
+    var act = e.target.closest ? e.target.closest('[data-act="newnote"]') : null;
+    if (act){ openNote(null); return; }
+    var n = e.target.closest ? e.target.closest('[data-note]') : null;
+    if (n) openNote(n.getAttribute('data-note'));
+  });
   // A DIFFERENT SLICE OF WHAT IS ALREADY HERE, not another read. One read covers
   // all three pills (salesFrom), so switching between them is instant and costs
   // the shop's connection nothing.
@@ -2432,14 +2950,46 @@
     var act = e.target.closest ? e.target.closest('[data-act]') : null;
     if (!act) return;
     var what = act.getAttribute('data-act');
-    if (what === 'close'){ closeSheet(); return; }
+    if (what === 'close'){ if (!(form && form.busy) && !(noteEdit && noteEdit.busy)) closeSheet(); return; }
+    if (form){
+      if (what === 'fsend') sendForm();
+      if (what === 'fminus' && form.qty > 1 && !form.busy && !form.unsure){ form.qty -= 1; renderSheet(); }
+      if (what === 'fplus' && form.qty < 999 && !form.busy && !form.unsure){ form.qty += 1; renderSheet(); }
+      if (what === 'fkb' && !form.busy){
+        form.sizeKb = form.sizeKb === 'numeric' ? 'text' : 'numeric';
+        renderSheet();
+        if ($('fSize')) $('fSize').focus();
+      }
+      return;
+    }
+    if (noteEdit){
+      if (what === 'nsave') saveNote();
+      return;
+    }
     if (what === 'kill'){ confirming = true; killSaid = null; renderSheet(); return; }
     if (what === 'no'){ if (!killBusy){ confirming = false; renderSheet(); } return; }
     if (what === 'yes') killSale();
   });
+  // TYPING IN THE SHEET IS KEPT AS IT IS TYPED, and the sheet is not redrawn
+  // for it — a redraw would take the keyboard away after every letter.
+  $('sheet').addEventListener('input', function(e){
+    var id = e.target && e.target.id;
+    if (form){
+      if (id === 'fSize'){ form.size = e.target.value; var see = $('fSee'); if (see) see.textContent = fmtSize(form.size) !== form.size.trim() ? '→ ' + fmtSize(form.size) : ''; }
+      if (id === 'fName') form.name = e.target.value;
+      if (id === 'fPrice') form.price = e.target.value;
+      if (id === 'fRack') form.rack = e.target.value;
+    }
+    if (noteEdit){
+      if (id === 'nTitle') noteEdit.title = e.target.value;
+      if (id === 'nBody') noteEdit.body = e.target.value;
+    }
+  });
   // Tapping the dark part behind the sheet closes it — but NOT while a Remove is
   // in the air, where closing would hide the one thing that says how it went.
-  $('scrim').addEventListener('click', function(){ if (!killBusy) closeSheet(); });
+  // Nor while a form or a note is sending, for the same reason; and NOT AT ALL
+  // over a form or a note, where a stray tap would lose the typing.
+  $('scrim').addEventListener('click', function(){ if (!killBusy && !form && !noteEdit) closeSheet(); });
 
   // Coming back to the tab after a while → refresh so stock is current.
   document.addEventListener('visibilitychange', function(){
@@ -2451,6 +3001,7 @@
     // tab opened and never read is the loadSales in showTab's business, and two
     // reads racing on one tap is how a stale answer wins.
     if (tab === TAB_SALES){ if (salesAt) loadSales(); return; }
+    if (tab === TAB_NOTES){ if (notesAt) loadNotes(); return; }
     if (checkedAt) loadStock();
   });
 

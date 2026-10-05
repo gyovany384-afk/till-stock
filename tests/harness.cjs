@@ -127,6 +127,14 @@ function phone(opts = {}) {
     const headers = (init && init.headers) || {};
     calls.push({ url: u, method, headers, body: init && init.body });
 
+    // ANYTHING A TEST WANTS TO ANSWER ITSELF — 5 Oct 2026, for what the phone
+    // sends for the counter to review and for the notes. Returns a reply, or
+    // undefined to fall through to the stand-ins below.
+    if (opts.extra){
+      const own = opts.extra(u, method, init, headers);
+      if (own !== undefined) return own;
+    }
+
     if (u.indexOf('/auth/v1/token') !== -1) {
       return reply({ access_token: 'tok2', refresh_token: 'ref2', expires_in: 3600, user: { email: 'shop@example.test' } });
     }
