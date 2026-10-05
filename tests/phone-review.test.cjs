@@ -60,6 +60,48 @@ function room(over = {}) {
     ok('123 goes back to the number pad', q.getAttribute('inputmode') === 'numeric');
   }
 
+  // ---- the key strip: / - R LT x . (his option C) ---------------------------
+  {
+    const { w } = phone({ rows: [row({ id: 'p1', size: '245/45/18', product_code: 'CODE1' }), row({ id: 'p2', size: 'LT245/75R16', product_code: 'CODE2' })] });
+    await wait(60);
+    const strip = $(w, '#keyStrip');
+    const press = async (k) => { $(w, '#keyStrip [data-k="' + k + '"]').dispatchEvent(new w.MouseEvent('mousedown', { bubbles: true, cancelable: true })); await wait(20); };
+    ok('no strip until a size is being typed', !strip.classList.contains('on'));
+    const q = $(w, '#q');
+    q.focus(); await wait(20);
+    ok('the strip shows while the stock search is focused', strip.classList.contains('on'));
+    ok('it holds / - R LT x .', ['/', '-', 'R', 'LT', 'x', '.'].every((k) => $(w, '#keyStrip [data-k="' + k + '"]')));
+    q.value = '245'; q.setSelectionRange(3, 3);
+    await press('/'); 
+    ok('a key goes in at the cursor', q.value === '245/', q.value);
+    ok('and the box keeps the focus', w.document.activeElement === q);
+    q.value = '24545'; q.setSelectionRange(3, 3);
+    await press('/');
+    ok('in the middle too, cursor after it', q.value === '245/45' && q.selectionStart === 4, q.value);
+    q.setSelectionRange(6, 6);
+    await press('/'); q.value += '18'; q.dispatchEvent(new w.Event('input', { bubbles: true })); await wait(20);
+    ok('the search hears it like typing: 245/45/18 finds the tire', /245\/45\/18/.test(list(w)) && !/LT245/.test(list(w)), q.value);
+    q.value = ''; q.setSelectionRange(0, 0);
+    await press('LT');
+    ok('LT goes in as two letters and finds the light-truck size', q.value === 'LT' && /LT245\/75R16/.test(list(w)));
+    await tap(w, '#tabNotes'); await wait(40);
+    ok('no strip on the notes', !strip.classList.contains('on'));
+  }
+  {
+    const r = room();
+    const { w } = phone({ extra: r.extra });
+    await wait(60);
+    await search(w, 'abc');
+    await tap(w, '[data-act="addstock"]');
+    const f = $(w, '#fSize'); f.focus(); await wait(20);
+    ok('the strip shows on the size box of Add to stock', $(w, '#keyStrip').classList.contains('on'));
+    f.value = '31'; f.setSelectionRange(2, 2);
+    $(w, '#keyStrip [data-k="x"]').dispatchEvent(new w.MouseEvent('mousedown', { bubbles: true, cancelable: true })); await wait(20);
+    ok('and types into it', f.value === '31x');
+    $(w, '#fName').focus(); await wait(20);
+    ok('but not on the brand box', !$(w, '#keyStrip').classList.contains('on'));
+  }
+
   // ---- digits find a size --------------------------------------------------
   {
     const { w } = phone({ rows: [row({ id: 'p1', size: '205/55R16', product_code: 'CODE1' }), row({ id: 'p2', size: '245/45/18', brand: 'Castellan S4', product_code: 'CODE2' })] });

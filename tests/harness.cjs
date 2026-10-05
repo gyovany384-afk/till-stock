@@ -270,6 +270,7 @@ function phone(opts = {}) {
       if (opts.seed) Object.keys(opts.seed).forEach((k) => win.localStorage.setItem(k, opts.seed[k]));
       win.fetch = stub;
       win.confirm = () => true;
+      win.__stripAlways = true;
     },
   });
 
