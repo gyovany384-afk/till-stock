@@ -119,6 +119,8 @@ function phone(opts = {}) {
   const goneSales = new Map();
   // Every recount the page sent, in order.
   const recounts = [];
+  // Every rack move the page sent.
+  const moves = [];
   const countIds = new Map();
 
   function stub(url, init) {
@@ -230,6 +232,26 @@ function phone(opts = {}) {
         sold_on: s.sold_on });
     }
 
+    // A RACK MOVE — 6 Oct 2026. `opts.rack(u, body, rows)` answers it when
+    // given; otherwise a stand-in for PostgREST's guarded PATCH: it changes
+    // the tire only where id AND location both match, and answers the rows
+    // it changed.
+    if (u.indexOf('/rest/v1/products') !== -1 && method === 'PATCH') {
+      const body = JSON.parse((init && init.body) || '{}');
+      moves.push({ url: u, body });
+      if (opts.rack) return opts.rack(u, body, rows);
+      const id = decodeURIComponent((/[?&]id=eq\.([^&]*)/.exec(u) || [])[1] || '');
+      const loc = decodeURIComponent((/[?&]location=eq\.([^&]*)/.exec(u) || [])[1] || '');
+      const r = rows.find((x) => x.id === id && String(x.location || '') === loc);
+      if (!r) return reply([]);
+      r.location = body.location;
+      return reply([{ ...r }]);
+    }
+    if (u.indexOf('/rest/v1/products') !== -1 && /[?&]id=eq\./.test(u)) {
+      const id = decodeURIComponent(/[?&]id=eq\.([^&]*)/.exec(u)[1]);
+      return reply(rows.filter((x) => x.id === id).map((x) => ({ location: x.location })));
+    }
+
     if (u.indexOf('/rest/v1/products') !== -1) {
       // ASKED BY ID, which is how the Sales log finds the tires its sales name.
       // It reaches tires the stock list never sees — archived ones, and ones
@@ -274,7 +296,7 @@ function phone(opts = {}) {
     },
   });
 
-  return { w: dom.window, calls, staffAsked: () => staffAsked, sales, removals, recounts };
+  return { w: dom.window, calls, staffAsked: () => staffAsked, sales, removals, recounts, moves };
 }
 
 let failures = 0;

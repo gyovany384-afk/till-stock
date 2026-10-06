@@ -340,6 +340,29 @@
   .rc-qty:focus{ border-color:var(--warn); }
   .rc-said{ flex-basis:100%; text-align:center; font-size:13px; font-weight:700; color:var(--warn); }
   .rc-said.same{ color:var(--muted); }
+  /* THE RACK, UNDER THE COUNT — 6 Oct 2026, his option B off the mockup
+     (https://claude.ai/artifact/5mXXpyXDdeZYtK6YGsjfme): tap Rack, scroll the
+     list, tap one and the tire moves there. No search; numbered racks first. */
+  .rc-rack{ flex-basis:100%; display:flex; flex-direction:column; gap:8px; border-top:1px dashed var(--line-strong); padding-top:10px; }
+  .rc-rackbtn{ display:flex; align-items:center; gap:10px; width:100%; min-height:48px; border:1px solid var(--line-strong); border-radius:12px;
+    background:var(--surface); color:var(--ink); padding:6px 8px 6px 12px; font-family:inherit; text-align:left; }
+  .rc-rackbtn .k, .rc-pick .k{ font-size:11px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color:var(--muted); }
+  .rc-rackbtn .go{ margin-left:auto; color:var(--accent); font-weight:700; font-size:14px; padding:6px; flex-shrink:0; }
+  .rc-tag{ display:inline-block; background:var(--surface-2); color:var(--ink); border-radius:8px; padding:5px 9px; font-size:14px; font-weight:700;
+    min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rc-tag.none{ color:var(--muted); font-weight:600; }
+  .rc-pick{ border:1px solid var(--accent); border-radius:12px; background:var(--surface); overflow:hidden; }
+  .rc-pick .head{ display:flex; align-items:center; padding:8px 8px 8px 12px; border-bottom:1px solid var(--line); }
+  .rc-pick .head button{ margin-left:auto; border:none; background:none; color:var(--muted); font-family:inherit; font-size:14px; font-weight:600; padding:8px; }
+  .rc-list{ max-height:260px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+  .rc-opt{ display:flex; align-items:center; gap:10px; width:100%; min-height:48px; border:none; border-bottom:1px solid var(--line);
+    background:var(--surface); color:var(--ink); padding:8px 12px; font-family:inherit; text-align:left; }
+  .rc-opt:last-child{ border-bottom:none; }
+  .rc-opt .n{ margin-left:auto; font-size:12.5px; color:var(--faint); flex-shrink:0; }
+  .rc-opt.cur{ background:color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+  .rc-opt.cur .n{ color:var(--accent); font-weight:700; }
+  .rc-move{ font-size:13px; font-weight:700; color:var(--warn); text-align:center; }
+  .rc-move s{ opacity:.7; font-weight:600; }
   .outbtn{ width:100%; min-height:48px; border-radius:12px; border:1.5px dashed var(--line-strong); background:var(--surface);
     color:var(--accent); font-family:inherit; font-size:14.5px; font-weight:700; padding:12px; }
   .outbtn:active{ background:var(--surface-2); }
@@ -1574,17 +1597,93 @@
   var MAX_COUNT = 9999;
   // The recount panel's own buttons, by name: a prefix would also catch the
   // sale panel's confirm and the sheet's close (the Fable audit of 6083228).
-  var COUNT_ACTS = { cminus: true, cplus: true, csave: true };
+  var COUNT_ACTS = { cminus: true, cplus: true, csave: true, rackopen: true, rackclose: true, rackpick: true };
+
+  // ---------- the rack, under the count — 6 Oct 2026 ----------
+  //
+  // His ask: "a way to change location, clicking on count, maybe placed below
+  // count". Off the mockup he chose B, MOVE IT: pick the one rack the tire is
+  // on now and it leaves whatever it was on before; a list to scroll, no
+  // search; RACK 1, RACK 2 … in number order first, then the rest A to Z; one
+  // Save for the count and the rack together.
+  //
+  // THE LIST IS THE BOOK'S OWN RACKS — every name a tire's location holds,
+  // split on the comma the counter joins them with — so a rack is listed
+  // exactly while some tire says it, as on the counter (racks.js). The figure
+  // beside each is the tires on the shelf there: the sum of their counts.
+  //
+  // THE MOVE SAVES ONLY OVER THE RACK IT OPENED ON. The write names the
+  // location the panel was opened with; if the counter changed it since,
+  // nothing is written and the phone says so — the notes' rule.
+  function racksOf(location){
+    return String(location || '').split(',').map(function(x){ return x.trim(); }).filter(Boolean);
+  }
+  function rackNumber(name){
+    var m = /^RACK\s+(\d+)/i.exec(name);
+    return m ? Number(m[1]) : null;
+  }
+  function rackOrder(a, b){
+    var x = rackNumber(a.name), y = rackNumber(b.name);
+    var az = a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+    if (x !== null && y !== null) return x - y || az;
+    if (x !== null) return -1;
+    if (y !== null) return 1;
+    return az;
+  }
+  function rackList(){
+    var by = Object.create(null), out = [];
+    products.concat(outProducts).forEach(function(p){
+      racksOf(p.location).forEach(function(n){
+        if (!by[n]){ by[n] = { name: n, tires: 0 }; out.push(by[n]); }
+        by[n].tires += Math.max(0, Number(p.qty) || 0);
+      });
+    });
+    return out.sort(rackOrder);
+  }
+  // What the tire's location will be after Save, or null for no change.
+  function rackMove(c){
+    return c.rackTo !== null && c.rackTo !== c.rackSeen ? { from: c.rackSeen, to: c.rackTo } : null;
+  }
+  function countChanged(c){ return !c.blank && c.qty !== c.seen; }
+  function rackHtml(){
+    var c = count, busy = c.busy;
+    var now = c.rackTo !== null ? c.rackTo : c.rackSeen;
+    var tag = now ? '<span class="rc-tag">' + esc(now) + '</span>' : '<span class="rc-tag none">No rack</span>';
+    var mv = rackMove(c);
+    var html = '<div class="rc-rack">';
+    if (c.picking && !busy){
+      var on = racksOf(now);
+      html += '<div class="rc-pick"><div class="head"><span class="k">Move to</span>'
+        + '<button type="button" data-act="rackclose">Cancel</button></div><div class="rc-list" id="rcList">';
+      var list = rackList();
+      list.forEach(function(r){
+        var here = on.indexOf(r.name) !== -1;
+        html += '<button type="button" class="rc-opt' + (here ? ' cur' : '') + '" data-act="rackpick" data-rack="' + esc(r.name) + '">'
+          + '<span class="rc-tag">' + esc(r.name) + '</span>'
+          + '<span class="n">' + (here ? 'on it now' : r.tires + (r.tires === 1 ? ' tire' : ' tires')) + '</span></button>';
+      });
+      if (!list.length) html += '<div class="rc-opt">No racks on the book yet — give one at the counter.</div>';
+      html += '</div></div>';
+    } else {
+      html += '<button type="button" class="rc-rackbtn" data-act="rackopen"' + (busy ? ' disabled' : '') + '>'
+        + '<span class="k">Rack</span>' + tag + '<span class="go">Change ›</span></button>';
+    }
+    if (mv) html += '<div class="rc-move">Moves from <s>' + esc(mv.from || 'no rack') + '</s> to ' + esc(mv.to) + '</div>';
+    return html + '</div>';
+  }
+
   function countPanel(){
     var busy = count.busy, d = count.qty - count.seen;
     var words = d === 0 ? 'Same as the book (' + count.seen + ')'
       : 'Book ' + count.seen + ' → ' + count.qty + ' · ' + Math.abs(d) + (d < 0 ? ' fewer' : ' more');
+    var can = countChanged(count) || !!rackMove(count);
     return '<div class="sellpanel recount" data-sell="1">'
       + '<button type="button" class="sp-step" data-act="cminus" aria-label="One fewer"' + (busy || count.qty <= 0 ? ' disabled' : '') + '>&minus;</button>'
       + '<input class="rc-qty" id="rcQty" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" aria-label="How many are on the shelf" value="' + count.qty + '"' + (busy ? ' disabled' : '') + '>'
       + '<button type="button" class="sp-step" data-act="cplus" aria-label="One more"' + (busy || count.qty >= MAX_COUNT ? ' disabled' : '') + '>+</button>'
-      + '<button type="button" class="sp-confirm" data-act="csave"' + (busy || d === 0 ? ' disabled' : '') + '>' + (busy ? 'Saving…' : 'Save count') + '</button>'
+      + '<button type="button" class="sp-confirm" data-act="csave"' + (busy || !can ? ' disabled' : '') + '>' + (busy ? 'Saving…' : 'Save') + '</button>'
       + '<div class="rc-said' + (d === 0 ? ' same' : '') + '" id="rcSaid">' + esc(words) + '</div>'
+      + rackHtml()
       + '</div>';
   }
   // Typing in the box redraws only the words and the button, never the list:
@@ -1602,7 +1701,7 @@
       s.textContent = d === 0 ? 'Same as the book (' + count.seen + ')'
         : 'Book ' + count.seen + ' → ' + count.qty + ' · ' + Math.abs(d) + (d < 0 ? ' fewer' : ' more');
     }
-    if (b) b.disabled = d === 0 || count.blank;
+    if (b) b.disabled = !(countChanged(count) || rackMove(count));
   }
   // A tire whose count crosses nothing changes lists, the way the next read
   // would put it: the stock list holds what is on the shelf, the rest waits
@@ -1626,7 +1725,13 @@
   // the picture it was sent with are still what the panel holds.
   function c_sameSave(c){ return !!c.saveId && c.saveQty === c.qty && c.saveSeen === c.seen; }
   function saveCount(){
-    if (!count || count.busy || count.blank || count.qty === count.seen) return;
+    if (!count || count.busy) return;
+    // THE RACK ALONE: no recount is sent, only the move.
+    var move = rackMove(count);
+    if (!countChanged(count)){
+      if (move) saveRackOnly(count, move);
+      return;
+    }
     // A SAVE THAT NEVER GOT AN ANSWER is sent again under its own number, but
     // only for the same count: a different number typed since is a new Save.
     if (!c_sameSave(count)){ count.saveId = 'r' + phoneTag() + Date.now(); count.saveQty = count.qty; count.saveSeen = count.seen; }
@@ -1639,6 +1744,7 @@
     // panel on screen.
     var mine = function(){ return count === c; };
     var name = c.name;
+    var move = rackMove(c);
     rpc('recount', { p_id: saveId, p_product_id: id, p_qty: qty, p_seen: seen }).then(function(res){
       if (res.status === 401){
         // Turned away before it ran: nothing was changed.
@@ -1667,7 +1773,7 @@
             if (isFinite(now)) c.seen = now;
           }
           said = { id: id, tone: 'warn', text: 'Not saved. The book changed to ' + (isFinite(now) ? now : 'another number')
-            + ' while you were counting — a sale or a delivery. Check the shelf, then Save count again.' };
+            + ' while you were counting — a sale or a delivery. Check the shelf, then Save again.' };
           renderList();
           return;
         }
@@ -1679,8 +1785,17 @@
         // again rather than writing its count on the tire pressed.
         var here = !r.product_id || r.product_id === id;
         if (here && isFinite(onCard)) placeByQty(id, onCard);
-        if (mine()) count = null;
         var shown = isFinite(after) ? after : qty;
+        // A RACK TO FOLLOW keeps the panel open and busy until it settles, with
+        // the count now as the book holds it: a rack refused or unanswered can
+        // then be saved again without picking it again or counting twice.
+        var follow = !!move && here && mine();
+        var base = isFinite(onCard) ? onCard : shown;
+        if (follow){ c.seen = base; c.qty = base; c.blank = false; c.saveId = null; }
+        else if (mine()) count = null;
+        // THE COUNT IS IN; NOW THE RACK, if one was picked. A count that was
+        // refused above ("moved") never gets here, so the panel stays open
+        // with the rack still picked for the next Save.
         said = { id: id, tone: '', text: r.unchanged
           ? 'Nothing to change — the book already says ' + shown + ' for ' + name + '.'
           : r.already
@@ -1689,6 +1804,12 @@
           : 'Count saved: ' + shown + ' — ' + name + (isFinite(before) ? ', was ' + before + '.' : '.') };
         renderList();
         if (!here && session) loadStock();
+        // AFTER A MERGE the tire pressed is gone; its rack is left to the counter.
+        if (follow) moveRack(id, move, name, said.text, c);
+        else if (move && !here){
+          said = { id: id, tone: 'warn', text: said.text + ' The rack was not changed — this tire was merged at the counter; move it there.' };
+          renderList();
+        }
       });
       return res.json().catch(function(){ return {}; }).then(function(j){
         if (!mine()) return;
@@ -1702,8 +1823,82 @@
     }).catch(function(){
       if (!mine()) return;
       c.busy = false;
-      said = { id: id, tone: 'err', text: 'No answer from the stock room — the count may or may not have saved. Tap Save count again: it cannot count twice.' };
+      said = { id: id, tone: 'err', text: 'No answer from the stock room — the count may or may not have saved. Tap Save again: it cannot count twice.' };
       renderList();
+    });
+  }
+
+  function saveRackOnly(c, move){
+    c.busy = true;
+    said = null;
+    renderList();
+    moveRack(c.id, move, c.name, '', c);
+  }
+  // ONE GUARDED WRITE: location = the rack picked, ONLY where the tire still
+  // holds the location the panel opened with. Nothing back means it did not
+  // hold it — then one read says whether that is this same move already in (a
+  // retry after a dropped answer) or the counter changing it meanwhile.
+  // `lead` is what a count saved just before said; `c` is the panel, when the
+  // move is all the Save had, and stays open on a refusal.
+  function moveRack(id, move, name, lead, c){
+    var mine = function(){ return !!c && count === c; };
+    var tell = function(tone, text){
+      said = { id: id, tone: tone, text: (lead ? lead + ' ' : '') + text };
+      renderList();
+    };
+    var settle = function(location){
+      var p = productById(id);
+      if (p) p.location = location;
+      if (mine()) count = null;
+    };
+    var path = '/rest/v1/products?id=eq.' + encodeURIComponent(id) + '&location=eq.' + encodeURIComponent(move.from);
+    authedSend('PATCH', path, { location: move.to }).then(function(res){
+      if (res.status === 401){
+        // As the recount does it: turned away before it ran, nothing changed.
+        if (!mine()){ if (!session) showLogin('Your session expired — sign in again.'); return; }
+        count = null;
+        clearSession();
+        showLogin('Your session expired — sign in again. The rack was not changed.');
+        return;
+      }
+      // NO CLEAR ANSWER IS NOT A NO: it may have gone in. Save again is safe —
+      // the guard and the read after it tell a second press from a first.
+      if (res.status >= 500 || res.status === 408 || res.status === 429) throw new Error('no clear answer (' + res.status + ')');
+      if (!res.ok) return res.json().catch(function(){ return {}; }).then(function(j){
+        if (mine()){ c.busy = false; }
+        tell('err', (j && j.message ? j.message + ' ' : '') + 'The rack was not changed.');
+      });
+      return res.json().then(function(rows){
+        if (rows && rows.length){
+          settle(rows[0].location || move.to);
+          tell('', 'Moved to ' + move.to + ' — ' + name + '.');
+          return;
+        }
+        return authedGet('/rest/v1/products?select=location&id=eq.' + encodeURIComponent(id), { 'Accept-Profile': SCHEMA }).then(function(r2){
+          // A READ THAT FAILED says nothing about the tire: no answer, not "gone".
+          if (!r2.ok) throw new Error('read failed (' + r2.status + ')');
+          return r2.json();
+        }).then(function(found){
+          var now = found && found[0] ? String(found[0].location || '') : null;
+          if (now === move.to){
+            settle(now);
+            tell('', 'Moved to ' + move.to + ' — ' + name + '. It had already gone in.');
+            return;
+          }
+          if (now === null){
+            if (mine()) count = null;
+            tell('err', 'That tire is not on the book any more. The rack was not changed.');
+            return;
+          }
+          var p = productById(id);
+          if (p) p.location = now;
+          if (mine()){ c.busy = false; c.rackSeen = now; }
+          tell('warn', 'Rack not changed. It was changed to ' + (now || 'no rack') + ' at the counter while you had it open — check it, then Save again.');
+        });
+      });
+    }).catch(function(){
+      if (mine()) c.busy = false;
+      tell('err', 'No answer from the stock room — the rack may or may not have moved. Tap Save again: it cannot move twice.');
     });
   }
 
@@ -2873,6 +3068,15 @@
         if (cwhat === 'cminus' && count.qty > 0){ count.qty -= 1; count.blank = false; renderList(); }
         if (cwhat === 'cplus' && count.qty < MAX_COUNT){ count.qty += 1; count.blank = false; renderList(); }
         if (cwhat === 'csave') saveCount();
+        if (cwhat === 'rackopen'){ count.picking = true; renderList(); }
+        if (cwhat === 'rackclose'){ count.picking = false; renderList(); }
+        if (cwhat === 'rackpick'){
+          var to = act.getAttribute('data-rack') || '';
+          // The rack it is on already, and nothing else: no move.
+          count.rackTo = to === count.rackSeen ? null : to;
+          count.picking = false;
+          renderList();
+        }
       }
       return;
     }
@@ -2916,7 +3120,8 @@
     openId = null; sale = null; count = null;
     if (side === 'count' && !wasCounting && tapped){
       var book = Number(tapped.qty) || 0;
-      count = { id: id, seen: book, qty: Math.max(0, book), busy: false, blank: false, name: tireName(tapped) };
+      count = { id: id, seen: book, qty: Math.max(0, book), busy: false, blank: false, name: tireName(tapped),
+        rackSeen: String(tapped.location || ''), rackTo: null, picking: false };
     } else if (side === 'sell' && !wasSelling){
       openId = id; sale = { id: id, qty: 1, busy: false, pendingId: null, name: tapped ? tireName(tapped) : 'a tire' };
     }
