@@ -293,6 +293,9 @@ function phone(opts = {}) {
       win.fetch = stub;
       win.confirm = () => true;
       win.__stripAlways = true;
+      // Anything a test plants before the page runs — Stock Health's rules
+      // (health.js), which the real page loads from a <script src> jsdom does not fetch.
+      if (opts.before) opts.before(win);
     },
   });
 

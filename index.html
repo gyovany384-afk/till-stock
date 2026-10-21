@@ -667,6 +667,179 @@
     /* Reading a variance is a column-of-numbers job — keep it narrow. */
     #reviewList, #salesList{ max-width:760px; margin:0 auto; width:100%; }
   }
+
+  /* ---------- Stock Health — 21 Oct 2026 ----------
+     His ask: "stockhealth on phone", layout A off the mockup
+     (https://claude.ai/artifact/HmVCcFHnKoDstV3qNWqU9T): a chip per type, the
+     three tiers as a switch, one size list, and a tire opening to everything
+     the desk's tire panel shows. LOOK ONLY — "Start view only for now". The
+     tier colours are the desk's TIER_LOOK (HealthChecks.jsx). */
+  :root{ --aff-bg:#eff4ff; --aff-fg:#2563eb; --mid-bg:#fdf4e7; --mid-fg:#b45309; --pre-bg:#f1f5f9; --pre-fg:#475569;
+    --non-bg:#f1f5f9; --non-fg:#64748b; --alt-bg:#2563eb; --low:#c2410c; --rc-bg:#fff7ed; --in-bg:#ecfdf3; --in-fg:#15803d;
+    --tag-short-bg:#fef9c3; --tag-short-fg:#854d0e; --tag-out-bg:#fee2e2; --tag-out-fg:#b91c1c; --tag-alt-bg:#dbeafe; --tag-alt-fg:#1d4ed8; --star:#d97706; }
+  @media (prefers-color-scheme: dark){
+    :root{ --aff-bg:rgba(59,130,246,.18); --aff-fg:#93c5fd; --mid-bg:rgba(251,191,36,.15); --mid-fg:#fbbf24;
+      --pre-bg:rgba(255,255,255,.09); --pre-fg:#cbd5e1; --non-bg:rgba(255,255,255,.07); --non-fg:#94a3b8; --alt-bg:#3b82f6;
+      --low:#fb923c; --rc-bg:rgba(251,146,60,.14); --in-bg:rgba(74,222,128,.13); --in-fg:#4ade80;
+      --tag-short-bg:rgba(250,204,21,.16); --tag-short-fg:#fde047; --tag-out-bg:rgba(248,113,113,.16); --tag-out-fg:#fca5a5;
+      --tag-alt-bg:rgba(59,130,246,.2); --tag-alt-fg:#93c5fd; --star:#fbbf24; }
+  }
+  .t-affordable{ --tb:var(--aff-bg); --tf:var(--aff-fg); }
+  .t-mid{ --tb:var(--mid-bg); --tf:var(--mid-fg); }
+  .t-premium{ --tb:var(--pre-bg); --tf:var(--pre-fg); }
+  .t-none{ --tb:var(--non-bg); --tf:var(--non-fg); }
+  #healthList > *{ flex:0 0 auto; }
+  .hbar{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  .hbar .segrow{ margin-top:0; }
+  .hn{ font-size:11.5px; font-weight:700; color:var(--low); background:var(--rc-bg); border-radius:999px; padding:1px 7px; margin-left:4px; }
+  .htiers{ display:grid; gap:4px; background:var(--surface-2); border-radius:13px; padding:4px; }
+  .htier{ min-height:46px; border:none; border-radius:10px; background:none; font-family:inherit; cursor:pointer;
+    color:var(--muted); font-size:13.5px; font-weight:700; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; }
+  .htier small{ font-size:11px; font-weight:600; opacity:.85; }
+  .htier.on{ background:var(--tb); color:var(--tf); box-shadow:0 1px 3px rgba(0,0,0,.06); }
+  .hsws{ display:flex; gap:18px; align-items:center; }
+  .hsw{ display:flex; align-items:center; gap:8px; background:none; border:none; padding:0; min-height:40px;
+    font-family:inherit; font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; }
+  .hsw i{ width:36px; height:22px; border-radius:999px; background:var(--line-strong); position:relative; flex:0 0 36px; }
+  .hsw i::after{ content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#fff;
+    box-shadow:0 1px 2px rgba(0,0,0,.25); transition:left .15s; }
+  .hsw[aria-pressed="true"] i{ background:var(--accent); }
+  .hsw[aria-pressed="true"] i::after{ left:17px; }
+  .hwin{ font-size:12px; color:var(--muted); padding:0 4px; }
+  .hcount{ font-size:12px; color:var(--faint); padding:0 4px; }
+  .hwarn{ font-size:12.5px; font-weight:600; color:var(--low); padding:0 4px; }
+  .hsize{ background:var(--surface); border:1px solid var(--line); border-radius:15px; box-shadow:var(--shadow); overflow:hidden; }
+  .hsize.open{ border-color:color-mix(in srgb, var(--accent) 45%, transparent); }
+  .hs-head, button.hsize{ width:100%; display:flex; align-items:center; gap:10px; min-height:58px; padding:10px 13px;
+    background:none; border:none; text-align:left; font-family:inherit; color:inherit; cursor:pointer; }
+  .hs-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
+  .hs-top{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+  .hs-size{ font-size:16px; font-weight:700; letter-spacing:-.2px; overflow-wrap:anywhere; }
+  .hs-on{ font-size:12.5px; color:var(--muted); }
+  .hs-qty{ font-size:12.5px; color:var(--muted); flex:0 0 auto; }
+  .hs-qty.neg{ color:var(--danger); }
+  .hpin{ width:14px; height:14px; color:var(--accent); flex:0 0 14px; }
+  .hchev{ width:17px; height:17px; color:var(--faint); flex:0 0 17px; transition:transform .15s; }
+  .hsize.open .hs-head .hchev{ transform:rotate(90deg); }
+  .pills{ display:flex; flex-wrap:wrap; gap:4px; }
+  .pill{ font-size:11.5px; font-weight:700; padding:2px 9px; border-radius:999px; background:var(--tb); color:var(--tf); white-space:nowrap; }
+  .pill.alt{ background:var(--alt-bg); color:#fff; }
+  .hs-body{ border-top:1px solid var(--line); background:var(--surface-2); }
+  .hnote{ padding:12px 14px; font-size:13px; color:var(--muted); }
+  .hband{ display:flex; align-items:center; gap:9px; padding:10px 13px; background:var(--tb); }
+  .hband .hb-dot{ width:10px; height:10px; border-radius:50%; background:var(--tf); flex:0 0 10px; }
+  .hband .hb-name{ font-size:13px; font-weight:800; letter-spacing:.05em; color:var(--tf); }
+  .hband .hb-top{ margin-left:auto; min-width:0; font-size:12.5px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hband .hb-top b{ color:var(--ink); }
+  .hcols, .htire{ display:grid; grid-template-columns:22px minmax(0,1fr) 54px 40px 34px 14px; gap:6px; align-items:center; }
+  .hcols{ padding:6px 12px; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); }
+  .hcols span{ text-align:right; }
+  .htire{ width:100%; min-height:52px; padding:6px 12px; background:var(--surface); border:none; border-top:1px solid var(--line);
+    text-align:left; font-family:inherit; color:inherit; cursor:pointer; }
+  .htire:active{ background:var(--surface-2); }
+  .htire.must{ background:color-mix(in srgb, var(--star) 7%, var(--surface)); }
+  .hstar{ font-size:17px; line-height:1; color:var(--line-strong); text-align:center; }
+  .hstar.on{ color:var(--star); }
+  .ht-main{ min-width:0; display:flex; flex-direction:column; gap:3px; }
+  .ht-brand{ font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .htire.must .ht-brand{ font-weight:800; }
+  .htag{ align-self:flex-start; font-size:11px; font-weight:700; padding:1px 8px; border-radius:999px; white-space:nowrap; }
+  .htag.short{ background:var(--tag-short-bg); color:var(--tag-short-fg); }
+  .htag.out{ background:var(--tag-out-bg); color:var(--tag-out-fg); }
+  .htag.alt{ background:var(--tag-alt-bg); color:var(--tag-alt-fg); }
+  .ht-num{ text-align:right; font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .ht-num.ink{ color:var(--ink); font-weight:700; }
+  .ht-num .up{ color:var(--accent); font-weight:800; }
+  .ht-num .down{ color:var(--low); font-weight:800; }
+  .htire .hchev{ width:14px; height:14px; }
+  .hmore{ width:100%; min-height:46px; border-radius:999px; border:1px solid var(--line-strong); background:var(--surface);
+    color:var(--muted); font-family:inherit; font-size:13.5px; font-weight:600; cursor:pointer; }
+
+  /* One tire, opened — a page of its own over the app. */
+  .hpwrap{ position:fixed; inset:0; z-index:45; background:var(--bg); display:flex; flex-direction:column; }
+  .hp-top{ background:var(--surface); border-bottom:1px solid var(--line); padding:calc(6px + var(--safe-top)) 10px 0; flex:0 0 auto; }
+  .hp-back{ min-height:44px; display:inline-flex; align-items:center; gap:4px; padding:0 6px; background:none; border:none;
+    color:var(--accent); font-family:inherit; font-size:15px; font-weight:600; cursor:pointer; max-width:100%; }
+  .hp-back svg{ width:18px; height:18px; flex:0 0 18px; }
+  .hp-title{ padding:0 6px; font-size:21px; font-weight:800; letter-spacing:-.3px; overflow-wrap:anywhere; display:flex; align-items:center; gap:8px; }
+  .hp-sub{ padding:2px 6px 0; font-size:13px; color:var(--muted); }
+  .hp-look{ margin:8px 6px 0; font-size:12px; font-weight:600; color:var(--muted); }
+  .hp-jump{ display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding:10px 6px 10px; }
+  .hp-jump::-webkit-scrollbar{ height:0; }
+  .hp-jump button{ flex:0 0 auto; font-family:inherit; font-size:13px; font-weight:600; color:var(--ink); background:var(--surface-2);
+    border:none; border-radius:999px; padding:8px 13px; cursor:pointer; }
+  .hp-body{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:12px 12px calc(32px + var(--safe-bottom));
+    display:flex; flex-direction:column; gap:12px; }
+  .hp-card{ flex:0 0 auto; background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:14px; display:flex; flex-direction:column; gap:10px; box-shadow:var(--shadow); }
+  .hp-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .hp-head .aside{ text-transform:none; letter-spacing:0; font-weight:500; font-size:12.5px; }
+  .hp-kv{ display:grid; grid-template-columns:96px minmax(0,1fr); gap:6px 10px; font-size:14px; }
+  .hp-kv dt{ color:var(--muted); margin:0; }
+  .hp-kv dd{ margin:0; font-weight:600; overflow-wrap:anywhere; }
+  .hp-big{ display:flex; align-items:center; gap:12px; }
+  .hp-big .lab{ flex:1; font-size:14px; color:var(--muted); }
+  .hp-big .num{ font-size:24px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .hp-big .num.own{ color:var(--accent); }
+  .hp-chip{ font-size:12px; font-weight:700; padding:4px 10px; border-radius:9px; background:var(--surface-2); color:var(--muted); }
+  .hp-chip.auto{ background:color-mix(in srgb, var(--accent) 12%, var(--surface)); color:var(--accent); }
+  .tone-low{ color:var(--low); } .tone-ok{ color:var(--good); } .tone-mute{ color:var(--muted); }
+  .hp-status{ font-size:13.5px; font-weight:600; }
+  .hp-sum{ display:flex; align-items:flex-end; justify-content:space-between; gap:4px; }
+  .hp-fig{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .hp-fig span:first-child{ font-size:11px; font-weight:600; color:var(--muted); white-space:nowrap; }
+  .hp-fig b{ font-size:15.5px; font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .hp-fig.hcost b{ color:var(--warn); }
+  .hp-fig.profit{ border-radius:8px; padding:4px 8px; background:var(--in-bg); }
+  .hp-fig.profit span:first-child, .hp-fig.profit b{ color:var(--in-fg); }
+  .hp-fig.profit.lost{ background:var(--danger-bg); }
+  .hp-fig.profit.lost span:first-child, .hp-fig.profit.lost b{ color:var(--danger); }
+  .hp-op{ color:var(--faint); font-weight:600; padding-bottom:3px; }
+  .hp-tiles{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:6px; }
+  .hp-tile{ background:var(--surface-2); border-radius:10px; padding:8px 10px; display:flex; flex-direction:column; gap:1px; }
+  .hp-tile span{ font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
+  .hp-tile b{ font-size:18px; font-weight:800; }
+  .hp-tile b.low{ color:var(--low); } .hp-tile b.blue{ color:var(--accent); }
+  .hp-cc{ border-top:1px dashed var(--line-strong); padding-top:10px; display:flex; flex-direction:column; gap:4px; font-size:14px; }
+  .hp-cc .grid{ display:grid; grid-template-columns:90px 100px; column-gap:12px; row-gap:3px; font-variant-numeric:tabular-nums; }
+  .hp-cc .grid span:nth-child(odd){ color:var(--muted); }
+  .hp-cc .grid span:nth-child(even){ text-align:right; }
+  .hp-cc .grid .rule{ border-top:1px solid var(--line-strong); padding-top:3px; font-weight:800; }
+  .hp-faint{ font-size:13px; color:var(--faint); }
+  .hp-warn{ font-size:13px; font-weight:600; color:var(--low); }
+  .hp-btn{ font-family:inherit; min-height:36px; padding:0 12px; border-radius:999px; border:1px solid var(--line-strong); background:var(--surface);
+    color:var(--accent); font-size:12.5px; font-weight:700; cursor:pointer; }
+  .hp-link{ background:none; border:none; padding:4px 0; font-family:inherit; font-size:13.5px; font-weight:700; color:var(--accent); cursor:pointer; text-align:left; }
+  .hp-paid{ align-self:flex-start; font-size:12.5px; font-weight:700; padding:3px 10px; border-radius:999px; background:var(--warn-bg); color:var(--warn); }
+  .hp-paid.yes{ background:var(--in-bg); color:var(--in-fg); }
+  .hp-chips{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:6px; }
+  .hp-move{ border-radius:10px; padding:7px 10px; display:flex; flex-direction:column; gap:2px; min-width:0; background:var(--surface-2); }
+  .hp-move.in{ background:var(--in-bg); } .hp-move.recount{ background:var(--rc-bg); }
+  .hp-move .top{ display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
+  .hp-move .chg{ font-size:18px; font-weight:800; }
+  .chg.up{ color:var(--good); } .chg.down{ color:var(--danger); } .chg.mute{ color:var(--muted); }
+  .hp-move .left{ font-size:11px; font-weight:600; color:var(--muted); }
+  .hp-move .w{ font-size:11.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hp-move .tot{ font-size:11.5px; font-weight:700; }
+  .hp-move .each{ font-size:11.5px; color:var(--muted); }
+  .hp-rc{ display:grid; grid-template-columns:52px minmax(0,1fr) auto; gap:10px; align-items:center; background:var(--rc-bg);
+    border-radius:10px; padding:10px 12px; font-size:13.5px; }
+  .hp-rc.cleared{ background:var(--surface-2); }
+  .hp-rc b.up{ color:var(--accent); } .hp-rc b.low{ color:var(--low); } .hp-rc b.mute{ color:var(--muted); }
+  .hp-over{ position:fixed; inset:0; z-index:46; background:var(--surface); display:flex; flex-direction:column; }
+  .hp-over .hp-top{ display:flex; align-items:flex-start; gap:10px; padding:calc(14px + var(--safe-top)) 16px 12px; }
+  .hp-over .hp-top > div{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .hp-close{ min-height:40px; padding:0 14px; border-radius:10px; border:1px solid var(--line-strong); background:var(--surface);
+    font-family:inherit; font-size:14px; font-weight:600; color:var(--ink); cursor:pointer; }
+  .hp-row{ display:flex; justify-content:space-between; align-items:center; gap:12px; padding:11px 16px; border-bottom:1px solid var(--line); }
+  .hp-row.in{ background:var(--in-bg); } .hp-row.recount{ background:var(--rc-bg); }
+  .hp-row .l{ min-width:0; display:flex; flex-direction:column; gap:2px; font-size:12.5px; color:var(--muted); }
+  .hp-row .l b{ font-size:14px; color:var(--ink); }
+  .hp-row .l .tot{ color:var(--ink); font-weight:700; }
+  .hp-row .r{ text-align:right; flex:0 0 auto; display:flex; flex-direction:column; gap:2px; font-size:11.5px; color:var(--faint); }
+  .hp-row .r .chg{ font-size:16px; }
+  .hp-inv{ display:grid; grid-template-columns:minmax(0,1fr) 34px 72px 80px; gap:8px; padding:9px 16px; font-size:13.5px; align-items:center; border-bottom:1px solid var(--line); }
+  .hp-inv span:not(:first-child){ text-align:right; }
+  .hp-inv.head{ font-size:10.5px; font-weight:700; letter-spacing:.06em; color:var(--muted); }
 </style>
 </head>
 <body>
@@ -748,6 +921,8 @@
       <button class="tab" type="button" id="tabSales" role="tab" aria-selected="false">Sales</button>
       <!-- 5 Oct 2026: the counter's notes, read and written here too. -->
       <button class="tab" type="button" id="tabNotes" role="tab" aria-selected="false">Notes</button>
+      <!-- 21 Oct 2026: Stock Health, the desk's, to look at only. -->
+      <button class="tab" type="button" id="tabHealth" role="tab" aria-selected="false">Health</button>
     </div>
     <!-- Sales only. Hidden rather than absent, so the header does not jump. -->
     <div class="segrow" id="rangeRow" hidden>
@@ -755,6 +930,8 @@
       <button class="seg" type="button" data-range="Yesterday">Yesterday</button>
       <button class="seg" type="button" data-range="Month">Month</button>
     </div>
+    <!-- Stock Health only: the type chips, the tier switch and the two switches. -->
+    <div class="hbar" id="healthBar" hidden></div>
     <div class="search" id="searchWrap">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="q" type="search" inputmode="numeric" enterkeyhint="search" autocapitalize="off" autocomplete="off" placeholder="Search size, brand, rack, code…" aria-label="Search stock">
@@ -769,6 +946,7 @@
   <div class="list" id="list"></div>
   <div class="list" id="salesList" hidden></div>
   <div class="list" id="notesList" hidden></div>
+  <div class="list" id="healthList" hidden></div>
 </div>
 
 <!-- ============ ONE SALE, OPENED ============
@@ -785,6 +963,9 @@
   <button type="button" data-k="x">x</button>
   <button type="button" data-k="." aria-label="Dot">.</button>
 </div>
+<!-- One tire opened from Stock Health — a page over the app, outside #app for
+     the reason the sale sheet is: only() must never show it over the sign-in. -->
+<div class="hpwrap" id="hpWrap" hidden></div>
 <div class="sheetwrap" id="sheetWrap">
   <div class="scrim" id="scrim"></div>
   <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Sale"></div>
@@ -807,6 +988,10 @@
   book's sales carry no size, brand, work or condition, so it could only ever
   have drawn a list of $0.00 "Tire" rows.
 -->
+<!-- STOCK HEALTH'S RULES — the desk's own, built for this page by
+     scripts/build-phone-health.mjs in the desktop repo. Loaded first so the
+     page below finds TillHealth; if it fails to load, only the Health tab says so. -->
+<script src="health.js?v=4bee718be8"></script>
 <script>
 (function(){
   // ---- Supabase: the STOCK ROOM computer's own project ----
@@ -1915,7 +2100,7 @@
     // two reads at two different moments, and one line saying "checked just
     // now" over the other one's read is a claim about a read that never
     // happened.
-    var at = tab === TAB_SALES ? salesAt : checkedAt;
+    var at = tab === TAB_SALES ? salesAt : tab === TAB_HEALTH ? healthAt : checkedAt;
     if (!at){ $('freshText').textContent = ''; return; }
     var d = new Date(at), now = new Date();
     var mins = Math.round((now - d)/60000);
@@ -2851,6 +3036,490 @@
   // the entire script. The page would come up doing nothing at all, with nothing
   // on it to say why.
 
+
+  // ---------- Stock Health — 21 Oct 2026 ----------
+  //
+  // His ask: "stockhealth on phone", layout A off the mockup, then "the
+  // details, same as desktop, i want to be able to see all details and
+  // movement history", then "Start view only for now".
+  //
+  // THE RULES ARE NOT IN THIS FILE. health.js, loaded before this script, is
+  // the desk's own Stock Health rules packed for the phone
+  // (scripts/build-phone-health.mjs in the desktop repo) — which sizes a list
+  // holds, every pill, the targets, the tags, the profit, the movements and
+  // their prices. This page reads the book, hands it over, and draws what comes
+  // back. A second copy of those rules here would be a second answer to "is
+  // this size short", and he asked for the phone so the answer would be the
+  // same.
+  //
+  // LOOK ONLY. Nothing on this tab writes: the stars and pins are drawn, not
+  // pressed; the count, target, price, rack and supplier are words, not boxes.
+  // Every read below is a GET, or the stock history's function, which only reads.
+  //
+  // IT READS THE WHOLE BOOK, unlike the Stock tab — every product with every
+  // column (archived ones too: an archived brand's sales are still the
+  // evidence a tier sells, the desk's rule), every sale, every delivery and
+  // its lines, and the settings rows. About 3,000 rows on 21 Oct 2026, read
+  // once when the tab is first opened and again on refresh. The Stock tab's
+  // narrow read is untouched: what it does not ask for, it still does not get.
+  var TAB_HEALTH = 'health';
+  var TH = window.TillHealth || null;
+  var health = null, healthAt = null, healthLoading = false, healthErr = null, healthGen = 0;
+  // A VIEW CHOICE ON THIS PHONE, as the desk keeps its own: the type, the tier
+  // last looked at in each type, Problems first and Out of stock.
+  var HEALTH_KEY = 'till_stock_health_view';
+  var hView = { type: '', list: {}, first: true, out: false };
+  try {
+    var hv = JSON.parse(localStorage.getItem(HEALTH_KEY) || 'null');
+    if (hv && typeof hv === 'object'){
+      hView.type = String(hv.type || '');
+      hView.list = hv.list && typeof hv.list === 'object' ? hv.list : {};
+      hView.first = hv.first !== false;
+      hView.out = hv.out === true;
+    }
+  } catch(e){}
+  function keepView(){ try { localStorage.setItem(HEALTH_KEY, JSON.stringify(hView)); } catch(e){} }
+  // Each list's own search and how far down it has been shown — the desk's
+  // "search bar for each tier" and "load limit, 25".
+  var hQ = Object.create(null), hLimit = Object.create(null), hOpen = null;
+  var HEALTH_STEP = 25;
+  // THE TIRE OPENED: { id, list, key, lines, failed, all, shown, invoice }.
+  // `lines` is the stock history once it answers; null until then, and the
+  // page is drawn from the book meanwhile, as the desk draws it.
+  var hPage = null;
+
+  var HEALTH_READS = [
+    ['products', '/rest/v1/products?select=*&order=id'],
+    ['sales', '/rest/v1/sales?select=*&order=id'],
+    ['deliveries', '/rest/v1/deliveries?select=*&order=id'],
+    ['delivery_lines', '/rest/v1/delivery_lines?select=*&order=delivery_id,line_no'],
+    ['delivery_returns', '/rest/v1/delivery_returns?select=*&order=id'],
+    ['settings', '/rest/v1/settings?select=key,value&order=key']
+  ];
+  // Every page of one read — the same paging, the same three traps, as the
+  // Stock tab's (pageOf).
+  function readAll(path){
+    var rows = [];
+    function page(from, pages){
+      if (pages > MAX_PAGES) return Promise.reject(new Error('too many pages'));
+      return pageOf(path, from).then(function(a){
+        if (a.expired) return 'expired';
+        rows = rows.concat(a.rows);
+        if (a.rows.length < PAGE) return rows;
+        return page(from + PAGE, pages + 1);
+      });
+    }
+    return page(0, 1);
+  }
+
+  function loadHealth(){
+    if (!TH){ if (tab === TAB_HEALTH) renderHealth(); return Promise.resolve(null); }
+    var mine = sessionGen, gen = ++healthGen;
+    var stale = function(){ return sessionGen !== mine || !session || gen !== healthGen; };
+    healthLoading = true; healthErr = null;
+    if (tab === TAB_HEALTH) renderHealth();
+    return Promise.all(HEALTH_READS.map(function(r){
+      var p = readAll(r[1]);
+      // RETURNS ARE OPTIONAL, as on the desk: a database without the table
+      // still shows everything else.
+      return r[0] === 'delivery_returns' ? p.catch(function(){ return []; }) : p;
+    })).then(function(got){
+      if (stale()) return null;
+      if (got.some(function(g){ return g === 'expired'; })){ clearSession(); showLogin('Your session expired — sign in again.'); return null; }
+      var rows = {}, settings = {};
+      HEALTH_READS.forEach(function(r, i){ rows[r[0]] = got[i]; });
+      rows.settings.forEach(function(s){ if (s && s.key) settings[s.key] = s.value; });
+      health = TH.open(rows, settings, localDay(new Date()));
+      healthAt = Date.now(); healthLoading = false;
+      if (!health.tabs.some(function(t){ return t.key === hView.type; })) hView.type = health.tabs[0] ? health.tabs[0].key : '';
+      // A tire taken off the book since the page was opened closes it.
+      if (hPage && !health.book.products.some(function(p){ return p.id === hPage.id; })){ hPage = null; rewindLayers(); }
+      // A SEARCH TYPED WHILE IT LOADED is kept for the list in front (the Opus audit).
+      if (tab === TAB_HEALTH){ var typed = currentList(); if (typed) hQ[typed.id] = $('q').value; }
+      if (tab === TAB_HEALTH){ renderHealthBar(); renderHealth(); renderFresh(); }
+      renderPage();
+      return true;
+    }).catch(function(){
+      if (stale()) return null;
+      healthLoading = false; healthErr = true;
+      if (tab === TAB_HEALTH) renderHealth();
+      return null;
+    });
+  }
+
+  function healthLists(){ return health && hView.type ? TH.lists(health, hView.type) : []; }
+  function currentList(ls){
+    ls = ls || healthLists();
+    var want = hView.list[hView.type];
+    for (var i = 0; i < ls.length; i++) if (ls[i].id === want) return ls[i];
+    return ls[0] || null;
+  }
+  function tierClass(t){ return t === 'affordable' || t === 'mid' || t === 'premium' ? t : 'none'; }
+  var CHEV = '<svg class="hchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+  var PIN = '<svg class="hpin" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="Pinned to the top"><path d="M15 3l6 6-3 1-4 4 1 5-2 2-4-4-5 5-1-1 5-5-4-4 2-2 5 1 4-4z"/></svg>';
+  function pillsHtml(pills){
+    if (!pills.length) return '';
+    return '<span class="pills">' + pills.map(function(p){
+      return '<span class="pill t-' + tierClass(p.tier) + (p.kind === 'alt' ? ' alt' : '') + '">' + esc(p.label) + '</span>';
+    }).join('') + '</span>';
+  }
+  function starHtml(on){
+    return '<span class="hstar' + (on ? ' on' : '') + '" role="img" aria-label="' + (on ? 'A must-have' : 'Not a must-have') + '">' + (on ? '★' : '☆') + '</span>';
+  }
+
+  function renderHealthBar(){
+    var bar = $('healthBar');
+    if (!health){ bar.innerHTML = ''; return; }
+    var h = '<div class="segrow" role="tablist" aria-label="Types">';
+    health.tabs.forEach(function(t){
+      var on = t.key === hView.type;
+      h += '<button class="seg' + (on ? ' on' : '') + '" type="button" role="tab" aria-selected="' + on + '" data-htype="' + esc(t.key) + '">'
+        + esc(t.label) + (t.count ? '<span class="hn">' + t.count + '</span>' : '') + '</button>';
+    });
+    h += '</div>';
+    var ls = healthLists(), cur = currentList(ls);
+    if (ls.length > 1){
+      h += '<div class="htiers" role="tablist" aria-label="Tiers" style="grid-template-columns:repeat(' + ls.length + ',minmax(0,1fr))">';
+      ls.forEach(function(l){
+        var on = cur && l.id === cur.id;
+        h += '<button type="button" role="tab" aria-selected="' + on + '" class="htier t-' + tierClass(l.tier) + (on ? ' on' : '') + '" data-hlist="' + esc(l.id) + '">'
+          + esc(l.tier === '' ? 'No tier' : l.title) + '<small>' + (l.problems ? l.problems + ' to look at' : 'all good') + '</small></button>';
+      });
+      h += '</div>';
+    }
+    bar.innerHTML = h;
+    // The type in front is brought into view: Parts sits off the right edge.
+    var onChip = bar.querySelector('.seg.on');
+    if (onChip && onChip.parentNode && onChip.parentNode.scrollTo) onChip.parentNode.scrollTo({ left: Math.max(0, onChip.offsetLeft - 12) });
+    var box = $('q');
+    if (tab === TAB_HEALTH){
+      box.placeholder = cur && cur.id === 'parts' ? 'Find a part' : 'Find a size' + (cur && cur.tier ? ' in ' + cur.title : '');
+    }
+  }
+
+  function renderHealth(){
+    var el = $('healthList');
+    if (!TH){
+      el.innerHTML = '<div class="empty">Stock Health could not load on this phone.<br>Reload the page to try again.</div>';
+      return;
+    }
+    if (doorShut){
+      el.innerHTML = '<div class="empty">This account is not on the stock room’s staff list.<br>Ask for it to be added on the stock room computer.</div>';
+      return;
+    }
+    if (!health){
+      el.innerHTML = healthErr ? '<div class="center">Couldn’t load Stock Health. Check your connection and tap refresh.</div>'
+        : '<div class="center"><div class="spin"></div>Loading Stock Health…</div>';
+      return;
+    }
+    var list = currentList();
+    // THE TWO SWITCHES SCROLL WITH THE LIST, not in the header: on a phone the
+    // header was already half the screen.
+    var h = '<div class="hsws">'
+      + '<button type="button" class="hsw" data-hsw="first" aria-pressed="' + hView.first + '"><i></i>Problems first</button>'
+      + '<button type="button" class="hsw" data-hsw="out" aria-pressed="' + hView.out + '"><i></i>Out of stock</button>'
+      + '</div><div class="hwin">' + esc(TH.windowWords(health)) + '</div>';
+    if (healthErr) h += '<div class="hwarn">Couldn’t refresh — this is the last read.</div>';
+    if (!list){ el.innerHTML = h + '<div class="empty">Nothing here.</div>'; return; }
+    var q = hQ[list.id] || '';
+    if (list.id === 'parts'){
+      var parts = TH.partRows(health, { q: q, problemsFirst: hView.first, showOut: hView.out });
+      h += '<div class="hcount">' + parts.length + (parts.length === 1 ? ' part' : ' parts') + '</div>';
+      parts.forEach(function(p){
+        h += '<button type="button" class="hsize" data-hpart="' + esc(p.id) + '"><span class="hs-main"><span class="hs-top"><span class="hs-size">'
+          + esc(p.name) + '</span></span>' + pillsHtml(p.pills) + '</span><span class="hs-qty' + (p.qty < 0 ? ' neg' : '') + '">' + p.qty + ' on hand</span>' + CHEV + '</button>';
+      });
+      if (!parts.length) h += '<div class="empty">' + (q.trim() ? 'No part matches that.' : 'Nothing here.') + '</div>';
+      el.innerHTML = h;
+      return;
+    }
+    var r = TH.sizeRows(health, list, { q: q, problemsFirst: hView.first, limit: hLimit[list.id] || HEALTH_STEP });
+    h += '<div class="hcount">' + r.total + (r.total === 1 ? ' size' : ' sizes') + '</div>';
+    r.rows.forEach(function(s){
+      var open = hOpen === s.key;
+      h += '<div class="hsize' + (open ? ' open' : '') + '"><button type="button" class="hs-head" data-hsize="' + esc(s.key) + '" aria-expanded="' + open + '">'
+        + '<span class="hs-main"><span class="hs-top">' + (s.pinned ? PIN : '') + '<span class="hs-size">' + esc(s.size) + '</span>'
+        + '<span class="hs-on">' + s.onHand + ' on hand</span></span>' + pillsHtml(s.pills) + '</span>' + CHEV + '</button>';
+      if (open) h += sizeBody(list, s.key);
+      h += '</div>';
+    });
+    if (!r.rows.length) h += '<div class="empty">' + (q.trim() ? 'Nothing in that size.' : 'Nothing here.') + '</div>';
+    if (r.more) h += '<button type="button" class="hmore" data-act="hmore">Show ' + Math.min(HEALTH_STEP, r.more) + ' more · ' + r.more + ' left</button>';
+    el.innerHTML = h;
+  }
+
+  // One size, opened in its list: the tier's band, its top seller, its tires.
+  function sizeBody(list, key){
+    var s = TH.sizeOpen(health, list, key, { showOut: hView.out });
+    if (!s) return '';
+    var h = '<div class="hs-body">';
+    if (s.allOut) h += '<div class="hnote">Every tire in this size is out of stock. Turn Out of stock on to see them.</div>';
+    s.bands.forEach(function(b){
+      if (!b.tires.length) return;
+      h += '<div class="hband t-' + tierClass(b.tier) + '"><span class="hb-dot"></span><span class="hb-name">' + esc(b.title.toUpperCase()) + '</span>'
+        + (b.top ? '<span class="hb-top">Top seller: <b>' + esc(b.top.brand) + '</b> ' + starHtml(b.top.must) + '</span>' : '') + '</div>'
+        + '<div class="hcols"><span></span><span></span><span>Price</span><span>/mo</span><span>Stock</span><span></span></div>';
+      b.tires.forEach(function(t){
+        var arrow = t.trend === 'up' ? ' <span class="up" title="Selling faster in the last 30 days">↑</span>'
+          : t.trend === 'down' ? ' <span class="down" title="Selling slower in the last 30 days">↓</span>' : '';
+        h += '<button type="button" class="htire' + (t.must ? ' must' : '') + '" data-htire="' + esc(t.id) + '">' + starHtml(t.must)
+          + '<span class="ht-main"><span class="ht-brand">' + esc(t.brand) + '</span>'
+          + (t.tag ? '<span class="htag ' + esc(t.tag.kind) + '">' + esc(t.tag.text) + '</span>' : '') + '</span>'
+          + '<span class="ht-num">' + esc(t.price) + '</span>'
+          + '<span class="ht-num ink">' + (t.perMonth || '—') + arrow + '</span>'
+          + '<span class="ht-num">' + t.rack + '</span>' + CHEV + '</button>';
+      });
+    });
+    return h + '</div>';
+  }
+
+  // ---- one tire, opened — the desk's tire panel, read only ----
+  // THE PHONE'S BACK BUTTON CLOSES WHAT IS ON TOP — the tire page, or View
+  // all / the invoice over it — rather than leaving the app. Each layer pushes
+  // one history entry; a Close pressed on screen takes its own entry back off.
+  var pushed = 0, skipPop = 0;
+  function pushLayer(){ try { history.pushState({ hp: pushed + 1 }, ''); pushed += 1; } catch(e){} }
+  // EVERY LAYER'S ENTRY TAKEN BACK when the tire page goes away by any other
+  // road — a sign-out, the tire leaving the book (the Opus audit: left behind,
+  // they ate the next Back presses and could let one leave the app).
+  function rewindLayers(){
+    if (pushed <= 0) return;
+    var n = pushed;
+    // ONE popstate for one go(), however far it goes back (the Opus re-check).
+    pushed = 0; skipPop += 1;
+    try { history.go(-n); } catch(e){ skipPop -= 1; }
+  }
+  function dropLayer(){
+    if (!hPage) return;
+    if (hPage.all || hPage.invoice){ hPage.all = false; hPage.invoice = false; }
+    else hPage = null;
+    renderPage();
+  }
+  function closeLayer(){
+    dropLayer();
+    if (pushed > 0){ pushed -= 1; skipPop += 1; try { history.back(); } catch(e){ skipPop -= 1; } }
+  }
+  window.addEventListener('popstate', function(){
+    if (skipPop > 0){ skipPop -= 1; return; }
+    if (pushed > 0){ pushed -= 1; dropLayer(); }
+  });
+
+  function openTire(id, list, key){
+    // Not while a Back is still on its way: its entry would be this tire's.
+    if (skipPop > 0) return;
+    hPage = { id: id, list: list, key: key, lines: null, failed: false, all: false, shown: 25, invoice: false };
+    pushLayer();
+    renderPage();
+    $('hpWrap').scrollTop = 0;
+    loadHistory();
+  }
+  // THE STOCK HISTORY, the desk's own read (till_stock.stock_history): every
+  // sale, delivery, recount and correction, with the count each one left.
+  var histGen = 0;
+  function loadHistory(){
+    if (!hPage) return;
+    var id = hPage.id, mine = sessionGen, gen = ++histGen;
+    rpc('stock_history', { p_product_id: id }).then(function(res){
+      if (!res.ok) throw new Error('history');
+      return res.json();
+    }).then(function(rows){
+      if (sessionGen !== mine || gen !== histGen || !hPage || hPage.id !== id) return;
+      hPage.lines = TH.historyLines(Array.isArray(rows) ? rows : []);
+      hPage.failed = false;
+      renderPage();
+    }).catch(function(){
+      if (sessionGen !== mine || gen !== histGen || !hPage || hPage.id !== id) return;
+      hPage.failed = true;
+      renderPage();
+    });
+  }
+
+  function moveChip(m){
+    return '<div class="hp-move ' + m.kind + '"><div class="top"><span class="chg ' + m.tone + '">' + esc(m.change) + '</span><span class="left">' + esc(m.left) + '</span></div>'
+      + '<span class="w">' + esc(m.chip) + '</span>'
+      + (m.total ? '<span class="tot">' + esc(m.total) + '</span>' : '')
+      + (m.each ? '<span class="each">' + esc(m.each) + '</span>' : '') + '</div>';
+  }
+  function kv(pairs){
+    return '<dl class="hp-kv">' + pairs.filter(Boolean).map(function(p){ return '<dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>'; }).join('') + '</dl>';
+  }
+
+  function renderPage(){
+    var wrap = $('hpWrap');
+    if (!hPage || !health || !TH){ wrap.hidden = true; wrap.innerHTML = ''; return; }
+    var v = TH.tireView(health, hPage.id, { lines: hPage.failed ? null : hPage.lines, list: hPage.list, key: hPage.key });
+    if (!v){ hPage = null; rewindLayers(); wrap.hidden = true; wrap.innerHTML = ''; return; }
+    var back = hPage.list && hPage.list.id !== 'parts' && hPage.key ? (v.size || 'Back') + (hPage.list.tier !== null ? ' · ' + (hPage.list.tier ? hPage.list.title : 'No tier') : '') : (v.part ? 'Parts' : 'Back');
+    var h = '<div class="hp-top">'
+      + '<button type="button" class="hp-back" data-hp="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>' + esc(back) + '</button>'
+      + '<div class="hp-title">' + esc(v.title) + '</div>'
+      + '<div class="hp-sub">' + esc([v.size, v.rack.tier, v.rack.location].filter(Boolean).join(' · ')) + (v.archived ? ' · archived' : '') + '</div>'
+      + '<div class="hp-look">Look only — change it on the stock room computer.</div>'
+      + '<div class="hp-jump"><button type="button" data-jump="hpDetails">Details</button><button type="button" data-jump="hpProfit">Profit</button>'
+      + '<button type="button" data-jump="hpMoves">Sales &amp; deliveries</button><button type="button" data-jump="hpRecounts">Recounts</button></div>'
+      + '</div><div class="hp-body" id="hpBody">';
+
+    h += '<div class="hp-card" id="hpDetails"><div class="hp-head"><span>Brand, size &amp; code</span></div>'
+      + kv([['Brand', v.brand || '—'], ['Size', v.size || '—'], ['Code', v.code || 'No code yet']]) + '</div>';
+
+    h += '<div class="hp-card"><div class="hp-head"><span>' + esc(v.count.head) + '</span></div>'
+      + '<div class="hp-big"><span class="lab">On the rack</span><span class="num">' + v.count.rack + '</span></div>';
+    if (!v.part){
+      h += '<div class="hp-big"><span class="lab">Target</span>'
+        + '<span class="hp-chip' + (v.count.own ? '' : ' auto') + '">' + (v.count.own ? 'Own target' : 'Auto · from sales') + '</span>'
+        + '<span class="num' + (v.count.own ? ' own' : '') + '">' + (v.count.target === null ? '—' : v.count.target) + '</span></div>';
+    }
+    if (v.count.status) h += '<div class="hp-status tone-' + v.count.tone + '">' + esc(v.count.status) + '</div>';
+    h += '</div>';
+
+    h += '<div class="hp-card"><div class="hp-head"><span>Price</span></div>'
+      + kv([['Cost', v.price.cost], ['Sell', v.price.sell], ['Deal', v.price.deal], ['Type', v.price.type], ['Tax', v.price.tax]]) + '</div>';
+
+    h += '<div class="hp-card"><div class="hp-head"><span>Rack &amp; tags</span></div>'
+      + kv([['Rack', v.rack.location], v.rack.tier ? ['Tier', v.rack.tier] : null, v.rack.markup ? ['Markup', v.rack.markup] : null]) + '</div>';
+
+    h += '<div class="hp-card"><div class="hp-head"><span>Supplier</span></div>' + kv([['Usually from', v.supplier.usual]]);
+    if (v.supplier.last){
+      h += '<div style="font-size:15px;font-weight:700">' + esc(v.supplier.last.supplier) + '</div>'
+        + '<div style="font-size:13px;color:var(--muted)">Last in: <button type="button" class="hp-link" data-hp="invoice">' + esc(v.supplier.last.line) + '</button></div>'
+        + '<span class="hp-paid' + (v.supplier.last.paid ? ' yes' : '') + '">' + (v.supplier.last.paid ? 'Invoice paid' : 'Invoice not paid yet') + '</span>';
+    } else h += '<div class="hp-faint">No deliveries of this ' + v.unit + ' received in this app yet.</div>';
+    h += '</div>';
+
+    var p = v.profit;
+    h += '<div class="hp-card" id="hpProfit"><div class="hp-head"><span>' + esc(p.head) + '</span></div><div class="hp-sum">'
+      + '<div class="hp-fig"><span>Sell</span><b>' + esc(p.sell) + '</b></div><span class="hp-op">−</span>'
+      + '<div class="hp-fig hcost"><span>' + esc(p.costLabel) + '</span><b>' + esc(p.cost) + '</b></div><span class="hp-op">−</span>'
+      + '<div class="hp-fig"><span>' + esc(p.taxLabel) + '</span><b>' + esc(p.tax) + '</b></div><span class="hp-op">=</span>'
+      + '<div class="hp-fig profit' + (p.lost ? ' lost' : '') + '"><span>Profit</span><b>' + esc(p.profit) + '</b></div></div>';
+    if (p.tiles.length){
+      h += '<div class="hp-tiles">' + p.tiles.map(function(t){ return '<div class="hp-tile"><span>' + esc(t.label) + '</span><b class="' + t.tone + '">' + esc(t.value) + '</b></div>'; }).join('') + '</div>';
+    }
+    h += '<div class="hp-cc"><span class="hp-head"><span>Cost change</span></span>';
+    if (p.change){
+      var c = p.change;
+      h += '<span style="font-size:12.5px;color:var(--muted)">' + esc(c.supplier) + '</span><div class="grid">'
+        + (c.from ? '<span>' + esc(c.from.date) + '</span><span>' + esc(c.from.cost) + '</span>' : '')
+        + '<span>' + esc(c.to.date) + '</span><span style="font-weight:700">' + esc(c.to.cost) + '</span>'
+        + '<span class="rule tone-' + c.tone + '">' + esc(c.word) + '</span><span class="rule tone-' + c.tone + '">' + esc(c.diff) + '</span></div>';
+    } else h += '<span class="hp-faint">No deliveries of this tire received in this app yet.</span>';
+    h += '</div>';
+    if (p.zeroCost) h += '<div class="hp-warn">The cost on this tire is $0, so the profit is the whole price.</div>';
+    h += '</div>';
+
+    var mv = v.moves;
+    h += '<div class="hp-card" id="hpMoves"><div class="hp-head"><span>Sales &amp; deliveries</span>'
+      + (mv.earlier > 0 ? '<button type="button" class="hp-btn" data-hp="all">View all (' + mv.all.length + ')</button>' : '') + '</div>';
+    if (!mv.current.length) h += '<div class="hp-faint">No sales or deliveries recorded yet.</div>';
+    else h += '<div class="hp-chips">' + mv.current.map(moveChip).join('') + '</div>';
+    if (hPage.failed) h += '<div class="hp-faint">From the book — not connected to the stock history.</div>';
+    h += '</div>';
+
+    var rc = v.recounts;
+    h += '<div class="hp-card" id="hpRecounts"><div class="hp-head"><span>Recounts</span><span class="aside">' + esc(rc.summary) + '</span></div>';
+    if (rc.days.length){
+      rc.days.forEach(function(r){
+        h += '<div class="hp-rc' + (r.cleared ? ' cleared' : '') + '"><b>' + esc(r.date) + '</b><span>' + esc(r.words) + '</span><b class="' + r.tone + '">' + esc(r.change) + '</b></div>';
+      });
+    } else {
+      h += '<div class="hp-faint">' + (hPage.failed ? 'Recounts come from the stock history, which is not connected.'
+        : hPage.lines ? 'No recounts of this tire. The book has matched the rack.' : 'Checking the stock history for recounts…') + '</div>';
+    }
+    h += '</div></div>';
+
+    if (hPage.all){
+      var shown = mv.all.slice(0, hPage.shown), more = mv.all.length - shown.length;
+      h += '<div class="hp-over" role="dialog" aria-modal="true" aria-label="Sales and deliveries"><div class="hp-top"><div>'
+        + '<span class="hp-head"><span>Sales &amp; deliveries</span></span><b style="font-size:17px">' + esc(v.title) + '</b>'
+        + '<span class="hp-faint">' + mv.all.length + ' movements · newest first</span></div>'
+        + '<button type="button" class="hp-close" data-hp="close">Close</button></div><div class="hp-body" style="padding:0;gap:0">';
+      shown.forEach(function(m){
+        h += '<div class="hp-row ' + m.kind + '"><div class="l"><b>' + esc(m.name) + '</b><span>' + esc(m.when) + '</span>'
+          + (m.total ? '<span class="tot">' + esc(m.total) + '</span>' : '') + (m.each ? '<span>' + esc(m.each) + '</span>' : '') + '</div>'
+          + '<div class="r"><span class="chg ' + m.tone + '" style="font-weight:800">' + esc(m.change) + '</span><span>' + esc(m.left) + '</span></div></div>';
+      });
+      if (more > 0) h += '<button type="button" class="hmore" style="border-radius:0;border:none" data-hp="more">View more (' + more + ' more)</button>';
+      h += '</div></div>';
+    }
+    if (hPage.invoice && v.supplier.invoice){
+      var inv = v.supplier.invoice;
+      h += '<div class="hp-over" role="dialog" aria-modal="true" aria-label="Invoice ' + esc(inv.ref) + '"><div class="hp-top"><div>'
+        + '<span class="hp-head"><span>Invoice</span></span><b style="font-size:20px">' + esc(inv.ref) + '</b>'
+        + '<span class="hp-faint">' + esc(inv.supplier) + ' · ' + esc(inv.date) + '</span></div>'
+        + '<button type="button" class="hp-close" data-hp="close">Close</button></div><div class="hp-body" style="padding:0;gap:0">'
+        + '<div class="hp-inv head"><span>TIRE</span><span>QTY</span><span>COST</span><span>TOTAL</span></div>';
+      inv.lines.forEach(function(l){
+        h += '<div class="hp-inv"><span style="font-weight:700;overflow-wrap:anywhere">' + esc(l.name) + '</span><span>' + l.qty + '</span><span>' + esc(l.cost) + '</span><span style="font-weight:700">' + esc(l.total) + '</span></div>';
+      });
+      inv.charges.forEach(function(ch){
+        h += '<div class="hp-row"><span>' + esc(ch.name) + '</span><b>' + esc(ch.amount) + '</b></div>';
+      });
+      if (inv.returns.length){
+        h += '<div class="hp-inv head" style="color:var(--low)"><span>RETURNED</span><span></span><span></span><span></span></div>';
+        inv.returns.forEach(function(r){
+          h += '<div class="hp-inv"><span style="font-weight:700;overflow-wrap:anywhere">' + esc(r.name) + ' · ' + esc(r.date) + '</span><span>−' + r.qty + '</span><span>' + esc(r.cost) + '</span><span style="font-weight:700;color:var(--low)">' + esc(r.total) + '</span></div>';
+        });
+      }
+      h += '<div class="hp-row"><span class="hp-faint">' + esc(inv.totalLabel) + '</span><b>' + esc(inv.total) + '</b></div>'
+        + (inv.before ? '<div class="hp-row"><span class="hp-faint">' + esc(inv.before) + '</span></div>' : '')
+        + '<div style="padding:12px 16px"><span class="hp-paid' + (inv.paid ? ' yes' : '') + '">' + (inv.paid ? 'Paid' : 'Not paid yet') + '</span></div></div></div>';
+    }
+    var keep = $('hpBody') ? $('hpBody').scrollTop : 0;
+    wrap.innerHTML = h;
+    wrap.hidden = false;
+    if ($('hpBody')) $('hpBody').scrollTop = keep;
+  }
+
+  function resetHealth(){
+    health = null; healthAt = null; healthLoading = false; healthErr = null; healthGen += 1; histGen += 1;
+    hQ = Object.create(null); hLimit = Object.create(null); hOpen = null; hPage = null;
+    rewindLayers();
+    $('healthList').innerHTML = ''; $('healthBar').innerHTML = '';
+    renderPage();
+  }
+
+  $('healthBar').addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('button') : null;
+    if (!b) return;
+    if (b.hasAttribute('data-htype')){
+      hView.type = b.getAttribute('data-htype'); keepView();
+    } else if (b.hasAttribute('data-hlist')){
+      hView.list[hView.type] = b.getAttribute('data-hlist'); keepView();
+    } else return;
+    hOpen = null;
+    var cur = currentList();
+    $('q').value = cur ? (hQ[cur.id] || '') : '';
+    $('searchWrap').classList.toggle('has', !!$('q').value);
+    renderHealthBar(); renderHealth();
+  });
+  $('healthList').addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('button') : null;
+    if (!b || !health) return;
+    var list = currentList();
+    var sw = b.getAttribute('data-hsw');
+    if (sw === 'first' || sw === 'out'){
+      if (sw === 'first') hView.first = !hView.first; else hView.out = !hView.out;
+      keepView(); hOpen = null; renderHealth(); return;
+    }
+    if (b.getAttribute('data-act') === 'hmore'){ hLimit[list.id] = (hLimit[list.id] || HEALTH_STEP) + HEALTH_STEP; renderHealth(); return; }
+    // ONE SIZE OPEN AT A TIME — the desk's 14 Oct rule.
+    if (b.hasAttribute('data-hsize')){ var k = b.getAttribute('data-hsize'); hOpen = hOpen === k ? null : k; renderHealth(); return; }
+    if (b.hasAttribute('data-htire')){ openTire(b.getAttribute('data-htire'), list, hOpen); return; }
+    if (b.hasAttribute('data-hpart')){ openTire(b.getAttribute('data-hpart'), list, null); return; }
+  });
+  $('hpWrap').addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('button') : null;
+    if (!b || !hPage) return;
+    var act = b.getAttribute('data-hp');
+    if (act === 'close'){ closeLayer(); return; }
+    if ((act === 'all' || act === 'invoice') && skipPop > 0) return;
+    if (act === 'all'){ hPage.all = true; hPage.shown = 25; pushLayer(); renderPage(); return; }
+    if (act === 'invoice'){ hPage.invoice = true; pushLayer(); renderPage(); return; }
+    if (act === 'more'){ hPage.shown += 25; renderPage(); return; }
+    var jump = b.getAttribute('data-jump');
+    if (jump && $(jump) && $(jump).scrollIntoView) $(jump).scrollIntoView({ block: 'start', behavior: 'smooth' });
+  });
+
   // ---------- view switches ----------
   // TWO SCREENS NOW. `only()` walks this list on every change and touches the
   // style of each one, so an id left in here after its div was deleted breaks the
@@ -2884,6 +3553,8 @@
     pendingRows = null; phoneSaid = null;
     notes = []; notesAt = null; notesLoading = false; notesErr = null; notesQuery = '';
     $('notesList').innerHTML = '';
+    // And Stock Health: another sign-in reads its own book.
+    resetHealth();
     var pills = $('rangeRow').querySelectorAll('[data-range]');
     for (var i = 0; i < pills.length; i++){
       pills[i].classList.toggle('on', pills[i].getAttribute('data-range') === 'Today');
@@ -2909,29 +3580,34 @@
     // with nothing on screen saying that was why.
     if (tab === TAB_SALES) salesQuery = $('q').value;
     else if (tab === TAB_NOTES) notesQuery = $('q').value;
+    else if (tab === TAB_HEALTH){ var was = health && currentList(); if (was) hQ[was.id] = $('q').value; }
     else query = $('q').value;
     tab = next;
-    var onSales = tab === TAB_SALES, onNotes = tab === TAB_NOTES, onStock = tab === TAB_STOCK;
-    [['tabStock', onStock], ['tabSales', onSales], ['tabNotes', onNotes]].forEach(function(t){
+    var onSales = tab === TAB_SALES, onNotes = tab === TAB_NOTES, onStock = tab === TAB_STOCK, onHealth = tab === TAB_HEALTH;
+    [['tabStock', onStock], ['tabSales', onSales], ['tabNotes', onNotes], ['tabHealth', onHealth]].forEach(function(t){
       $(t[0]).classList.toggle('on', t[1]);
       $(t[0]).setAttribute('aria-selected', t[1] ? 'true' : 'false');
     });
-    $('screenTitle').textContent = onSales ? 'Sales' : onNotes ? 'Notes' : 'Stock';
+    $('screenTitle').textContent = onSales ? 'Sales' : onNotes ? 'Notes' : onHealth ? 'Stock Health' : 'Stock';
     // The banner says what the screen in front is, and each is true of its
     // own screen: what this page can do to the book, what the book holds, and
     // whose notes these are.
     $('banner').textContent = onSales
       ? 'Stock room book · every tire that left the shop'
       : onNotes ? 'Stock room notes · the same notes as the counter'
+      : onHealth ? 'Stock room book · Stock Health · look only, nothing here changes the book'
       : 'Stock room book · tap a tire to log a sale · the shop’s Till does not change this';
     $('rangeRow').hidden = !onSales;
     $('list').hidden = !onStock;
     $('salesList').hidden = !onSales;
     $('notesList').hidden = !onNotes;
+    $('healthList').hidden = !onHealth;
+    $('healthBar').hidden = !onHealth;
     var box = $('q');
-    box.value = onSales ? salesQuery : onNotes ? notesQuery : query;
+    var hNow = onHealth && health ? currentList() : null;
+    box.value = onSales ? salesQuery : onNotes ? notesQuery : onHealth ? (hNow ? (hQ[hNow.id] || '') : '') : query;
     box.placeholder = onSales ? 'Search size, brand or who sold it…' : onNotes ? 'Search the notes…' : 'Search size, brand, rack, code…';
-    box.setAttribute('aria-label', onSales ? 'Search the sales' : onNotes ? 'Search the notes' : 'Search stock');
+    box.setAttribute('aria-label', onSales ? 'Search the sales' : onNotes ? 'Search the notes' : onHealth ? 'Search Stock Health' : 'Search stock');
     // Notes are words; the number pad is for sizes.
     setKb(onNotes ? 'text' : kbMode, true);
     $('kbBtn').hidden = onNotes;
@@ -2940,6 +3616,13 @@
     $('searchWrap').classList.toggle('has', !!box.value);
     renderFresh();
     if (onStock){ renderList(); return; }
+    if (onHealth){
+      renderHealthBar();
+      if (!health) box.placeholder = 'Find a size';
+      renderHealth();
+      if (!healthAt && !healthLoading) loadHealth();
+      return;
+    }
     if (onNotes){
       renderNotes();
       if (!notesAt && !notesLoading) loadNotes();
@@ -3003,7 +3686,9 @@
     void btn.offsetWidth;                 // restart the animation on a repeat tap
     btn.classList.add('spinning');
     if (!session) return;
-    if (tab === TAB_SALES) loadSales(); else if (tab === TAB_NOTES) loadNotes(); else loadStock();
+    if (tab === TAB_SALES) loadSales(); else if (tab === TAB_NOTES) loadNotes();
+    else if (tab === TAB_HEALTH){ loadHealth(); if (hPage) loadHistory(); }
+    else loadStock();
   });
   $('refreshBtn').addEventListener('animationend', function(){ this.classList.remove('spinning'); }, true);
 
@@ -3020,6 +3705,16 @@
       renderSales();
       return;
     }
+    if (tab === TAB_HEALTH){
+      // EACH LIST ITS OWN SEARCH, and a new search starts the 25 again and
+      // closes the open size — the desk's rules.
+      var hl = health && currentList();
+      if (hl){ hQ[hl.id] = this.value; hLimit[hl.id] = HEALTH_STEP; }
+      hOpen = null;
+      $('searchWrap').classList.toggle('has', !!this.value);
+      renderHealth();
+      return;
+    }
     query = this.value;
     phoneSaid = null;
     if (!query.trim()) withOut = false;
@@ -3031,6 +3726,7 @@
     $('searchWrap').classList.remove('has');
     if (tab === TAB_SALES){ salesQuery = ''; renderSales(); return; }
     if (tab === TAB_NOTES){ notesQuery = ''; renderNotes(); return; }
+    if (tab === TAB_HEALTH){ var hc = health && currentList(); if (hc){ hQ[hc.id] = ''; hLimit[hc.id] = HEALTH_STEP; } hOpen = null; renderHealth(); return; }
     query = ''; withOut = false;
     renderList();
   });
@@ -3150,6 +3846,7 @@
   $('tabStock').addEventListener('click', function(){ showTab(TAB_STOCK); });
   $('tabSales').addEventListener('click', function(){ showTab(TAB_SALES); });
   $('tabNotes').addEventListener('click', function(){ showTab(TAB_NOTES); });
+  $('tabHealth').addEventListener('click', function(){ showTab(TAB_HEALTH); });
   $('notesList').addEventListener('click', function(e){
     var act = e.target.closest ? e.target.closest('[data-act="newnote"]') : null;
     if (act){ openNote(null); return; }
