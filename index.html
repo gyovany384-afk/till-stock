@@ -396,11 +396,12 @@
      The day headings lost their totals to the same rule. */
   #salesList{ display:flex; flex-direction:column; gap:7px; }
   #salesList > *{ flex:0 0 auto; }
-  /* Today / Yesterday / Month / Last month / All time. Sits in the sticky header.
-     WRAPS rather than scrolling since 21 Oct 2026: five pills are wider than a
-     375px phone, and a sideways scroll with its bar hidden left All time off
-     the edge with nothing to say it was there. */
-  .segrow{ display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; padding-bottom:2px; }
+  /* Today / Yesterday / Month / Last month / All time, and Stock Health's types.
+     ONE ROW THAT SWIPES SIDEWAYS, his word 22 Oct 2026: "make them scroll left
+     to right ... instead of displaying them all". It wrapped onto two lines for
+     a day; the picked pill is scrolled into view instead (keepPillInView). */
+  .segrow{ display:flex; flex-wrap:nowrap; gap:7px; margin-top:10px; overflow-x:auto; overscroll-behavior-x:contain;
+    -webkit-overflow-scrolling:touch; scrollbar-width:none; padding-bottom:2px; }
   .segrow::-webkit-scrollbar{ height:0; }
   .seg{ flex:0 0 auto; font-size:13px; font-weight:700; padding:9px 16px; border-radius:999px; white-space:nowrap;
     border:1px solid var(--line-strong); background:var(--surface); color:var(--muted); font-family:inherit; cursor:pointer; }
@@ -3190,6 +3191,15 @@
     return '<span class="hstar' + (on ? ' on' : '') + '" role="img" aria-label="' + (on ? 'A must-have' : 'Not a must-have') + '">' + (on ? '★' : '☆') + '</span>';
   }
 
+  // The picked pill brought into view, in a row that scrolls sideways.
+  function keepPillInView(row){
+    var on = row && row.querySelector('.seg.on');
+    if (!on) return;
+    var x = Math.max(0, on.offsetLeft - row.offsetLeft - 12);
+    // Element.scrollTo only arrived in iOS 14; older phones take scrollLeft.
+    if (row.scrollTo) row.scrollTo({ left: x }); else row.scrollLeft = x;
+  }
+
   function renderHealthBar(){
     var bar = $('healthBar');
     if (!health){ bar.innerHTML = ''; return; }
@@ -3212,8 +3222,7 @@
     }
     bar.innerHTML = h;
     // The type in front is brought into view: Parts sits off the right edge.
-    var onChip = bar.querySelector('.seg.on');
-    if (onChip && onChip.parentNode && onChip.parentNode.scrollTo) onChip.parentNode.scrollTo({ left: Math.max(0, onChip.offsetLeft - 12) });
+    keepPillInView(bar.querySelector('.segrow'));
     var box = $('q');
     if (tab === TAB_HEALTH){
       box.placeholder = cur && cur.id === 'parts' ? 'Find a part' : 'Find a size' + (cur && cur.tier ? ' in ' + cur.title : '');
@@ -3582,6 +3591,7 @@
     for (var i = 0; i < pills.length; i++){
       pills[i].classList.toggle('on', pills[i].getAttribute('data-range') === 'Today');
     }
+    keepPillInView($('rangeRow'));
     $('salesList').innerHTML = '';
     only('login');
     if (msg){ var m = $('loginMsg'); m.textContent = msg; m.className = 'msg err'; }
@@ -3621,6 +3631,9 @@
       : onHealth ? 'Stock room book · Stock Health · look only, nothing here changes the book'
       : 'Stock room book · tap a tire to log a sale · the shop’s Till does not change this';
     $('rangeRow').hidden = !onSales;
+    // A hidden row forgets how far it was swiped: back on Sales, bring the
+    // picked pill (Last month, All time) back into view.
+    if (onSales) keepPillInView($('rangeRow'));
     $('list').hidden = !onStock;
     $('salesList').hidden = !onSales;
     $('notesList').hidden = !onNotes;
@@ -3889,6 +3902,7 @@
     for (var i = 0; i < all.length; i++){
       all[i].classList.toggle('on', all[i].getAttribute('data-range') === range);
     }
+    keepPillInView($('rangeRow'));
     salesSaid = null;
     // All time wants the whole log, and what is in hand may stop at the first of
     // last month. Read it once; every other pill is inside what is already here.
