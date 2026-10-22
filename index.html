@@ -787,7 +787,14 @@
   .hp-chip.auto{ background:color-mix(in srgb, var(--accent) 12%, var(--surface)); color:var(--accent); }
   .tone-low{ color:var(--low); } .tone-ok{ color:var(--good); } .tone-mute{ color:var(--muted); }
   .hp-status{ font-size:13.5px; font-weight:600; }
-  .hp-sum{ display:flex; align-items:flex-end; justify-content:space-between; gap:4px; }
+  .hp-sum{ display:grid; grid-template-columns:repeat(7, auto); align-items:end; justify-content:space-between; column-gap:4px; row-gap:10px; }
+  /* BASE PRICE, AND THE DEAL UNDER IT — 22 Oct 2026, the desk's card: the base
+     sum crossed out, the deal's sum under it in the same columns, and the
+     "Profit Uses Deal" pill in Sell's column on the figures' line. */
+  .hp-fig.struck b{ color:var(--faint) !important; text-decoration:line-through; }
+  .hp-fig.profit.struck{ background:var(--surface-2); }
+  .hp-fig.profit.struck span:first-child{ color:var(--faint); }
+  .hp-dealpill{ align-self:end; margin-bottom:1px; font-size:10.5px; font-weight:700; line-height:1.25; padding:3px 8px; border-radius:9px; background:var(--in-bg); color:var(--in-fg); max-width:76px; }
   .hp-fig{ display:flex; flex-direction:column; gap:3px; min-width:0; }
   .hp-fig span:first-child{ font-size:11px; font-weight:600; color:var(--muted); white-space:nowrap; }
   .hp-fig b{ font-size:15.5px; font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap; }
@@ -996,7 +1003,7 @@
 <!-- STOCK HEALTH'S RULES — the desk's own, built for this page by
      scripts/build-phone-health.mjs in the desktop repo. Loaded first so the
      page below finds TillHealth; if it fails to load, only the Health tab says so. -->
-<script src="health.js?v=4bee718be8"></script>
+<script src="health.js?v=48cdb3e180"></script>
 <script>
 (function(){
   // ---- Supabase: the STOCK ROOM computer's own project ----
@@ -3422,8 +3429,15 @@
     h += '<div class="hp-card" id="hpProfit"><div class="hp-head"><span>' + esc(p.head) + '</span></div><div class="hp-sum">'
       + '<div class="hp-fig"><span>Sell</span><b>' + esc(p.sell) + '</b></div><span class="hp-op">−</span>'
       + '<div class="hp-fig hcost"><span>' + esc(p.costLabel) + '</span><b>' + esc(p.cost) + '</b></div><span class="hp-op">−</span>'
-      + '<div class="hp-fig"><span>' + esc(p.taxLabel) + '</span><b>' + esc(p.tax) + '</b></div><span class="hp-op">=</span>'
-      + '<div class="hp-fig profit' + (p.lost ? ' lost' : '') + '"><span>Profit</span><b>' + esc(p.profit) + '</b></div></div>';
+      + '<div class="hp-fig' + (p.struck ? ' struck' : '') + '"><span>' + esc(p.taxLabel) + '</span><b>' + esc(p.tax) + '</b></div><span class="hp-op">=</span>'
+      + '<div class="hp-fig profit' + (p.struck ? ' struck' : p.lost ? ' lost' : '') + '"><span>Profit</span><b>' + esc(p.profit) + '</b></div>';
+    if (p.deal){
+      h += '<span class="hp-dealpill">Profit Uses Deal</span><span class="hp-op">−</span>'
+        + '<div class="hp-fig hcost"><span>Deal paid</span><b>' + esc(p.deal.cost) + '</b></div><span class="hp-op">−</span>'
+        + '<div class="hp-fig"><span>' + esc(p.taxLabel) + '</span><b>' + esc(p.deal.tax) + '</b></div><span class="hp-op">=</span>'
+        + '<div class="hp-fig profit' + (p.deal.lost ? ' lost' : '') + '"><span>Profit</span><b>' + esc(p.deal.profit) + '</b></div>';
+    }
+    h += '</div>';
     if (p.tiles.length){
       h += '<div class="hp-tiles">' + p.tiles.map(function(t){ return '<div class="hp-tile"><span>' + esc(t.label) + '</span><b class="' + t.tone + '">' + esc(t.value) + '</b></div>'; }).join('') + '</div>';
     }
