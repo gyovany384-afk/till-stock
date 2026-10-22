@@ -396,9 +396,11 @@
      The day headings lost their totals to the same rule. */
   #salesList{ display:flex; flex-direction:column; gap:7px; }
   #salesList > *{ flex:0 0 auto; }
-  /* Today / Yesterday / Month. Sits in the sticky header; scrolls sideways on a
-     narrow phone if it must. */
-  .segrow{ display:flex; gap:7px; margin-top:10px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
+  /* Today / Yesterday / Month / Last month / All time. Sits in the sticky header.
+     WRAPS rather than scrolling since 21 Oct 2026: five pills are wider than a
+     375px phone, and a sideways scroll with its bar hidden left All time off
+     the edge with nothing to say it was there. */
+  .segrow{ display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; padding-bottom:2px; }
   .segrow::-webkit-scrollbar{ height:0; }
   .seg{ flex:0 0 auto; font-size:13px; font-weight:700; padding:9px 16px; border-radius:999px; white-space:nowrap;
     border:1px solid var(--line-strong); background:var(--surface); color:var(--muted); font-family:inherit; cursor:pointer; }
@@ -929,6 +931,8 @@
       <button class="seg on" type="button" data-range="Today">Today</button>
       <button class="seg" type="button" data-range="Yesterday">Yesterday</button>
       <button class="seg" type="button" data-range="Month">Month</button>
+      <button class="seg" type="button" data-range="Last month">Last month</button>
+      <button class="seg" type="button" data-range="All time">All time</button>
     </div>
     <!-- Stock Health only: the type chips, the tier switch and the two switches. -->
     <div class="hbar" id="healthBar" hidden></div>
@@ -2137,6 +2141,9 @@
   // whose last one has just been sold is exactly the one a Remove is about.
   var sales = [], tires = Object.create(null), salesAt = null;
   var salesQuery = '', range = 'Today', salesErr = null, salesLoading = false;
+  // Whether `sales` holds the WHOLE log (read for All time) or only from the
+  // first of last month. All time is the one pill the bounded read cannot answer.
+  var salesAll = false;
   // Said after a sale was taken out, above the list. Not a sale panel's `said`:
   // there is no row left to say it under.
   var salesSaid = null;
@@ -2234,25 +2241,28 @@
   var SALE_COLS = 'id,product_id,sold_on,when_label,qty,used,unit_cents,sold_by,shelf_before';
   var TIRE_COLS = 'id,size,brand,type,product_code,qty';
 
-  // THE OLDEST DAY WORTH READING. The three pills are Today, Yesterday and this
-  // month, so the read is bounded by the earlier of the first of the month and
-  // yesterday — and that second half is not a nicety: on the first of the month
-  // the month starts today, and without it Yesterday would be empty every time
-  // it mattered most.
+  // 'YYYY-MM' of the calendar month before the one `today` is in.
+  function lastMonth(today){
+    var p = dayParts(today);
+    if (!p) return '';
+    return p.m === 1 ? (p.y - 1) + '-12' : p.y + '-' + pad2(p.m - 1);
+  }
+  // THE OLDEST DAY WORTH READING. Since Last month joined the pills (21 Oct
+  // 2026) that is the first of last month — which is always before yesterday,
+  // so Yesterday on the 1st of a month still finds its sales. All time is the
+  // one pill this does not cover; salesPath reads the whole log for it.
   function salesFrom(){
     var today = localDay(new Date());
-    var p = dayParts(today);
-    var first = p ? (p.y + '-' + pad2(p.m) + '-01') : today;
-    var back = dayShift(today, -1);
-    return back < first ? back : first;
+    var lm = lastMonth(today);
+    return lm ? lm + '-01' : dayShift(today, -1);
   }
 
   // ORDERED ON EVERY PAGE, like the stock read: day down, then the sale number
   // down, which is the order the counter's own log is kept in (byLogOrder in the
   // desktop's src/state/refresh.js). A number carries the clock of the press, so
   // within a day this puts the newest at the top.
-  function salesPath(){
-    return '/rest/v1/sales?select=' + SALE_COLS + '&sold_on=gte.' + salesFrom()
+  function salesPath(whole){
+    return '/rest/v1/sales?select=' + SALE_COLS + (whole ? '' : '&sold_on=gte.' + salesFrom())
       + '&order=sold_on.desc,id.desc';
   }
   // A VALUE IN `in.()` IS QUOTED AND ENCODED. A product id is free text; one with
@@ -2277,13 +2287,14 @@
     // sign-in it started under and to its own number. Signed out, signed in
     // again, or beaten by a newer read, and this one draws nothing.
     var stale = function(){ return sessionGen !== mine || !session || gen !== salesGen; };
+    var whole = range === 'All time';
     salesLoading = true; salesErr = null;
     if (tab === TAB_SALES) renderSales();
 
     var rows = [];
     function page(from, pages){
       if (pages > MAX_PAGES) return Promise.resolve(true);
-      return pageOf(salesPath(), from).then(function(answer){
+      return pageOf(salesPath(whole), from).then(function(answer){
         if (answer.expired) return 'expired';
         rows = rows.concat(answer.rows);
         if (answer.rows.length < PAGE) return true;
@@ -2323,7 +2334,13 @@
         if (ok === 'expired'){ clearSession(); showLogin('Your session expired — sign in again.'); return null; }
         sales = got;
         tires = found;
+        salesAll = whole;
         salesAt = Date.now();
+        // ALL TIME PICKED WHILE A SHORTER READ WAS ALREADY ON ITS WAY — the
+        // first read of the tab, which the pill cannot replace because nothing
+        // has landed yet. Without this the list stopped at last month under an
+        // All time pill until somebody tapped refresh.
+        if (range === 'All time' && !whole){ loadSales(); return true; }
         salesLoading = false;
         salesErr = null;
         if (tab === TAB_SALES){ renderSales(); renderFresh(); }
@@ -2370,6 +2387,10 @@
     var today = localDay(new Date());
     if (range === 'Today') return s.day === today;
     if (range === 'Yesterday') return s.day === dayShift(today, -1);
+    // LAST MONTH AND ALL TIME — his ask, 21 Oct 2026. Calendar months, the same
+    // reading the counter's "Last month" has (inRange in the desktop's views.js).
+    if (range === 'All time') return true;
+    if (range === 'Last month') return String(s.day || '').slice(0, 7) === lastMonth(today);
     // This month, as the calendar has it — the same month the counter's "This
     // month" means.
     return String(s.day || '').slice(0, 7) === String(today).slice(0, 7);
@@ -2419,7 +2440,9 @@
       // own.
       box.innerHTML = head + '<div class="empty">'
         + '<b>' + (range === 'Today' ? 'Nothing sold yet today.'
-          : range === 'Yesterday' ? 'Nothing sold yesterday.' : 'Nothing sold this month.') + '</b>'
+          : range === 'Yesterday' ? 'Nothing sold yesterday.'
+          : range === 'Last month' ? 'Nothing sold last month.'
+          : range === 'All time' ? 'Nothing sold yet.' : 'Nothing sold this month.') + '</b>'
         + 'A sale rung up at the counter, or here on the phone, shows up the next time this page checks — tap the refresh button at the top.</div>';
       return;
     }
@@ -3546,7 +3569,7 @@
     // book is from before it.
     count = null;
     showTab(TAB_STOCK);
-    sales = []; tires = Object.create(null); salesAt = null; salesQuery = '';
+    sales = []; tires = Object.create(null); salesAt = null; salesQuery = ''; salesAll = false;
     salesSaid = null; salesErr = null; salesLoading = false; range = 'Today';
     doorShut = false;
     // And what the phone sent, and the notes: another sign-in reads its own.
@@ -3854,7 +3877,7 @@
     if (n) openNote(n.getAttribute('data-note'));
   });
   // A DIFFERENT SLICE OF WHAT IS ALREADY HERE, not another read. One read covers
-  // all three pills (salesFrom), so switching between them is instant and costs
+  // every pill but All time (salesFrom), so switching between them is instant and costs
   // the shop's connection nothing.
   $('rangeRow').addEventListener('click', function(e){
     var b = e.target.closest ? e.target.closest('[data-range]') : null;
@@ -3867,7 +3890,10 @@
       all[i].classList.toggle('on', all[i].getAttribute('data-range') === range);
     }
     salesSaid = null;
-    renderSales();
+    // All time wants the whole log, and what is in hand may stop at the first of
+    // last month. Read it once; every other pill is inside what is already here.
+    if (range === 'All time' && !salesAll && salesAt) loadSales();
+    else renderSales();
   });
   // One listener on the list rather than one per card: the cards are redrawn
   // from scratch on every keystroke in the search.

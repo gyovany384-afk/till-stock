@@ -156,6 +156,57 @@ async function onSales(opts = {}) {
   }
 
   // ----------------------------------------------------------
+  console.log('\nLast month / All time');
+  {
+    // The 15th of last month, and a day two years back.
+    const [ty, tm] = TODAY.split('-').map(Number);
+    const LAST = tm === 1 ? (ty - 1) + '-12-15' : ty + '-' + pad(tm - 1) + '-15';
+    const OLD = (ty - 2) + '-06-01';
+    const p = await onSales({ sales: [
+      sale({ id: 's3', sold_on: TODAY }),
+      sale({ id: 's2', sold_on: LAST, product_id: 'p2' }),
+      sale({ id: 's1', sold_on: OLD }),
+    ] });
+    const first = salesCalls(p.calls);
+    ok('the first read starts at the first of last month', first[0] && first[0].url.indexOf('sold_on=gte.' + LAST.slice(0, 8) + '01') !== -1, first[0] && first[0].url);
+    tap(p.w, '[data-range="Last month"]');
+    await wait(10);
+    let h = salesList(p.w);
+    ok('Last month shows last month only', (h.match(/class="srow"/g) || []).length === 1 && h.indexOf('195/65R15') !== -1, h);
+    ok('and asks the database for nothing', salesCalls(p.calls).length === first.length, salesCalls(p.calls).length);
+    tap(p.w, '[data-range="All time"]');
+    await wait(60);
+    const reads = salesCalls(p.calls);
+    ok('All time reads the whole log, with no day bound', reads.length === first.length + 1 && !/sold_on=gte/.test(reads[reads.length - 1].url), reads.map((r) => r.url));
+    h = salesList(p.w);
+    ok('and shows all three, the two-year-old one too', (h.match(/class="srow"/g) || []).length === 3, h);
+    tap(p.w, '[data-range="Today"]');
+    await wait(10);
+    tap(p.w, '[data-range="All time"]');
+    await wait(60);
+    ok('going back to All time reads nothing again', salesCalls(p.calls).length === reads.length, salesCalls(p.calls).length);
+  }
+  {
+    // ALL TIME TAPPED BEFORE THE TAB'S FIRST READ HAS LANDED — the review's
+    // find, 21 Oct 2026. The pill cannot start a read then (nothing is in hand
+    // yet), so the first read has to notice and go again for the whole log.
+    const [ty] = TODAY.split('-').map(Number);
+    const OLD = (ty - 2) + '-06-01';
+    const p = phone({ rows: BOOK.map((r) => ({ ...r })), sales: [
+      sale({ id: 's3', sold_on: TODAY }),
+      sale({ id: 's1', sold_on: OLD }),
+    ] });
+    await wait(40);
+    tap(p.w, '#tabSales');
+    tap(p.w, '[data-range="All time"]');
+    await wait(120);
+    const h = salesList(p.w);
+    ok('All time tapped mid-load still ends on the whole log', (h.match(/class="srow"/g) || []).length === 2, h);
+    const reads = salesCalls(p.calls);
+    ok('by reading once more, unbounded', reads.length === 2 && !/sold_on=gte/.test(reads[1].url), reads.map((r) => r.url));
+  }
+
+  // ----------------------------------------------------------
   console.log('\nSearching, and the empty screens');
   {
     const p = await onSales({ sales: [sale(), sale({ id: 's9', product_id: 'p2' })] });
