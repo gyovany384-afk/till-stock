@@ -1003,7 +1003,7 @@
 <!-- STOCK HEALTH'S RULES — the desk's own, built for this page by
      scripts/build-phone-health.mjs in the desktop repo. Loaded first so the
      page below finds TillHealth; if it fails to load, only the Health tab says so. -->
-<script src="health.js?v=37b6920d88"></script>
+<script src="health.js?v=ed13628e14"></script>
 <script>
 (function(){
   // ---- Supabase: the STOCK ROOM computer's own project ----
@@ -3432,8 +3432,10 @@
       + '<div class="hp-fig' + (p.struck ? ' struck' : '') + '"><span>' + esc(p.taxLabel) + '</span><b>' + esc(p.tax) + '</b></div><span class="hp-op">=</span>'
       + '<div class="hp-fig profit' + (p.struck ? ' struck' : p.lost ? ' lost' : '') + '"><span>Profit</span><b>' + esc(p.profit) + '</b></div>';
     if (p.deal){
-      h += '<span class="hp-dealpill">Profit Uses Deal</span><span class="hp-op">−</span>'
-        + '<div class="hp-fig hcost"><span>Deal paid</span><b>' + esc(p.deal.cost) + '</b></div><span class="hp-op">−</span>'
+      // "Profit Uses Van" / "Van paid" since 23 Oct 2026: the line is the van
+      // the next one sold comes off (the desk's profitSums).
+      h += '<span class="hp-dealpill">' + esc(p.deal.pill || 'Profit Uses Deal') + '</span><span class="hp-op">−</span>'
+        + '<div class="hp-fig hcost"><span>' + esc(p.deal.paidLabel || 'Deal paid') + '</span><b>' + esc(p.deal.cost) + '</b></div><span class="hp-op">−</span>'
         + '<div class="hp-fig"><span>' + esc(p.taxLabel) + '</span><b>' + esc(p.deal.tax) + '</b></div><span class="hp-op">=</span>'
         + '<div class="hp-fig profit' + (p.deal.lost ? ' lost' : '') + '"><span>Profit</span><b>' + esc(p.deal.profit) + '</b></div>';
     }
