@@ -850,6 +850,75 @@
   .hp-inv{ display:grid; grid-template-columns:minmax(0,1fr) 34px 72px 80px; gap:8px; padding:9px 16px; font-size:13.5px; align-items:center; border-bottom:1px solid var(--line); }
   .hp-inv span:not(:first-child){ text-align:right; }
   .hp-inv.head{ font-size:10.5px; font-weight:700; letter-spacing:.06em; color:var(--muted); }
+
+  /* ---------- tech time — 26 Oct 2026 ---------- */
+  .iconbtn.on{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  #timerBtn{ position:relative; }
+  .tbadge{ position:absolute; top:-6px; right:-6px; min-width:19px; height:19px; padding:0 5px; box-sizing:border-box;
+    border-radius:10px; background:var(--good); color:#fff; font-size:11.5px; font-weight:800; line-height:1;
+    display:flex; align-items:center; justify-content:center; border:2px solid var(--surface); }
+  /* The list is a column that scrolls: left alone, it squeezes its children to fit
+     instead (the pills came out flattened and the log card cut short). */
+  #timeList > *{ flex:0 0 auto; }
+  .ttbtns{ display:flex; gap:10px; }
+  .ttnew, .ttman{ flex:1; height:50px; border-radius:14px; font-family:inherit; font-size:16px; cursor:pointer; }
+  .ttnew{ border:0; background:var(--accent); color:#fff; font-weight:800; }
+  .ttman{ border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-weight:700; }
+  .ttnew:active{ background:var(--accent-deep); }
+  .ttflash{ font-size:13px; font-weight:700; color:var(--good); background:var(--good-bg); border-radius:12px; padding:10px 12px; }
+  .tthead{ font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); margin:8px 2px 0; }
+  .ttcard{ background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow);
+    padding:14px; display:flex; flex-direction:column; gap:10px; }
+  .ttcard.ttnone{ color:var(--muted); font-size:14px; }
+  .ttrow{ display:flex; align-items:flex-start; gap:12px; }
+  .ttm{ flex:1; min-width:0; }
+  .ttjob{ font-size:16px; font-weight:700; }
+  .ttveh{ font-size:13px; color:var(--muted); margin-top:1px; }
+  .ttr{ text-align:right; flex:0 0 auto; }
+  .ttrun{ display:flex; align-items:center; gap:6px; justify-content:flex-end; font-size:20px; font-weight:800; color:var(--good); }
+  .ttrun i{ width:8px; height:8px; border-radius:50%; background:var(--good); display:block; }
+  .tttech{ font-size:14px; font-weight:700; margin-top:1px; }
+  .ttdone{ height:48px; border-radius:12px; border:1px solid var(--danger); background:var(--surface); color:var(--danger);
+    font-family:inherit; font-size:15px; font-weight:800; cursor:pointer; }
+  .ttlogcard{ background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; }
+  .ttlog{ padding:12px 14px; border-bottom:1px solid var(--line); }
+  .ttlog .l1{ display:flex; gap:10px; align-items:baseline; }
+  .ttlog .w{ flex:1; min-width:0; font-size:15px; font-weight:700; }
+  .ttlog .mn{ font-size:15px; font-weight:800; white-space:nowrap; }
+  .ttlog .l2{ display:flex; align-items:center; gap:8px; margin-top:2px; }
+  .ttlog .mt{ flex:1; font-size:12.5px; color:var(--muted); }
+  .ttdel{ min-height:40px; padding:0 12px; border:0; background:none; font-family:inherit; font-size:13px; font-weight:700;
+    color:var(--danger); cursor:pointer; }
+  .tttotal{ display:flex; align-items:center; padding:12px 14px; background:var(--surface-2); font-size:13px; font-weight:700; }
+  .tttotal span:first-child{ flex:1; color:var(--muted); }
+  .tttotal span:last-child{ font-size:17px; font-weight:800; }
+  .ttpills{ margin-top:0; }
+  .form .ttpick{ position:relative; }
+  .form .ttin{ height:48px; padding:0 40px 0 13px; font-size:16px; font-weight:650; background:var(--surface); }
+  .form .ttin:focus{ border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent); }
+  .ttcaret{ position:absolute; right:14px; top:17px; width:14px; height:14px; pointer-events:none; color:var(--faint); }
+  .ttlist{ margin-top:6px; border:1px solid var(--line-strong); border-radius:14px; overflow:hidden; background:var(--surface); }
+  .ttopts{ max-height:190px; overflow-y:auto; padding:6px; }
+  .ttopt{ width:100%; min-height:46px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 11px;
+    border:0; border-radius:9px; background:none; font-family:inherit; font-size:15px; color:var(--ink); text-align:left; cursor:pointer; }
+  .ttopt:active{ background:var(--surface-2); }
+  .ttopt.on{ font-weight:800; }
+  .ttopt.add{ color:var(--accent); font-weight:800; }
+  .ttopt svg{ width:16px; height:16px; color:var(--accent); flex:0 0 auto; }
+  .ttnote{ padding:9px 13px; border-top:1px solid var(--line); background:var(--surface-2); font-size:12.5px; font-weight:600; color:var(--warn); }
+  .ttnone2{ padding:16px 12px; text-align:center; color:var(--muted); font-size:14px; }
+  .ttstep{ display:flex; align-items:center; gap:8px; }
+  .ttsb{ flex:0 0 50px; width:50px; height:50px; border-radius:12px; border:1px solid var(--line-strong); background:var(--surface);
+    font-family:inherit; font-size:22px; color:var(--ink); cursor:pointer; }
+  .form .ttmin{ flex:1; min-width:0; text-align:center; font-size:20px; font-weight:800; height:50px; padding:0 8px; }
+  .ttunit{ font-size:15px; font-weight:600; color:var(--muted); }
+  .ttq{ display:flex; gap:8px; margin-top:8px; }
+  .ttq button{ flex:1; min-height:44px; border-radius:12px; font-family:inherit; font-size:14px; font-weight:700; cursor:pointer;
+    border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); }
+  .ttq button.on{ border-color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, var(--surface)); color:var(--accent); }
+  .ttbad{ font-size:13px; font-weight:700; color:var(--danger); margin-top:10px; }
+  .ttask{ font-size:15px; line-height:1.55; color:var(--muted); margin-top:10px; }
+  .form .go.stop{ background:var(--danger); }
 </style>
 </head>
 <body>
@@ -914,6 +983,11 @@
     <div class="toprow">
       <div class="title" id="screenTitle">Stock</div>
       <div class="spacer"></div>
+      <!-- 26 Oct 2026: the stopwatch opens the timers from any screen, so the tab row stays four tabs. -->
+      <button class="iconbtn" id="timerBtn" type="button" aria-label="Timers" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4M12 14l3-3"/><circle cx="12" cy="14" r="8"/></svg>
+        <span class="tbadge" id="timerBadge" hidden></span>
+      </button>
       <button class="iconbtn" id="refreshBtn" aria-label="Refresh">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
       </button>
@@ -959,6 +1033,7 @@
   <div class="list" id="salesList" hidden></div>
   <div class="list" id="notesList" hidden></div>
   <div class="list" id="healthList" hidden></div>
+  <div class="list" id="timeList" hidden></div>
 </div>
 
 <!-- ============ ONE SALE, OPENED ============
@@ -981,6 +1056,11 @@
 <div class="sheetwrap" id="sheetWrap">
   <div class="scrim" id="scrim"></div>
   <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Sale"></div>
+</div>
+<!-- The timers' own sheet, so a sale and a timer can never share one. -->
+<div class="sheetwrap" id="ttWrap">
+  <div class="scrim" id="ttScrim"></div>
+  <div class="sheet" id="ttSheet" role="dialog" aria-modal="true" aria-label="Timers"></div>
 </div>
 
 <!--
@@ -2112,7 +2192,7 @@
     // two reads at two different moments, and one line saying "checked just
     // now" over the other one's read is a claim about a read that never
     // happened.
-    var at = tab === TAB_SALES ? salesAt : tab === TAB_HEALTH ? healthAt : checkedAt;
+    var at = tab === TAB_SALES ? salesAt : tab === TAB_HEALTH ? healthAt : tab === TAB_TIME ? timeAt : checkedAt;
     if (!at){ $('freshText').textContent = ''; return; }
     var d = new Date(at), now = new Date();
     var mins = Math.round((now - d)/60000);
@@ -3052,6 +3132,506 @@
     });
   }
 
+
+  // ---------- tech time — 26 Oct 2026 ----------
+  //
+  // His ask: "I need a way to log tech times per job", on the counter and on
+  // the phone; the mockup (Design canvas "Tech Time Log") was approved the same
+  // day, and "phone link ... to the live app" put it here. A stopwatch in the
+  // header opens the Timers screen from any tab, with a green badge counting
+  // what is running, so the tab row stays four tabs.
+  //
+  // THE DATABASE DOES THE MEASURING AND THE WRITING. Every change is one call
+  // to a function in the stock room (till_stock.tech_start_timer, tech_stop_timer,
+  // tech_add_time, tech_remove_entry — db/2026-10-26-c-tech-time.sql): this page
+  // is granted select on the tables and nothing else. A running timer lives in
+  // the database, so closing the page, or losing the signal, stops nothing, and
+  // the minutes a timer logs are counted on the database's clock when Done is
+  // pressed, never on this phone's. The count shown ticking here is this phone's
+  // own clock against the database's start time and is a picture only, which is
+  // why the confirm says "about".
+  //
+  // NOTHING IS WORKED OUT HERE THAT THE DATABASE KNOWS: the log is read from the
+  // view tech_time_standing (deleted lines left out), the tech and job names are
+  // settled by the database, and a delete only stamps the line, it does not
+  // erase it. The page shows TODAY's log only, his word: the date pills are not
+  // on the phone.
+  var TAB_TIME = 'time';
+  var timeData = { techs: [], jobs: [], timers: [], log: [] };
+  var timeAt = null, timeLoading = false, timeErr = false, timeFilter = 'All', timeSaid = null, timeGen = 0;
+  var tsheet = null;
+  var TT_TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+
+  function resetTime(){
+    closeTT();
+    timeData = { techs: [], jobs: [], timers: [], log: [] };
+    timeAt = null; timeLoading = false; timeErr = false; timeFilter = 'All'; timeSaid = null; timeGen += 1;
+    var box = $('timeList'); if (box) box.innerHTML = '';
+    renderBadge();
+  }
+  function lowText(s){ return String(s == null ? '' : s).trim().toLowerCase(); }
+  function timeJob(id){
+    for (var i = 0; i < timeData.jobs.length; i++) if (String(timeData.jobs[i].id) === String(id)) return timeData.jobs[i];
+    return null;
+  }
+  function runningFor(id){
+    for (var i = 0; i < timeData.timers.length; i++) if (String(timeData.timers[i].jobId) === String(id)) return timeData.timers[i];
+    return null;
+  }
+  function jobLabel(j){ return 'J-' + j.id + ' · ' + j.title; }
+  function elapsedMin(at){ var n = Math.round((Date.now() - at) / 60000); return (isNaN(n) || n < 1) ? 1 : n; }
+  function hmWords(m){ return m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min'; }
+  function ttEntryClock(e){ var d = new Date(e.at); return isNaN(d.getTime()) ? '' : clock12(localClock(d)); }
+  function renderBadge(){
+    var b = $('timerBadge'); if (!b) return;
+    var n = timeData.timers.length;
+    b.hidden = !n; b.textContent = n ? String(n) : '';
+  }
+
+  function loadTime(quiet){
+    var mine = sessionGen, gen = ++timeGen;
+    var stale = function(){ return sessionGen !== mine || !session || gen !== timeGen; };
+    if (!quiet){ timeLoading = true; timeErr = false; if (tab === TAB_TIME) renderTime(); }
+    var today = localDay(new Date());
+    return Promise.all([
+      pageOf('/rest/v1/techs?select=name&order=name.asc', 0),
+      pageOf('/rest/v1/tech_jobs?select=id,title,vehicle,done&order=id.desc', 0),
+      pageOf('/rest/v1/tech_timers?select=job_id,tech,started_at,started_where&order=started_at.asc', 0),
+      pageOf('/rest/v1/tech_time_standing?select=id,job_id,tech,minutes,worked_on,entered_at,source,started_where,capped'
+        + '&worked_on=eq.' + today + '&order=entered_at.desc', 0)
+    ]).then(function(a){
+      if (stale()) return null;
+      for (var i = 0; i < a.length; i++) if (a[i].expired){ clearSession(); showLogin('Your session expired — sign in again.'); return null; }
+      timeData = {
+        techs: a[0].rows.map(function(r){ return r.name; }),
+        jobs: a[1].rows.map(function(r){ return { id: r.id, title: r.title || '', vehicle: r.vehicle || '', done: !!r.done }; }),
+        timers: a[2].rows.map(function(r){ return { jobId: r.job_id, tech: r.tech, at: Date.parse(r.started_at), where: r.started_where }; }),
+        log: a[3].rows.map(function(r){
+          return { id: r.id, jobId: r.job_id, tech: r.tech, minutes: Number(r.minutes) || 0, day: r.worked_on,
+            at: r.entered_at, where: r.started_where, source: r.source, capped: !!r.capped };
+        })
+      };
+      timeAt = Date.now(); timeLoading = false; timeErr = false;
+      renderBadge();
+      if (tab === TAB_TIME){ renderTime(); renderFresh(); }
+      return true;
+    }).catch(function(){
+      // A quiet read (the badge, the poll) that fails changes nothing on screen:
+      // the last answer stays, and the next read tries again.
+      if (stale() || quiet) return null;
+      timeLoading = false; timeErr = true;
+      if (tab === TAB_TIME) renderTime();
+      return null;
+    });
+  }
+
+  function renderTime(){
+    var box = $('timeList');
+    if (!box) return;
+    if (doorShut){
+      box.innerHTML = '<div class="empty">This account is not on the stock room’s staff list.<br>Ask for it to be added on the stock room computer.</div>';
+      return;
+    }
+    var html = '<div class="ttbtns"><button type="button" class="ttnew" data-tt="new">New timer</button>'
+      + '<button type="button" class="ttman" data-tt="manual">Manual entry</button></div>';
+    if (timeSaid) html += '<div class="ttflash" role="status">' + esc(timeSaid) + '</div>';
+    if (timeLoading && !timeAt){ box.innerHTML = html + '<div class="center"><div class="spin"></div>Loading timers…</div>'; return; }
+    if (timeErr && !timeAt){ box.innerHTML = html + '<div class="center">Couldn’t read the timers. Check your connection and tap refresh.</div>'; return; }
+
+    html += '<div class="tthead">Timers running · ' + timeData.timers.length + '</div>';
+    if (!timeData.timers.length) html += '<div class="ttcard ttnone">No timers running. Press New timer to start one.</div>';
+    timeData.timers.forEach(function(t){
+      var j = timeJob(t.jobId) || { title: 'Job ' + t.jobId, vehicle: '' };
+      html += '<div class="ttcard"><div class="ttrow"><div class="ttm"><div class="ttjob">' + esc(j.title) + '</div>'
+        + (j.vehicle ? '<div class="ttveh">' + esc(j.vehicle) + '</div>' : '') + '</div>'
+        + '<div class="ttr"><div class="ttrun"><i></i><span data-elapsed="' + t.at + '">' + elapsedMin(t.at) + ' min</span></div>'
+        + '<div class="tttech">' + esc(t.tech) + '</div></div></div>'
+        + '<button type="button" class="ttdone" data-tt="done" data-job="' + esc(String(t.jobId)) + '">Done</button></div>';
+    });
+
+    html += '<div class="tthead">Job log</div>';
+    var names = ['All'].concat(timeData.techs);
+    if (names.indexOf(timeFilter) === -1) timeFilter = 'All';
+    html += '<div class="segrow ttpills">';
+    names.forEach(function(n){
+      html += '<button type="button" class="seg' + (n === timeFilter ? ' on' : '') + '" data-ttf="' + esc(n) + '">' + esc(n) + '</button>';
+    });
+    html += '</div>';
+    var rows = timeData.log.filter(function(e){ return timeFilter === 'All' || e.tech === timeFilter; });
+    var total = 0;
+    html += '<div class="ttlogcard">';
+    rows.forEach(function(e){
+      total += e.minutes;
+      var j = timeJob(e.jobId);
+      html += '<div class="ttlog"><div class="l1"><div class="w">' + esc(j ? j.title : 'Job ' + e.jobId) + '</div>'
+        + '<div class="mn">' + e.minutes + ' min' + (e.capped ? ' · capped' : '') + '</div></div>'
+        + '<div class="l2"><div class="mt">' + esc(e.tech) + ' · ' + esc(ttEntryClock(e)) + ' · ' + esc(e.where) + '</div>'
+        + '<button type="button" class="ttdel" data-tt="del" data-entry="' + esc(String(e.id)) + '" aria-label="Delete this entry">Delete</button></div></div>';
+    });
+    if (!rows.length) html += '<div class="ttlog" style="color:var(--muted);font-size:14px">Nothing logged today' + (timeFilter === 'All' ? '.' : ' for ' + esc(timeFilter) + '.') + '</div>';
+    html += '<div class="tttotal"><span>' + esc(timeFilter === 'All' ? 'All techs' : timeFilter) + ', today</span><span>' + esc(hmWords(total)) + '</span></div></div>';
+    box.innerHTML = html;
+  }
+
+  // ---- the sheet: start a timer, log time by hand, finish a job, delete a line ----
+  function openTT(kind, ref){
+    timeSaid = null;
+    tsheet = { kind: kind, tech: '', job: '', min: 30, dd: null, q: '', busy: false, said: null,
+      jobId: ref && ref.jobId != null ? ref.jobId : null, entryId: ref && ref.entryId != null ? ref.entryId : null };
+    renderTT();
+  }
+  function closeTT(){
+    tsheet = null;
+    var w = $('ttWrap'); if (w) w.classList.remove('on');
+    var b = $('ttSheet'); if (b) b.innerHTML = '';
+  }
+  function ttOptions(key){
+    if (key === 'tech') return timeData.techs.slice();
+    var out = [];
+    timeData.jobs.forEach(function(j){
+      if (tsheet.kind === 'new' && (j.done || runningFor(j.id))) return;
+      out.push(jobLabel(j));
+    });
+    return out;
+  }
+  function ttKnownJob(text){
+    var q = lowText(text);
+    if (!q) return null;
+    for (var i = 0; i < timeData.jobs.length; i++){
+      var j = timeData.jobs[i];
+      // NOT BY TITLE ALONE (reviews, 26 Oct): a shop repeats titles, and a bare title
+      // found the oldest job with it. A title typed bare is a NEW job.
+      if (lowText(jobLabel(j)) === q || lowText('J-' + j.id) === q) return j;
+    }
+    return null;
+  }
+  function ttPicker(key, label, value, placeholder){
+    return '<div class="fld"><span>' + esc(label) + '</span><div class="ttpick">'
+      + '<input class="ttin" id="ttin_' + key + '" data-pk="' + key + '" value="' + esc(value) + '" placeholder="' + esc(placeholder) + '"'
+      + ' autocomplete="off" autocapitalize="off" enterkeyhint="done"' + (tsheet.busy ? ' disabled' : '') + '>'
+      + '<svg class="ttcaret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>'
+      + '</div><div class="ttlist" id="ttlist_' + key + '" hidden></div></div>';
+  }
+  function ttHtml(){
+    var s = tsheet, dis = s.busy ? ' disabled' : '';
+    var h = '<div class="grab"></div><div class="form">';
+    if (s.kind === 'done'){
+      var t = runningFor(s.jobId), j = timeJob(s.jobId);
+      h += '<h2>Finish this job?</h2><div class="ttask">'
+        + (t ? 'This stops ' + esc(t.tech) + '’s timer on ' + esc(j ? j.title : 'this job') + ' (running about ' + elapsedMin(t.at)
+          + ' min), logs that time and marks the job done.' : 'That timer is not running any more.') + '</div>';
+      h += (s.said ? '<div class="ttbad">' + esc(s.said) + '</div>' : '')
+        + '<button type="button" class="go stop" data-tt="send"' + dis + '>' + (s.busy ? 'Finishing…' : 'Yes, it’s done') + '</button>'
+        + '<button type="button" class="quiet" data-tt="close"' + dis + '>Keep it running</button></div>';
+      return h;
+    }
+    if (s.kind === 'delete'){
+      var e = null;
+      for (var i = 0; i < timeData.log.length; i++) if (String(timeData.log[i].id) === String(s.entryId)) e = timeData.log[i];
+      var ej = e ? timeJob(e.jobId) : null;
+      h += '<h2>Delete this entry?</h2><div class="ttask">'
+        + (e ? esc(e.tech) + ' · ' + esc(ej ? ej.title : 'Job ' + e.jobId) + ' · ' + e.minutes + ' min (' + esc(ttEntryClock(e))
+          + '). That time comes off the job and the tech totals.' : 'That entry is already gone.') + '</div>';
+      h += (s.said ? '<div class="ttbad">' + esc(s.said) + '</div>' : '')
+        + '<button type="button" class="go stop" data-tt="send"' + dis + '>' + (s.busy ? 'Deleting…' : 'Yes, delete') + '</button>'
+        + '<button type="button" class="quiet" data-tt="close"' + dis + '>Keep it</button></div>';
+      return h;
+    }
+    var manual = s.kind === 'manual';
+    h += '<h2>' + (manual ? 'Log time by hand' : 'Start a timer') + '</h2>';
+    h += ttPicker('tech', 'Tech', s.tech, 'Pick a tech') + ttPicker('job', 'Job', s.job, 'Pick a job');
+    if (manual){
+      h += '<div class="fld"><span>Time</span><div class="ttstep">'
+        + '<button type="button" class="ttsb" data-tt="less" aria-label="Five minutes less"' + dis + '>&minus;</button>'
+        + '<input class="ttin ttmin" id="ttMin" inputmode="numeric" placeholder="0" aria-label="Minutes" autocomplete="off" value="' + (s.min ? s.min : '') + '"' + dis + '>'
+        + '<span class="ttunit">min</span>'
+        + '<button type="button" class="ttsb" data-tt="more" aria-label="Five minutes more"' + dis + '>+</button></div>'
+        + '<div class="ttq">' + [15, 30, 45, 60].map(function(m){
+          return '<button type="button" data-tt="q" data-m="' + m + '"' + (Number(s.min) === m ? ' class="on"' : '') + dis + '>' + m + '</button>';
+        }).join('') + '</div></div>';
+    } else {
+      var kj = ttKnownJob(s.job);
+      var block = kj && runningFor(kj.id) ? 'That job already has a timer running.' : kj && kj.done ? 'That job is already finished.' : '';
+      if (block) h += '<div class="ttbad">' + esc(block) + '</div>';
+    }
+    h += (s.said ? '<div class="ttbad">' + esc(s.said) + '</div>' : '')
+      + '<button type="button" class="go" data-tt="send"' + dis + '>'
+      + (s.busy ? (manual ? 'Adding…' : 'Starting…') : (manual ? 'Add time' : 'Start timer')) + '</button>'
+      + '<button type="button" class="quiet" data-tt="close"' + dis + '>Cancel</button></div>';
+    return h;
+  }
+  function renderTT(){
+    var w = $('ttWrap'), b = $('ttSheet');
+    if (!w || !b || !tsheet) return;
+    b.innerHTML = ttHtml();
+    w.classList.add('on');
+  }
+  // THE LISTS UNDER THE BOXES ARE DRAWN APART FROM THE SHEET. Redrawing the sheet
+  // on a tap in a box would replace the box and take the keyboard away, so
+  // opening a list, typing in it and closing it touch only the list and the box.
+  function ttFill(key){
+    var box = $('ttlist_' + key);
+    if (!box) return;
+    var s = tsheet;
+    if (!s || s.dd !== key){ box.hidden = true; box.innerHTML = ''; return; }
+    var options = ttOptions(key), typed = String(s.q || '').trim(), q = lowText(typed);
+    var shown = q ? options.filter(function(o){ return lowText(o).indexOf(q) !== -1; }) : options;
+    var canAdd = !!typed && !options.some(function(o){ return lowText(o) === q; });
+    var chosen = String(s[key] || '').trim();
+    var h = '<div class="ttopts">';
+    shown.forEach(function(o){
+      h += '<button type="button" class="ttopt' + (o === chosen ? ' on' : '') + '" data-tt="pick" data-pk="' + key + '" data-val="' + esc(o) + '">'
+        + '<span>' + esc(o) + '</span>' + (o === chosen ? TT_TICK : '') + '</button>';
+    });
+    if (!shown.length && !canAdd) h += '<div class="ttnone2">Nothing matches that.</div>';
+    if (canAdd) h += '<button type="button" class="ttopt add" data-tt="add" data-pk="' + key + '">Use “' + esc(typed) + '”</button>';
+    h += '</div>';
+    if (canAdd) h += '<div class="ttnote">' + (key === 'tech'
+      ? 'Not a tech used before — it will be added as a new tech.'
+      : 'Not a job used before — it will be filed as a new job.') + '</div>';
+    box.innerHTML = h;
+    box.hidden = false;
+  }
+  function ttOpen(key){
+    var s = tsheet;
+    if (!s || s.busy || s.dd === key) return;
+    ttClose();
+    s.dd = key; s.q = '';
+    var inp = $('ttin_' + key);
+    if (inp){
+      inp.value = '';
+      inp.placeholder = String(s[key] || '').trim() || (key === 'tech' ? 'Find or type a new one…' : 'Find or type a new job…');
+    }
+    ttFill(key);
+    var box = $('ttlist_' + key);
+    if (box && box.scrollIntoView) box.scrollIntoView({ block: 'nearest' });
+  }
+  function ttClose(){
+    var s = tsheet;
+    if (!s || !s.dd) return;
+    var key = s.dd, typed = String(s.q || '').trim(); s.dd = null; s.q = '';
+    // A NAME TYPED AND NOT PICKED: an exact match is the same as picking it (a tap on
+    // Start must not throw it away); anything else is remembered so Start can say
+    // what is missing, but is never turned into a new tech or job by itself.
+    if (typed){
+      var hit = null, opts = ttOptions(key);
+      for (var oi = 0; oi < opts.length; oi++) if (lowText(opts[oi]) === lowText(typed)){ hit = opts[oi]; break; }
+      if (hit !== null){ s[key] = hit; if (s.pend) s.pend[key] = ''; }
+      else { s.pend = s.pend || {}; s.pend[key] = typed; }
+    }
+    var inp = $('ttin_' + key);
+    if (inp){ inp.value = String(s[key] || ''); inp.placeholder = key === 'tech' ? 'Pick a tech' : 'Pick a job'; }
+    ttFill(key);
+  }
+  function ttPick(key, val){
+    var s = tsheet;
+    if (!s) return;
+    s[key] = val; s.dd = null; s.q = ''; if (s.pend) s.pend[key] = '';
+    renderTT();
+  }
+
+  function ttSend(){
+    var s = tsheet;
+    if (!s || s.busy) return;
+    var day = localDay(new Date());
+    var call, said;
+    if (s.kind === 'done'){
+      call = ['tech_stop_timer', { p_job_id: s.jobId, p_day: day, p_finish: true }];
+    } else if (s.kind === 'delete'){
+      call = ['tech_remove_entry', { p_entry_id: s.entryId }];
+    } else {
+      var tech = String(s.tech || '').trim(), jobText = String(s.job || '').trim();
+      var bad = null;
+      var pend = s.pend || {};
+      if (!tech) bad = pend.tech ? 'Tap “Use “' + pend.tech + '”” to add a new tech.' : 'Pick a tech.';
+      else if (!jobText) bad = pend.job ? 'Tap “Use “' + pend.job + '”” to file a new job.' : 'Pick a job.';
+      var known = jobText ? ttKnownJob(jobText) : null;
+      if (!bad && s.kind === 'new'){
+        if (known && runningFor(known.id)) bad = 'That job already has a timer running.';
+        else if (known && known.done) bad = 'That job is already finished.';
+      }
+      var m = Number(s.min);
+      if (!bad && s.kind === 'manual' && !(m >= 1 && m <= 1440)) bad = 'Time must be between 1 minute and 24 hours.';
+      if (bad){ s.said = bad; s.dd = null; s.q = ''; renderTT(); return; }
+      var jid = known ? known.id : null, title = known ? null : jobText;
+      said = (s.kind === 'new' ? 'Timer started for ' : 'Added ' + m + ' min for ') + tech + ' on ' + (known ? known.title : jobText) + '.';
+      call = s.kind === 'new'
+        ? ['tech_start_timer', { p_job_id: jid, p_title: title, p_tech: tech, p_where: 'Phone' }]
+        : ['tech_add_time', { p_job_id: jid, p_title: title, p_tech: tech, p_minutes: m, p_day: day, p_where: 'Phone' }];
+    }
+    var doneTimer = s.kind === 'done' ? runningFor(s.jobId) : null;
+    var gone = null;
+    if (s.kind === 'delete') for (var i = 0; i < timeData.log.length; i++) if (String(timeData.log[i].id) === String(s.entryId)) gone = timeData.log[i];
+    s.busy = true; s.said = null; renderTT();
+    var mine = sessionGen;
+    var live = function(){ return sessionGen === mine && !!session && tsheet === s; };
+    rpc(call[0], call[1]).then(function(res){
+      if (res.status === 401){
+        // A REFUSED REFRESH has already cleared the session by the time this answer
+        // arrives, so "live" is false — and the sheet was left disabled for good.
+        // While this sheet is still the open one, the answer is the same either way.
+        if (tsheet === s && (sessionGen === mine || !session)){
+          clearSession(); closeTT(); showLogin('Your session expired — sign in again. Nothing was saved.');
+        }
+        return null;
+      }
+      return res.json().then(function(body){ return { ok: res.ok, status: res.status, body: body }; }, function(){ return { ok: res.ok, status: res.status, body: null }; });
+    }).then(function(r){
+      if (!r || !live()) return;
+      s.busy = false;
+      if (!r.ok){
+        // A GATEWAY'S ANSWER (5xx, a timeout, too many requests) IS NOT A REFUSAL: the
+        // database may have committed before the gateway gave up, and "nothing was
+        // saved" would invite a second press and a second entry. Only the database's
+        // own message is a clear no.
+        if (r.status >= 500 || r.status === 408 || r.status === 429){
+          s.said = 'No clear answer from the stock room. It may have gone through — close this and check the log before trying again.';
+          renderTT();
+          loadTime(true);
+          return;
+        }
+        s.said = (r.body && r.body.message) ? String(r.body.message) : 'The stock room did not take that. Nothing was saved.';
+        renderTT();
+        return;
+      }
+      var kind = s.kind, entryId = kind === 'done' ? r.body : null;
+      closeTT();
+      timeSaid = said || null;
+      if (kind === 'delete' && gone){
+        var gj = timeJob(gone.jobId);
+        timeSaid = 'Deleted ' + gone.minutes + ' min for ' + gone.tech + ' on ' + (gj ? gj.title : 'Job ' + gone.jobId) + '.';
+      }
+      if (kind === 'done'){
+        timeSaid = doneTimer ? 'Done: ' + doneTimer.tech + '’s timer is logged and the job is finished.' : 'Done.';
+      }
+      loadTime(true).then(function(){
+        // THE MINUTES ARE THE DATABASE'S: read back from the log, never from this phone.
+        if (kind === 'done' && entryId != null){
+          for (var k = 0; k < timeData.log.length; k++){
+            var e = timeData.log[k];
+            if (String(e.id) === String(entryId)){
+              var dj = timeJob(e.jobId);
+              timeSaid = 'Logged ' + e.minutes + ' min for ' + e.tech + ' on ' + (dj ? dj.title : 'Job ' + e.jobId) + '. Job done.';
+            }
+          }
+        }
+        if (tab === TAB_TIME) renderTime();
+      });
+      if (tab === TAB_TIME) renderTime();
+    }).catch(function(){
+      if (!live()) return;
+      s.busy = false;
+      s.said = 'No clear answer from the stock room. It may have gone through — close this and check the log before trying again.';
+      renderTT();
+    });
+  }
+
+  $('timerBtn').addEventListener('click', function(){ showTab(TAB_TIME); });
+  $('timeList').addEventListener('click', function(e){
+    var f = e.target.closest ? e.target.closest('[data-ttf]') : null;
+    if (f){ timeFilter = f.getAttribute('data-ttf'); renderTime(); return; }
+    var b = e.target.closest ? e.target.closest('[data-tt]') : null;
+    if (!b) return;
+    var what = b.getAttribute('data-tt');
+    if (what === 'new' || what === 'manual'){ openTT(what); return; }
+    if (what === 'done'){ openTT('done', { jobId: b.getAttribute('data-job') }); return; }
+    if (what === 'del'){ openTT('delete', { entryId: b.getAttribute('data-entry') }); return; }
+  });
+  $('ttSheet').addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('[data-tt]') : null;
+    // A TAP THAT LANDS ANYWHERE IN A FIELD LEAVES ITS LIST ALONE. Opening a list
+    // makes the sheet taller, which moves the box out from under the finger, so a
+    // tap on the box can end on the wrapper around it; treating that as "outside"
+    // closed the list the moment it opened (found in a real browser, 26 Oct).
+    if (!b){ if (!(e.target.closest && e.target.closest('.fld'))) ttClose(); return; }
+    var what = b.getAttribute('data-tt');
+    var s = tsheet;
+    if (!s) return;
+    if (what === 'close'){ if (!s.busy) closeTT(); return; }
+    if (what === 'send'){ ttSend(); return; }
+    if (what === 'pick'){ ttPick(b.getAttribute('data-pk'), b.getAttribute('data-val')); return; }
+    if (what === 'add'){ ttPick(b.getAttribute('data-pk'), String(s.q || '').trim()); return; }
+    ttClose();
+    if (s.busy) return;
+    if (what === 'less'){ s.min = Math.max(0, (Number(s.min) || 0) - 5); renderTT(); return; }
+    if (what === 'more'){ s.min = Math.min(1440, (Number(s.min) || 0) + 5); renderTT(); return; }
+    if (what === 'q'){ s.min = Number(b.getAttribute('data-m')); renderTT(); return; }
+  });
+  $('ttSheet').addEventListener('focusin', function(e){
+    var t = e.target;
+    if (t && t.classList && t.classList.contains('ttin') && t.getAttribute('data-pk')) ttOpen(t.getAttribute('data-pk'));
+    // A ROW OF THE LIST TAKES FOCUS WHEN PRESSED (Chrome, Android), and closing the
+    // list right then deleted the row between the press and the release, so the
+    // tap never landed. Found by the review in a real browser, 26 Oct.
+    else if (t && t.closest && t.closest('.ttlist')) return;
+    else ttClose();
+  });
+  // And a press on the list does not move focus off the box at all.
+  $('ttSheet').addEventListener('mousedown', function(e){
+    if (e.target && e.target.closest && e.target.closest('.ttlist')) e.preventDefault();
+  });
+  $('ttSheet').addEventListener('input', function(e){
+    var t = e.target, s = tsheet;
+    if (!t || !s) return;
+    if (t.id === 'ttMin'){
+      // WHAT IS TYPED IS KEPT, never quietly turned into something else: more than a
+      // day is refused at Add time, with the reason, instead of being cut short here.
+      s.min = Math.min(99999, parseInt(String(t.value).replace(/[^0-9]/g, ''), 10) || 0);
+      return;
+    }
+    var key = t.getAttribute && t.getAttribute('data-pk');
+    if (!key) return;
+    // THE FIRST LETTER MAY ARRIVE BEFORE THE LIST IS OPEN: opening clears the box,
+    // so what was typed is put back, or the first letter was lost.
+    var typed = t.value;
+    if (s.dd !== key){ ttOpen(key); t.value = typed; }
+    s.q = typed;
+    ttFill(key);
+  });
+  $('ttSheet').addEventListener('keydown', function(e){
+    var t = e.target, s = tsheet;
+    if (!t || !s) return;
+    var key = t.getAttribute && t.getAttribute('data-pk');
+    if (!key) return;
+    if (e.key === 'Escape'){ ttClose(); return; }
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (s.dd !== key) return;
+    var options = ttOptions(key), typed = String(s.q || '').trim(), q = lowText(typed);
+    var shown = q ? options.filter(function(o){ return lowText(o).indexOf(q) !== -1; }) : options;
+    // NEVER A GUESS: nothing typed takes nothing; the exact match wins; else the one
+    // and only match; several fuzzy matches take nothing; no match at all is a new
+    // name. (The first match used to win: "Dre" became "Andre".)
+    if (!typed) return;
+    var exact = null;
+    for (var xi = 0; xi < options.length; xi++) if (lowText(options[xi]) === q){ exact = options[xi]; break; }
+    if (exact !== null) ttPick(key, exact);
+    else if (shown.length === 1) ttPick(key, shown[0]);
+    else if (!shown.length) ttPick(key, typed);
+  });
+  // A timer or a delete is a question with two answers; a tap on the dark part
+  // closes those. The two forms keep their typing until Cancel is pressed.
+  $('ttScrim').addEventListener('click', function(){
+    if (tsheet && !tsheet.busy && (tsheet.kind === 'done' || tsheet.kind === 'delete')) closeTT();
+  });
+
+  // THE TICK AND THE POLL, only while the page is in front and signed in. The
+  // seconds only repaint the running counts; every 30 seconds the timers are
+  // read again, so a timer started or finished on the counter shows here, and
+  // the badge on every screen stays true. It is one small read, and the only
+  // thing on this page that looks again by itself, because a timer screen that
+  // goes stale is a screen that lies about who is on what.
+  var timeTicks = 0;
+  setInterval(function(){
+    if (document.visibilityState !== 'visible' || !session) return;
+    timeTicks += 1;
+    if (tab === TAB_TIME){
+      var spans = document.querySelectorAll('[data-elapsed]');
+      for (var i = 0; i < spans.length; i++) spans[i].textContent = elapsedMin(Number(spans[i].getAttribute('data-elapsed'))) + ' min';
+    }
+    if (timeTicks % 30 === 0 && !(tsheet && tsheet.busy)) loadTime(true);
+  }, 1000);
+
   // ---------- what was here ----------
   //
   // The count screen's code (about 890 lines) and the sales log's (about 130)
@@ -3601,6 +4181,8 @@
     pendingRows = null; phoneSaid = null;
     notes = []; notesAt = null; notesLoading = false; notesErr = null; notesQuery = '';
     $('notesList').innerHTML = '';
+    // And the timers: another sign-in reads its own.
+    resetTime();
     // And Stock Health: another sign-in reads its own book.
     resetHealth();
     var pills = $('rangeRow').querySelectorAll('[data-range]');
@@ -3627,21 +4209,28 @@
     // THE SEARCH BOX BELONGS TO THE SCREEN IT WAS TYPED ON. One box and three
     // lists, so carrying "205" across to the sales would hide most of the day
     // with nothing on screen saying that was why.
-    if (tab === TAB_SALES) salesQuery = $('q').value;
+    if (tab === TAB_TIME){ /* the timers have no search box: nothing to keep */ }
+    else if (tab === TAB_SALES) salesQuery = $('q').value;
     else if (tab === TAB_NOTES) notesQuery = $('q').value;
     else if (tab === TAB_HEALTH){ var was = health && currentList(); if (was) hQ[was.id] = $('q').value; }
     else query = $('q').value;
     tab = next;
     var onSales = tab === TAB_SALES, onNotes = tab === TAB_NOTES, onStock = tab === TAB_STOCK, onHealth = tab === TAB_HEALTH;
+    var onTime = tab === TAB_TIME;
+    $('timerBtn').classList.toggle('on', onTime);
+    $('timerBtn').setAttribute('aria-pressed', onTime ? 'true' : 'false');
+    $('searchWrap').hidden = onTime;
     [['tabStock', onStock], ['tabSales', onSales], ['tabNotes', onNotes], ['tabHealth', onHealth]].forEach(function(t){
       $(t[0]).classList.toggle('on', t[1]);
       $(t[0]).setAttribute('aria-selected', t[1] ? 'true' : 'false');
     });
-    $('screenTitle').textContent = onSales ? 'Sales' : onNotes ? 'Notes' : onHealth ? 'Stock Health' : 'Stock';
+    $('screenTitle').textContent = onTime ? 'Timers' : onSales ? 'Sales' : onNotes ? 'Notes' : onHealth ? 'Stock Health' : 'Stock';
     // The banner says what the screen in front is, and each is true of its
     // own screen: what this page can do to the book, what the book holds, and
     // whose notes these are.
-    $('banner').textContent = onSales
+    $('banner').textContent = onTime
+      ? 'Stock room book · tech time · the same timers as the counter'
+      : onSales
       ? 'Stock room book · every tire that left the shop'
       : onNotes ? 'Stock room notes · the same notes as the counter'
       : onHealth ? 'Stock room book · Stock Health · look only, nothing here changes the book'
@@ -3654,6 +4243,7 @@
     $('salesList').hidden = !onSales;
     $('notesList').hidden = !onNotes;
     $('healthList').hidden = !onHealth;
+    $('timeList').hidden = !onTime;
     $('healthBar').hidden = !onHealth;
     var box = $('q');
     var hNow = onHealth && health ? currentList() : null;
@@ -3667,6 +4257,11 @@
     showStrip(stripFor(document.activeElement));
     $('searchWrap').classList.toggle('has', !!box.value);
     renderFresh();
+    if (onTime){
+      renderTime();
+      if (!timeAt && !timeLoading) loadTime(); else loadTime(true);
+      return;
+    }
     if (onStock){ renderList(); return; }
     if (onHealth){
       renderHealthBar();
@@ -3712,7 +4307,7 @@
     msg.className = 'msg';
     btn.disabled = true; btn.textContent = 'Signing in…';
     login($('email').value.trim(), $('password').value)
-      .then(function(d){ saveSession(d, $('remember').checked); return loadStock(); })
+      .then(function(d){ saveSession(d, $('remember').checked); loadTime(true); return loadStock(); })
       .catch(function(err){
         msg.textContent = (err && err.message) || 'Sign-in failed'; msg.className = 'msg err';
       })
@@ -3738,7 +4333,7 @@
     void btn.offsetWidth;                 // restart the animation on a repeat tap
     btn.classList.add('spinning');
     if (!session) return;
-    if (tab === TAB_SALES) loadSales(); else if (tab === TAB_NOTES) loadNotes();
+    if (tab === TAB_TIME) loadTime(); else if (tab === TAB_SALES) loadSales(); else if (tab === TAB_NOTES) loadNotes();
     else if (tab === TAB_HEALTH){ loadHealth(); if (hPage) loadHistory(); }
     else loadStock();
   });
@@ -3984,6 +4579,9 @@
     // everything out of stock the list is empty and a read had still happened,
     // so coming back to the app would not look again until a tap on refresh.
     if (document.visibilityState !== 'visible' || !session) return;
+    // THE STOPWATCH'S BADGE counts what is running, on every screen, so it is
+    // read again whenever the app comes back to the front.
+    loadTime(true);
     // WHICHEVER LIST IS IN FRONT, and only if it has been read once: the sales
     // tab opened and never read is the loadSales in showTab's business, and two
     // reads racing on one tap is how a stale answer wins.
@@ -4062,7 +4660,14 @@
   strip.addEventListener('mousedown', stripPress);
 
   // ---------- boot ----------
-  if (session && (session.access_token || session.refresh_token)) loadStock();
+  // THE TIMERS' READ WAITS FOR THE FIRST ANSWER of the stock read, so a stale token
+  // is refreshed by one request and not five at once (a refresh token refused the
+  // second time it is used would sign the phone out).
+  if (session && (session.access_token || session.refresh_token)){
+    var firstRead = loadStock();
+    var thenTime = function(){ loadTime(true); };
+    if (firstRead && firstRead.then) firstRead.then(thenTime, thenTime); else thenTime();
+  }
   else showLogin();
 })();
 </script>
