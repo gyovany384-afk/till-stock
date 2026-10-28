@@ -331,6 +331,14 @@
   .row.split .half.on .hint{ color:var(--accent); }
   .row.split .main.on .hint{ color:var(--warn); }
   .half:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
+  /* HOLD THE LEFT HALF — 28 Oct 2026, his option A off the mockup. The half
+     fills with amber while the finger is down, then the quick details open.
+     No text selection and no callout, or a phone's own long-press menu fights it. */
+  .row.split .half{ -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  .row.split .main.pressing{ background-image:linear-gradient(color-mix(in srgb, var(--warn) 22%, var(--surface)), color-mix(in srgb, var(--warn) 22%, var(--surface)));
+    background-repeat:no-repeat; background-position:left center; animation:qdhold .5s linear forwards; }
+  @keyframes qdhold{ from{ background-size:0% 100%; } to{ background-size:100% 100%; } }
+  @media (prefers-reduced-motion: reduce){ .row.split .main.pressing{ animation:none; background-size:100% 100%; } }
   /* The recount panel: the sale panel's shape in amber, the colour the old
      count used for "needs a look", so the two are never mistaken. */
   .recount{ border-color:var(--warn); background:color-mix(in srgb, var(--warn) 8%, var(--surface)); }
@@ -760,6 +768,30 @@
 
   /* One tire, opened — a page of its own over the app. */
   .hpwrap{ position:fixed; inset:0; z-index:45; background:var(--bg); display:flex; flex-direction:column; }
+  /* The quick details, held open from a tire on the Stock tab: a sheet that
+     rises over the list, his option A of 28 Oct 2026. Draws with the tire
+     page's own cards (hp-card and the rest). */
+  .qdwrap{ position:fixed; inset:0; z-index:44; }
+  .qdwrap[hidden]{ display:none; }
+  .qd-scrim{ position:absolute; inset:0; border:0; padding:0; background:rgba(15,18,23,.45); animation:qdfade .2s ease-out; }
+  .qd-sheet{ position:absolute; left:0; right:0; bottom:0; height:86%; background:var(--bg); border-radius:20px 20px 0 0;
+    box-shadow:0 -10px 40px rgba(0,0,0,.28); display:flex; flex-direction:column; animation:qdrise .24s cubic-bezier(.2,.8,.2,1); }
+  @media (min-width: 700px){ .qd-sheet{ max-width:560px; margin:0 auto; } }
+  .qd-grab{ width:40px; height:4px; border-radius:999px; background:var(--line-strong); margin:9px auto 0; flex:0 0 auto; }
+  .qd-head{ display:flex; align-items:flex-start; gap:10px; padding:10px 14px 12px; flex:0 0 auto; }
+  .qd-head .t{ flex:1; min-width:0; }
+  .qd-head .brand{ font-size:20px; font-weight:800; letter-spacing:-.3px; line-height:1.2; overflow-wrap:anywhere; }
+  .qd-head .meta{ margin-top:2px; font-size:13.5px; color:var(--muted); }
+  .qd-x{ width:44px; height:44px; flex:0 0 44px; border-radius:12px; border:1px solid var(--line-strong); background:var(--surface);
+    color:var(--ink); display:flex; align-items:center; justify-content:center; padding:0; }
+  .qd-x svg{ width:20px; height:20px; }
+  .qd-body{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:2px 12px calc(28px + var(--safe-bottom));
+    display:flex; flex-direction:column; gap:12px; }
+  .qd-body > *, .qd-body > [style*="contents"] > *{ flex:0 0 auto; }
+  .qd-body .sellpanel{ margin:0; }
+  @keyframes qdfade{ from{ opacity:0; } to{ opacity:1; } }
+  @keyframes qdrise{ from{ transform:translateY(100%); } to{ transform:translateY(0); } }
+  @media (prefers-reduced-motion: reduce){ .qd-scrim, .qd-sheet{ animation:none; } }
   .hp-top{ background:var(--surface); border-bottom:1px solid var(--line); padding:calc(6px + var(--safe-top)) 10px 0; flex:0 0 auto; }
   .hp-back{ min-height:44px; display:inline-flex; align-items:center; gap:4px; padding:0 6px; background:none; border:none;
     color:var(--accent); font-family:inherit; font-size:15px; font-weight:600; cursor:pointer; max-width:100%; }
@@ -1053,6 +1085,8 @@
 <!-- One tire opened from Stock Health — a page over the app, outside #app for
      the reason the sale sheet is: only() must never show it over the sign-in. -->
 <div class="hpwrap" id="hpWrap" hidden></div>
+<!-- A tire's quick details, held open from the Stock tab — outside #app for the same reason. -->
+<div class="qdwrap" id="qdWrap" hidden></div>
 <div class="sheetwrap" id="sheetWrap">
   <div class="scrim" id="scrim"></div>
   <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Sale"></div>
@@ -1483,6 +1517,9 @@
       + (hidden === 1 ? ' tire is out of stock and not shown.' : ' tires are out of stock and not shown.') + '</span>';
   }
   function renderList(){
+    // The quick details sheet follows every redraw, the early returns below
+    // included (a search can hide the very tire the sheet is open on).
+    if (qd) renderQd();
     var q = query.trim().toLowerCase();
     var shown = q ? products.filter(function(p){ return matches(p, q); }) : products;
     var top = aboveTheList(withOut && q ? shown.concat(outProducts.filter(function(p){ return matches(p, q); })) : shown);
@@ -1539,7 +1576,8 @@
         + '<div class="count' + (out?' out':'') + '">' + (Number(p.qty)||0) + (out?' out':' in stock') + '</div>'
         + '<div class="hint">Sell</div></div></div>';
       if (selling) html += sellPanel();
-      if (counting) html += countPanel();
+      // The quick details hold this tire's recount while they are open.
+      if (counting && !(qd && qd.id === p.id)) html += countPanel();
       if (said && said.id === p.id) html += saidHtml(said);
     };
     shown.forEach(draw);
@@ -1876,6 +1914,54 @@
   // sale panel's confirm and the sheet's close (the Fable audit of 6083228).
   var COUNT_ACTS = { cminus: true, cplus: true, csave: true, rackopen: true, rackclose: true, rackpick: true };
 
+  // A RECOUNT PANEL'S STATE for a tire, as a tap on the left half opens it.
+  function newCount(p){
+    var book = Number(p.qty) || 0;
+    return { id: p.id, seen: book, qty: Math.max(0, book), busy: false, blank: false, name: tireName(p),
+      rackSeen: String(p.location || ''), rackTo: null, picking: false };
+  }
+  // THE RECOUNT PANEL'S BUTTONS, one place for the list and for the quick
+  // details sheet that holds the same panel.
+  function countAct(act){
+    var cwhat = act.getAttribute('data-act');
+    if (!count || count.busy) return;
+    if (cwhat === 'cminus' && count.qty > 0){ count.qty -= 1; count.blank = false; renderList(); }
+    if (cwhat === 'cplus' && count.qty < MAX_COUNT){ count.qty += 1; count.blank = false; renderList(); }
+    if (cwhat === 'csave') saveCount();
+    if (cwhat === 'rackopen'){ count.picking = true; renderList(); }
+    if (cwhat === 'rackclose'){ count.picking = false; renderList(); }
+    if (cwhat === 'rackpick'){
+      var to = act.getAttribute('data-rack') || '';
+      // The rack it is on already, and nothing else: no move.
+      count.rackTo = to === count.rackSeen ? null : to;
+      count.picking = false;
+      renderList();
+    }
+  }
+  // A TIRE PRESSED WHILE SOMETHING IS IN THE AIR (a tap or a long press): true
+  // when it must be turned away, with the reason SAID on the tire pressed.
+  function tapBlocked(id){
+    // NOT WHILE A COUNT IS SAVING: its answer belongs to the panel it came from.
+    if (count && count.busy){
+      if (id !== count.id){ said = { id: id, tone: 'warn', text: 'A count is still saving — wait a moment.' }; renderList(); }
+      return true;
+    }
+    // NOT WHILE A SALE IS IN THE AIR, or waiting on Try again: closing it would
+    // lose the number that makes a retry safe. SAID, on the tire tapped — the
+    // audit of 92f4171 found the phone silently ignoring every tap, with the
+    // waiting tire possibly scrolled away or hidden by a search.
+    if (sale && (sale.busy || sale.pendingId)){
+      if (id !== sale.id){
+        var waiting = productById(sale.id);
+        said = { id: id, tone: 'warn', text: 'A sale is still waiting on ' + (waiting ? tireName(waiting) : (sale.name || 'another tire'))
+          + ' — finish it first (Try again or Leave it).' };
+        renderList();
+      }
+      return true;
+    }
+    return false;
+  }
+
   // ---------- the rack, under the count — 6 Oct 2026 ----------
   //
   // His ask: "a way to change location, clicking on count, maybe placed below
@@ -2080,6 +2166,8 @@
             + (here && isFinite(now2) && now2 !== shown ? ' The book says ' + now2 + ' now.' : '')
           : 'Count saved: ' + shown + ' — ' + name + (isFinite(before) ? ', was ' + before + '.' : '.') };
         renderList();
+        // The quick details show the movements: this count is one of them now.
+        if (qd && qd.id === id) loadQdHistory();
         if (!here && session) loadStock();
         // AFTER A MERGE the tire pressed is gone; its rack is left to the counter.
         if (follow) moveRack(id, move, name, said.text, c);
@@ -3749,11 +3837,13 @@
       if (tab === TAB_HEALTH){ var typed = currentList(); if (typed) hQ[typed.id] = $('q').value; }
       if (tab === TAB_HEALTH){ renderHealthBar(); renderHealth(); renderFresh(); }
       renderPage();
+      renderQd();
       return true;
     }).catch(function(){
       if (stale()) return null;
       healthLoading = false; healthErr = true;
       if (tab === TAB_HEALTH) renderHealth();
+      renderQd();
       return null;
     });
   }
@@ -3909,6 +3999,8 @@
     try { history.go(-n); } catch(e){ skipPop -= 1; }
   }
   function dropLayer(){
+    // The quick details sheet is the top layer whenever it is up.
+    if (qd){ endQd(); return; }
     if (!hPage) return;
     if (hPage.all || hPage.invoice){ hPage.all = false; hPage.invoice = false; }
     else hPage = null;
@@ -3963,6 +4055,158 @@
     return '<dl class="hp-kv">' + pairs.filter(Boolean).map(function(p){ return '<dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>'; }).join('') + '</dl>';
   }
 
+  // SELL − COST − TAX = PROFIT, and the deal's own line under it. The tire
+  // page and the quick details sheet draw the same sum from here.
+  function profitSumHtml(p){
+    var h = '<div class="hp-sum">'
+      + '<div class="hp-fig"><span>Sell</span><b>' + esc(p.sell) + '</b></div><span class="hp-op">−</span>'
+      + '<div class="hp-fig hcost"><span>' + esc(p.costLabel) + '</span><b>' + esc(p.cost) + '</b></div><span class="hp-op">−</span>'
+      + '<div class="hp-fig' + (p.struck ? ' struck' : '') + '"><span>' + esc(p.taxLabel) + '</span><b>' + esc(p.tax) + '</b></div><span class="hp-op">=</span>'
+      + '<div class="hp-fig profit' + (p.struck ? ' struck' : p.lost ? ' lost' : '') + '"><span>Profit</span><b>' + esc(p.profit) + '</b></div>';
+    if (p.deal){
+      // "Profit Uses Van" / "Van paid" since 23 Oct 2026: the line is the van
+      // the next one sold comes off (the desk's profitSums).
+      h += '<span class="hp-dealpill">' + esc(p.deal.pill || 'Profit Uses Deal') + '</span><span class="hp-op">−</span>'
+        + '<div class="hp-fig hcost"><span>' + esc(p.deal.paidLabel || 'Deal paid') + '</span><b>' + esc(p.deal.cost) + '</b></div><span class="hp-op">−</span>'
+        + '<div class="hp-fig"><span>' + esc(p.taxLabel) + '</span><b>' + esc(p.deal.tax) + '</b></div><span class="hp-op">=</span>'
+        + '<div class="hp-fig profit' + (p.deal.lost ? ' lost' : '') + '"><span>Profit</span><b>' + esc(p.deal.profit) + '</b></div>';
+    }
+    return h + '</div>';
+  }
+
+  // ---- a tire's quick details, held open from the Stock tab — 28 Oct 2026 ----
+  // His option A off the mockup: hold the left (Recount) half for half a
+  // second and a sheet rises with the recount, the profit sum, the last
+  // supplier invoice and the last four movements — the desk's Inventory panel,
+  // on the phone. It is look-only except the recount, which is the SAME panel
+  // and the SAME save a tap on the left half opens (countPanel, saveCount, with
+  // their seen-guard), so there is one way to change a count on this page.
+  // The profit, supplier and movements come from the Health read (loadHealth,
+  // started here if nobody has opened Health) and the tire's stock history.
+  var qd = null;     // { id, lines, failed } while the sheet is up
+  var qdGen = 0;
+  var LP_MS = 500, LP_SLOP = 10;
+  var lp = null, lpFired = false;
+
+  function lpCancel(){
+    if (!lp) return;
+    clearTimeout(lp.t);
+    if (lp.el && lp.el.classList) lp.el.classList.remove('pressing');
+    lp = null;
+  }
+  function openQd(id){
+    // Not while a Back is still on its way, and one sheet at a time.
+    if (skipPop > 0 || qd) return;
+    var p = productById(id);
+    if (!p || tapBlocked(id)) return;
+    said = null; openId = null; sale = null;
+    // The recount opens with it, as a tap on the left half would; it lives in
+    // the sheet while the sheet is up.
+    count = newCount(p);
+    qd = { id: id, lines: null, failed: false };
+    pushLayer();
+    renderList();
+    renderQd();
+    if ($('qdBody')) $('qdBody').scrollTop = 0;
+    if (!health && !healthLoading) loadHealth();
+    loadQdHistory();
+  }
+  // The sheet away, by any road. A recount not yet saved goes with it, as the
+  // panel does when it is tapped shut; one on its way to an answer stays.
+  function endQd(){
+    if (!qd) return;
+    if (count && count.id === qd.id && !count.busy) count = null;
+    qd = null; qdGen += 1;
+    renderQd();
+    renderList();
+  }
+  function loadQdHistory(){
+    if (!qd) return;
+    var id = qd.id, mine = sessionGen, gen = ++qdGen;
+    rpc('stock_history', { p_product_id: id }).then(function(res){
+      if (!res.ok) throw new Error('history');
+      return res.json();
+    }).then(function(rows){
+      if (sessionGen !== mine || gen !== qdGen || !qd || qd.id !== id || !TH) return;
+      qd.lines = TH.historyLines(Array.isArray(rows) ? rows : []);
+      qd.failed = false;
+      renderQd();
+    }).catch(function(){
+      if (sessionGen !== mine || gen !== qdGen || !qd || qd.id !== id) return;
+      qd.failed = true;
+      renderQd();
+    });
+  }
+  function renderQd(){
+    var wrap = $('qdWrap');
+    if (!qd){ wrap.hidden = true; wrap.innerHTML = ''; return; }
+    var p = productById(qd.id);
+    // A tire taken off the book while the sheet was up: the sheet goes.
+    if (!p){ qd = null; qdGen += 1; wrap.hidden = true; wrap.innerHTML = ''; rewindLayers(); return; }
+    var v = health && TH ? TH.tireView(health, qd.id, { lines: qd.failed ? null : qd.lines }) : null;
+    var nm = nameLines(p), counting = !!count && count.id === qd.id;
+    var meta = [nm.brand, v ? v.rack.location : (p.location || 'No rack'), v ? v.rack.tier : ''].filter(Boolean).join(' · ');
+    var h = '<button type="button" class="qd-scrim" data-qd="close" aria-label="Close details"></button>'
+      + '<div class="qd-sheet" role="dialog" aria-modal="true" aria-label="Tire details">'
+      + '<div class="qd-grab"></div><div class="qd-head"><div class="t"><div class="brand">' + esc(nm.title) + '</div>'
+      + '<div class="meta">' + esc(meta) + '</div></div>'
+      + '<button type="button" class="qd-x" data-qd="close" aria-label="Close details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>'
+      + '<div class="qd-body" id="qdBody">';
+
+    var sSaid = said && said.id === qd.id ? saidHtml(said) : '';
+    var sRec = '<div class="hp-card"><div class="hp-head"><span>Recount</span></div>';
+    if (counting) sRec += countPanel();
+    else {
+      sRec += '<div class="hp-big"><span class="lab">On the rack</span><span class="num">' + (Number(p.qty) || 0) + '</span></div>'
+        + '<button type="button" class="hp-btn" data-qd="recount">Recount</button>';
+    }
+    sRec += '</div>';
+    var sRest = '';
+
+    // What the Health read has not given yet, or could not.
+    var wait = !TH ? 'The profit and supplier are not available on this phone.'
+      : healthErr && !health ? 'Could not read the profit and supplier. Close this and hold the tire again to retry.'
+      : !health ? 'Reading the book…'
+      : !v ? 'This tire is not in the book the profit is read from yet.' : '';
+    if (wait){
+      sRest += '<div class="hp-card"><div class="hp-head"><span>Profit, supplier &amp; movement</span></div><div class="hp-faint">' + esc(wait) + '</div></div>';
+    } else {
+      sRest += '<div class="hp-card"><div class="hp-head"><span>' + esc(v.profit.head) + '</span></div>' + profitSumHtml(v.profit);
+      if (v.profit.zeroCost) sRest += '<div class="hp-warn">The cost on this tire is $0, so the profit is the whole price.</div>';
+      sRest += '</div>';
+
+      sRest += '<div class="hp-card"><div class="hp-head"><span>Supplier</span></div>';
+      if (v.supplier.last){
+        sRest += '<div style="font-size:15px;font-weight:700">' + esc(v.supplier.last.supplier) + '</div>'
+          + '<div style="font-size:13px;color:var(--muted)">Last in: ' + esc(v.supplier.last.line) + '</div>'
+          + '<span class="hp-paid' + (v.supplier.last.paid ? ' yes' : '') + '">' + (v.supplier.last.paid ? 'Invoice paid' : 'Invoice not paid yet') + '</span>';
+      } else sRest += '<div class="hp-faint">No deliveries of this ' + v.unit + ' received in this app yet.</div>';
+      sRest += '</div>';
+
+      var moves = v.moves.all.slice(0, 4);
+      sRest += '<div class="hp-card"><div class="hp-head"><span>Movement</span></div>';
+      if (!moves.length) sRest += '<div class="hp-faint">Nothing sold, received or recounted yet.</div>';
+      else sRest += '<div class="hp-chips">' + moves.map(moveChip).join('') + '</div>';
+      if (qd.failed) sRest += '<div class="hp-faint">From the book — not connected to the stock history.</div>';
+      sRest += '</div>';
+    }
+    // WHILE HE TYPES in the count box, only what is around it is redrawn: an
+    // answer landing (the Health read, the stock history, a stock read) must
+    // not replace the box under his thumb, drop the keyboard or put back a number he
+    // has not typed. A panel that is saving, or gone, is redrawn whole.
+    var ae = document.activeElement;
+    if (counting && !count.busy && ae && ae.id === 'rcQty' && wrap.contains(ae) && $('qdSaid') && $('qdRest')){
+      $('qdSaid').innerHTML = sSaid; $('qdRest').innerHTML = sRest;
+      return;
+    }
+    h += '<div id="qdSaid" style="display:contents">' + sSaid + '</div><div id="qdRec" style="display:contents">' + sRec + '</div><div id="qdRest" style="display:contents">' + sRest + '</div>';
+    h += '</div></div>';
+    var keep = $('qdBody') ? $('qdBody').scrollTop : 0;
+    wrap.innerHTML = h;
+    wrap.hidden = false;
+    if ($('qdBody')) $('qdBody').scrollTop = keep;
+  }
+
   function renderPage(){
     var wrap = $('hpWrap');
     if (!hPage || !health || !TH){ wrap.hidden = true; wrap.innerHTML = ''; return; }
@@ -4006,20 +4250,7 @@
     h += '</div>';
 
     var p = v.profit;
-    h += '<div class="hp-card" id="hpProfit"><div class="hp-head"><span>' + esc(p.head) + '</span></div><div class="hp-sum">'
-      + '<div class="hp-fig"><span>Sell</span><b>' + esc(p.sell) + '</b></div><span class="hp-op">−</span>'
-      + '<div class="hp-fig hcost"><span>' + esc(p.costLabel) + '</span><b>' + esc(p.cost) + '</b></div><span class="hp-op">−</span>'
-      + '<div class="hp-fig' + (p.struck ? ' struck' : '') + '"><span>' + esc(p.taxLabel) + '</span><b>' + esc(p.tax) + '</b></div><span class="hp-op">=</span>'
-      + '<div class="hp-fig profit' + (p.struck ? ' struck' : p.lost ? ' lost' : '') + '"><span>Profit</span><b>' + esc(p.profit) + '</b></div>';
-    if (p.deal){
-      // "Profit Uses Van" / "Van paid" since 23 Oct 2026: the line is the van
-      // the next one sold comes off (the desk's profitSums).
-      h += '<span class="hp-dealpill">' + esc(p.deal.pill || 'Profit Uses Deal') + '</span><span class="hp-op">−</span>'
-        + '<div class="hp-fig hcost"><span>' + esc(p.deal.paidLabel || 'Deal paid') + '</span><b>' + esc(p.deal.cost) + '</b></div><span class="hp-op">−</span>'
-        + '<div class="hp-fig"><span>' + esc(p.taxLabel) + '</span><b>' + esc(p.deal.tax) + '</b></div><span class="hp-op">=</span>'
-        + '<div class="hp-fig profit' + (p.deal.lost ? ' lost' : '') + '"><span>Profit</span><b>' + esc(p.deal.profit) + '</b></div>';
-    }
-    h += '</div>';
+    h += '<div class="hp-card" id="hpProfit"><div class="hp-head"><span>' + esc(p.head) + '</span></div>' + profitSumHtml(p);
     if (p.tiles.length){
       h += '<div class="hp-tiles">' + p.tiles.map(function(t){ return '<div class="hp-tile"><span>' + esc(t.label) + '</span><b class="' + t.tone + '">' + esc(t.value) + '</b></div>'; }).join('') + '</div>';
     }
@@ -4101,6 +4332,7 @@
   function resetHealth(){
     health = null; healthAt = null; healthLoading = false; healthErr = null; healthGen += 1; histGen += 1;
     hQ = Object.create(null); hLimit = Object.create(null); hOpen = null; hPage = null;
+    qd = null; qdGen += 1; lpCancel(); renderQd();
     rewindLayers();
     $('healthList').innerHTML = ''; $('healthBar').innerHTML = '';
     renderPage();
@@ -4406,21 +4638,7 @@
     // A tire the phone added and the counter has not finished: nothing to open.
     if (e.target.closest && e.target.closest('[data-pend]')) return;
     if (act && count && COUNT_ACTS[act.getAttribute('data-act')]){
-      var cwhat = act.getAttribute('data-act');
-      if (!count.busy){
-        if (cwhat === 'cminus' && count.qty > 0){ count.qty -= 1; count.blank = false; renderList(); }
-        if (cwhat === 'cplus' && count.qty < MAX_COUNT){ count.qty += 1; count.blank = false; renderList(); }
-        if (cwhat === 'csave') saveCount();
-        if (cwhat === 'rackopen'){ count.picking = true; renderList(); }
-        if (cwhat === 'rackclose'){ count.picking = false; renderList(); }
-        if (cwhat === 'rackpick'){
-          var to = act.getAttribute('data-rack') || '';
-          // The rack it is on already, and nothing else: no move.
-          count.rackTo = to === count.rackSeen ? null : to;
-          count.picking = false;
-          renderList();
-        }
-      }
+      countAct(act);
       return;
     }
     if (act && sale){
@@ -4437,24 +4655,7 @@
     var id = row.getAttribute('data-id');
     var half = e.target.closest('[data-side]');
     var side = half ? half.getAttribute('data-side') : 'sell';
-    // NOT WHILE A COUNT IS SAVING: its answer belongs to the panel it came from.
-    if (count && count.busy){
-      if (id !== count.id){ said = { id: id, tone: 'warn', text: 'A count is still saving — wait a moment.' }; renderList(); }
-      return;
-    }
-    // NOT WHILE A SALE IS IN THE AIR, or waiting on Try again: closing it would
-    // lose the number that makes a retry safe. SAID, on the tire tapped — the
-    // audit of 92f4171 found the phone silently ignoring every tap, with the
-    // waiting tire possibly scrolled away or hidden by a search.
-    if (sale && (sale.busy || sale.pendingId)){
-      if (id !== sale.id){
-        var waiting = productById(sale.id);
-        said = { id: id, tone: 'warn', text: 'A sale is still waiting on ' + (waiting ? tireName(waiting) : (sale.name || 'another tire'))
-          + ' — finish it first (Try again or Leave it).' };
-        renderList();
-      }
-      return;
-    }
+    if (tapBlocked(id)) return;
     said = null;
     var tapped = productById(id);
     // ONE PANEL OPEN AT A TIME. The same half again closes it; the other half
@@ -4462,13 +4663,80 @@
     var wasSelling = openId === id && !!sale, wasCounting = !!count && count.id === id;
     openId = null; sale = null; count = null;
     if (side === 'count' && !wasCounting && tapped){
-      var book = Number(tapped.qty) || 0;
-      count = { id: id, seen: book, qty: Math.max(0, book), busy: false, blank: false, name: tireName(tapped),
-        rackSeen: String(tapped.location || ''), rackTo: null, picking: false };
+      count = newCount(tapped);
     } else if (side === 'sell' && !wasSelling){
       openId = id; sale = { id: id, qty: 1, busy: false, pendingId: null, name: tapped ? tireName(tapped) : 'a tire' };
     }
     renderList();
+  });
+
+  // HOLD THE LEFT HALF for half a second and the quick details open (the
+  // mockup's option A, 28 Oct 2026). The half fills with amber while the finger
+  // is down. A finger that slides more than a few pixels is a scroll, and
+  // lifting early is the tap it always was: the recount panel.
+  $('list').addEventListener('pointerdown', function(e){
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    var half = e.target.closest ? e.target.closest('[data-side="count"]') : null;
+    if (!half) return;
+    var row = half.closest('.row[data-id]');
+    if (!row || row.querySelector('[data-pend]')) return;
+    lpCancel();
+    var id = row.getAttribute('data-id');
+    half.classList.add('pressing');
+    lp = { x: e.clientX, y: e.clientY, el: half, t: setTimeout(function(){
+      lpCancel();
+      // The click that follows the lift is not a tap on the recount.
+      lpFired = true;
+      openQd(id);
+    }, LP_MS) };
+  });
+  $('list').addEventListener('pointermove', function(e){
+    if (lp && (Math.abs(e.clientX - lp.x) > LP_SLOP || Math.abs(e.clientY - lp.y) > LP_SLOP)) lpCancel();
+  });
+  $('list').addEventListener('pointerup', lpCancel);
+  $('list').addEventListener('pointercancel', lpCancel);
+  $('list').addEventListener('pointerleave', lpCancel);
+  $('list').addEventListener('scroll', lpCancel);
+  // A phone's own long-press menu would sit on top of the sheet.
+  $('list').addEventListener('contextmenu', function(e){
+    if (e.target.closest && e.target.closest('[data-side="count"]')) e.preventDefault();
+  });
+  // The click that comes after a long press ends is swallowed once, before the
+  // list's own handler sees it; the flag is dropped soon after the lift either
+  // way, so the next real tap is never lost.
+  $('list').addEventListener('click', function(e){
+    if (!lpFired) return;
+    lpFired = false;
+    e.stopImmediatePropagation();
+  }, true);
+  document.addEventListener('pointerup', function(){ setTimeout(function(){ lpFired = false; }, 120); }, true);
+  // A new press, anywhere, is a new gesture: the old hold's click is long past.
+  document.addEventListener('pointerdown', function(){ lpFired = false; }, true);
+
+  // THE QUICK DETAILS SHEET'S OWN BUTTONS: Close, the recount panel it holds
+  // (the same buttons as the list's), and Recount when no panel is open.
+  $('qdWrap').addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('button') : null;
+    if (!b || !qd) return;
+    if (b.getAttribute('data-qd') === 'close'){ closeLayer(); return; }
+    if (b.getAttribute('data-qd') === 'recount'){
+      var p = productById(qd.id);
+      if (!p || tapBlocked(qd.id)) return;
+      said = null;
+      count = newCount(p);
+      renderList();
+      return;
+    }
+    if (count && COUNT_ACTS[b.getAttribute('data-act')]) countAct(b);
+  });
+  $('qdWrap').addEventListener('input', function(e){
+    if (e.target && e.target.id === 'rcQty') countTyped(e.target.value);
+  });
+  $('qdWrap').addEventListener('keydown', function(e){
+    if (e.target && e.target.id === 'rcQty' && e.key === 'Enter'){ e.preventDefault(); saveCount(); }
+  });
+  $('qdWrap').addEventListener('focusout', function(e){
+    if (e.target && e.target.id === 'rcQty' && count && count.blank){ count.blank = false; renderList(); }
   });
 
   // THE RECOUNT BOX: typed numbers redraw only the words under it, and Enter
