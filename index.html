@@ -41,6 +41,15 @@
   }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ margin:0; height:100%; }
+  /* A POPUP'S SCROLL STAYS IN THE POPUP — 28 Oct 2026, his phone: scrolling a
+     sheet to its end moved the page behind it. Three layers, since phones differ:
+     the page itself never chains or bounces (this must be on the root element —
+     on body it does nothing); each popup's own scroller keeps its scroll; and
+     the lists behind a popup are locked while one is up. */
+  html{ overscroll-behavior:none; }
+  .qd-body, .sheet, .hp-body, .qd-inv .qd-body{ overscroll-behavior:contain; }
+  .qd-scrim, .qd-head, .qd-grab, .scrim{ touch-action:none; }
+  body:has(.qdwrap:not([hidden])) .list, body:has(.sheetwrap.on) .list, body:has(.hpwrap:not([hidden])) .list{ overflow:hidden; }
   body{
     font-family:var(--font); background:var(--bg); color:var(--ink);
     -webkit-font-smoothing:antialiased; overscroll-behavior-y:contain;
@@ -4767,6 +4776,30 @@
   document.addEventListener('pointerup', function(){ setTimeout(function(){ lpFired = false; }, 120); }, true);
   // A new press, anywhere, is a new gesture: the old hold's click is long past.
   document.addEventListener('pointerdown', function(){ lpFired = false; }, true);
+
+  // THE SAME, WHERE overscroll-behavior IS NOT HONOURED (older phones): a touch
+  // that moves inside a popup may only move the popup's own scroller, and only
+  // in a direction it can still go. Anywhere else (the dark area, the header, a
+  // scroller already at its end) it is stopped, so nothing behind it moves.
+  function lockPopupScroll(root, scrollSel){
+    var lastY = 0, lastX = 0;
+    root.addEventListener('touchstart', function(e){ if (e.touches.length === 1){ lastY = e.touches[0].clientY; lastX = e.touches[0].clientX; } }, { passive: true });
+    root.addEventListener('touchmove', function(e){
+      if (e.touches.length !== 1) return;
+      var y = e.touches[0].clientY, dy = y - lastY, dx = e.touches[0].clientX - lastX; lastY = y; lastX = e.touches[0].clientX;
+      // A sideways swipe (the jump chips on the tire page) and a box with its own
+      // scroll (a note's text) are theirs to move.
+      if (Math.abs(dx) > Math.abs(dy)) return;
+      if (e.target.closest && e.target.closest('textarea, .hp-jump, .rc-list, .segrow')) return;
+      var sc = e.target.closest ? e.target.closest(scrollSel) : null;
+      if (!sc || sc.scrollHeight <= sc.clientHeight + 1){ if (e.cancelable) e.preventDefault(); return; }
+      var atTop = sc.scrollTop <= 0, atEnd = sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 1;
+      if ((atTop && dy > 0) || (atEnd && dy < 0)){ if (e.cancelable) e.preventDefault(); }
+    }, { passive: false });
+  }
+  lockPopupScroll($('qdWrap'), '.qd-body');
+  lockPopupScroll($('sheetWrap'), '.sheet');
+  lockPopupScroll($('hpWrap'), '.hp-body');
 
   // THE QUICK DETAILS SHEET'S OWN BUTTONS: Close, and the invoice.
   $('qdWrap').addEventListener('click', function(e){

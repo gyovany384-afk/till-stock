@@ -228,6 +228,39 @@ const search = async (w, v) => { const q = w.document.getElementById('q'); q.val
     ok('the sheet draws the movement cards one to a row', /\.qd-body \.hp-chips\{\s*grid-template-columns:minmax\(0,1fr\);\s*\}/.test(src));
   }
 
+  // ---- a popup's scroll stays in the popup (his phone, 28 Oct) ------------------------
+  {
+    const { w } = boot();
+    await wait(80);
+    await hold(w, left(w, 'a'));
+    const move = (el, y0, y1) => {
+      const mk = (type, y) => { const ev = new w.Event(type, { bubbles: true, cancelable: true }); ev.touches = type === 'touchend' ? [] : [{ clientX: 50, clientY: y }]; return ev; };
+      el.dispatchEvent(mk('touchstart', y0));
+      const m = mk('touchmove', y1); el.dispatchEvent(m);
+      el.dispatchEvent(mk('touchend', y1));
+      return m.defaultPrevented;
+    };
+    ok('a drag on the dark area behind the sheet is stopped, so nothing moves behind it', move($(w, '#qdWrap .qd-scrim'), 100, 200) === true);
+    ok('a drag on the sheet header is stopped too', move($(w, '#qdWrap .qd-head'), 100, 200) === true);
+    // a body that scrolls: free in the directions it can go, stopped at its ends
+    const body = $(w, '#qdWrap .qd-body');
+    Object.defineProperty(body, 'scrollHeight', { value: 900, configurable: true });
+    Object.defineProperty(body, 'clientHeight', { value: 400, configurable: true });
+    Object.defineProperty(body, 'scrollTop', { value: 200, configurable: true, writable: true });
+    ok('scrolling the sheet in the middle moves the sheet', move(body, 300, 200) === false && move(body, 200, 300) === false);
+    body.scrollTop = 0;
+    ok('pulling down at the very top of the sheet is stopped (it would drag the page)', move(body, 200, 300) === true);
+    body.scrollTop = 500;
+    ok('pushing up at the very end of the sheet is stopped too', move(body, 300, 200) === true);
+    w.close();
+  }
+  {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    ok('the page root, not just body, refuses to chain or bounce', src.includes('  html{ overscroll-behavior:none; }'));
+    ok('each popup scroller keeps its own scroll', src.includes('.qd-body, .sheet, .hp-body, .qd-inv .qd-body{ overscroll-behavior:contain; }'));
+    ok('and the lists behind a popup are locked while one is up', src.includes('body:has(.qdwrap:not([hidden])) .list'));
+  }
+
   // ---- signing out ----------------------------------------------------------
   {
     const { w } = boot();
