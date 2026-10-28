@@ -206,6 +206,24 @@ const tapOnce = async (w, el) => {
     w.close();
   }
 
+  // ---- the sheet is built once: no second rise (his phone, 28 Oct) ---------------------
+  {
+    const { w } = boot();
+    await wait(80);
+    await hold(w, left(w, 'a'));
+    const shell = $(w, '#qdWrap .qd-sheet'), scrim = $(w, '#qdWrap .qd-scrim');
+    await wait(150); // the Health read and the history land
+    const q = w.document.getElementById('q'); q.value = 'a'; q.dispatchEvent(new w.Event('input', { bubbles: true })); await wait(20);
+    $(w, '#qdWrap [data-act="cminus"]').click(); await wait(10);
+    ok('answers and redraws change what is inside the sheet, never the sheet itself', $(w, '#qdWrap .qd-sheet') === shell && $(w, '#qdWrap .qd-scrim') === scrim);
+    ok('and the contents did follow (the count went down)', $(w, '#rcQty').value === '5', $(w, '#rcQty').value);
+    ok('and the profit arrived inside the same sheet', /Profit/.test(text(w, '#qdWrap')));
+    $(w, '#qdWrap .qd-scrim').click(); await wait(20);
+    await hold(w, left(w, 'a'));
+    ok('opened again later it is a fresh sheet, so it rises once more', $(w, '#qdWrap .qd-sheet') !== shell);
+    w.close();
+  }
+
   // ---- signing out ----------------------------------------------------------
   {
     const { w } = boot();

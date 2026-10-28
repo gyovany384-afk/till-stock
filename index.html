@@ -4146,12 +4146,13 @@
     var v = health && TH ? TH.tireView(health, qd.id, { lines: qd.failed ? null : qd.lines }) : null;
     var nm = nameLines(p), counting = !!count && count.id === qd.id;
     var meta = [nm.brand, v ? v.rack.location : (p.location || 'No rack'), v ? v.rack.tier : ''].filter(Boolean).join(' · ');
-    var h = '<button type="button" class="qd-scrim" data-qd="close" aria-label="Close details"></button>'
-      + '<div class="qd-sheet" role="dialog" aria-modal="true" aria-label="Tire details">'
-      + '<div class="qd-grab"></div><div class="qd-head"><div class="t"><div class="brand">' + esc(nm.title) + '</div>'
+    // THE SHELL IS BUILT ONCE (below); a redraw changes what is inside it. Built
+    // again each time, the rise and the fade played again on every answer that
+    // landed — the double render on his phone, 28 Oct 2026.
+    var head = '<div class="t"><div class="brand">' + esc(nm.title) + '</div>'
       + '<div class="meta">' + esc(meta) + '</div></div>'
       + '<button type="button" class="qd-x" data-qd="close" aria-label="Close details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>'
-      + '<div class="qd-body" id="qdBody">';
+;
 
     var sSaid = said && said.id === qd.id ? saidHtml(said) : '';
     var sRec = '<div class="hp-card"><div class="hp-head"><span>Recount</span></div>';
@@ -4199,12 +4200,16 @@
       $('qdSaid').innerHTML = sSaid; $('qdRest').innerHTML = sRest;
       return;
     }
-    h += '<div id="qdSaid" style="display:contents">' + sSaid + '</div><div id="qdRec" style="display:contents">' + sRec + '</div><div id="qdRest" style="display:contents">' + sRest + '</div>';
-    h += '</div></div>';
-    var keep = $('qdBody') ? $('qdBody').scrollTop : 0;
-    wrap.innerHTML = h;
+    if (!$('qdBody') || !wrap.contains($('qdBody'))){
+      wrap.innerHTML = '<button type="button" class="qd-scrim" data-qd="close" aria-label="Close details"></button>'
+        + '<div class="qd-sheet" role="dialog" aria-modal="true" aria-label="Tire details"><div class="qd-grab"></div>'
+        + '<div class="qd-head" id="qdHead"></div><div class="qd-body" id="qdBody"></div></div>';
+    }
     wrap.hidden = false;
-    if ($('qdBody')) $('qdBody').scrollTop = keep;
+    $('qdHead').innerHTML = head;
+    var keep = $('qdBody').scrollTop;
+    $('qdBody').innerHTML = '<div id="qdSaid" style="display:contents">' + sSaid + '</div><div id="qdRec" style="display:contents">' + sRec + '</div><div id="qdRest" style="display:contents">' + sRest + '</div>';
+    $('qdBody').scrollTop = keep;
   }
 
   function renderPage(){
