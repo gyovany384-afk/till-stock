@@ -2,14 +2,16 @@
 // Hold a tire for its quick details — 28 Oct 2026.
 //
 // His option A off the mockup: hold the LEFT (Recount) half for half a second
-// and a sheet rises with the recount, the profit sum, the last supplier invoice
-// and the last four movements. A quick tap stays the recount panel it always
-// was; the right half stays the sale.
+// and a sheet rises with the profit sum, the last supplier invoice (a tap opens
+// it in full) and the last four movements. His comment on the practice copy:
+// no recount in it ("dont show in long press") — the recount stays what a quick
+// tap opens. The right half stays the sale.
 //
-// What would go wrong silently: a tap swallowed or a hold that also taps, two
-// recount boxes on the page at once (one id, two inputs), a recount from the
-// sheet that bypasses the seen-guard, a sheet that survives a sign-out, and
-// the profit drawn from anything but the desk's rules (health.js).
+// What would go wrong silently: a tap swallowed or a hold that also taps, the
+// recount panel creeping back into the sheet, a sheet that is rebuilt (and
+// rises again) on every answer, a sheet that survives a sign-out, Back
+// closing the wrong layer, and the profit drawn from anything but the desk's
+// rules (health.js).
 //
 //   node tests/quick-details.test.cjs
 // ============================================================
@@ -73,46 +75,31 @@ const hold = async (w, el, ms = 650) => {
 const tapOnce = async (w, el) => {
   fire(w, el, 'pointerdown'); await wait(40); fire(w, el, 'pointerup'); el.click(); await wait(30);
 };
+const search = async (w, v) => { const q = w.document.getElementById('q'); q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); await wait(20); };
 
 (async function run() {
   console.log('\nHold a tire for its quick details\n');
 
   // ---- the hold opens the sheet --------------------------------------------
   {
-    const { w, recounts, histAsked } = boot();
+    const { w, recounts, sales, histAsked } = boot();
     await wait(80);
     await hold(w, left(w, 'a'));
     ok('holding the left half opens the sheet', sheetUp(w));
-    ok('it names the tire', /225\/65R17/.test(text(w, '#qdWrap .qd-head')) && /Lexani LX/.test(text(w, '#qdWrap .qd-head')), text(w, '#qdWrap .qd-head'));
-    ok('the hold did not also tap: one recount box on the whole page', all(w, '#rcQty').length === 1 && Boolean($(w, '#qdWrap #rcQty')));
-    ok('and the list has no second panel under the tire', !$(w, '#list .recount'));
-    ok('the recount starts at what the book holds', $(w, '#rcQty').value === '6', $(w, '#rcQty').value);
+    const head = text(w, '#qdWrap .qd-head');
+    ok('it names the tire, with the brand, rack and how many are in stock', /225\/65R17/.test(head) && /Lexani LX/.test(head) && /6 in stock/.test(head), head);
+    ok('NO recount in it: no count box, no Save, no panel', !$(w, '#qdWrap #rcQty') && !$(w, '#qdWrap .recount') && !$(w, '#qdWrap [data-act="csave"]') && !/Recount/i.test(text(w, '#qdWrap .qd-body')), text(w, '#qdWrap .qd-body'));
+    ok('and the hold did not also tap one open in the list', !$(w, '.recount') && all(w, '#rcQty').length === 0);
     await wait(80);
     const sheet = text(w, '#qdWrap');
     ok('the profit sum is there, from the desk rules', /Sell/.test(sheet) && /Profit/.test(sheet) && /\$109/.test(sheet), sheet);
     ok('the last supplier invoice is there', /Invented Supply/.test(sheet) && /Invoice not paid yet/.test(sheet), sheet);
     ok('the movements are there (sold and received)', all(w, '#qdWrap .hp-move').length === 2, String(all(w, '#qdWrap .hp-move').length));
     ok('the stock history was asked for this tire', histAsked.length === 1 && histAsked[0].p_product_id === 'a', JSON.stringify(histAsked));
-    ok('nothing was written by opening it', recounts.length === 0);
+    ok('it is look-only: opening it wrote nothing', recounts.length === 0 && sales.length === 0);
 
-    // ---- a recount from the sheet is the page's own recount -----------------
-    $(w, '#qdWrap [data-act="cminus"]').click(); await wait(10);
-    $(w, '#qdWrap [data-act="cminus"]').click(); await wait(10);
-    ok('minus counts down inside the sheet', $(w, '#rcQty').value === '4', $(w, '#rcQty').value);
-    ok('and says what will change', /Book 6 → 4 · 2 fewer/.test(text(w, '#rcSaid')), text(w, '#rcSaid'));
-    $(w, '#qdWrap [data-act="csave"]').click(); await wait(40);
-    ok('Save sends ONE recount, with the count it saw', recounts.length === 1 && recounts[0].p_product_id === 'a' && recounts[0].p_qty === 4 && recounts[0].p_seen === 6, JSON.stringify(recounts));
-    ok('the sheet says what it did', /Count saved: 4/.test(text(w, '#qdWrap .salemsg')), text(w, '#qdWrap .salemsg'));
-    ok('and offers Recount again, the panel being done', !$(w, '#qdWrap #rcQty') && Boolean($(w, '#qdWrap [data-qd="recount"]')));
-    ok('the card behind it shows the new count', /4 in stock/.test(text(w, '.row[data-id="a"] .count')), text(w, '.row[data-id="a"] .count'));
-    ok('the movements are read again, this count being one', histAsked.length === 2, String(histAsked.length));
-    $(w, '#qdWrap [data-qd="recount"]').click(); await wait(20);
-    ok('Recount opens the panel again, at the new count', $(w, '#rcQty') && $(w, '#rcQty').value === '4');
-
-    // ---- closing -------------------------------------------------------------
     $(w, '#qdWrap .qd-scrim').click(); await wait(20);
     ok('the scrim closes the sheet', !sheetUp(w));
-    ok('and an unsaved recount goes with it', !$(w, '#rcQty') && !$(w, '.recount'));
     ok('the list is intact', all(w, '.row[data-id]').length === 2);
     w.close();
   }
@@ -170,6 +157,61 @@ const tapOnce = async (w, el) => {
     w.close();
   }
 
+  // ---- the sheet is built once: no second rise (his phone, 28 Oct) ---------------------
+  {
+    const { w } = boot();
+    await wait(80);
+    await hold(w, left(w, 'a'));
+    const shell = $(w, '#qdWrap .qd-sheet'), scrim = $(w, '#qdWrap .qd-scrim');
+    await wait(150); // the Health read and the history land
+    await search(w, 'a'); // and the list redraws
+    ok('answers and redraws change what is inside the sheet, never the sheet itself', $(w, '#qdWrap .qd-sheet') === shell && $(w, '#qdWrap .qd-scrim') === scrim);
+    ok('and the profit arrived inside the same sheet', /Profit/.test(text(w, '#qdWrap')));
+    $(w, '#qdWrap .qd-scrim').click(); await wait(20);
+    await hold(w, left(w, 'a'));
+    ok('opened again later it is a fresh sheet, so it rises once more', $(w, '#qdWrap .qd-sheet') !== shell);
+    w.close();
+  }
+
+  // ---- the sheet follows a search that hides its tire -------------------------------
+  {
+    const { w } = boot();
+    await wait(80);
+    await hold(w, left(w, 'a'));
+    await search(w, 'zzz'); // the list takes its "No matches" early return
+    ok('a search that hides the tire does not break the sheet', sheetUp(w) && /Profit/.test(text(w, '#qdWrap')));
+    w.close();
+  }
+
+  // ---- the full invoice, from the Last in line (his comment on the practice copy) ----
+  {
+    const { w } = boot();
+    await wait(80);
+    await hold(w, left(w, 'a'));
+    await wait(120);
+    const link = $(w, '#qdWrap [data-qd="invoice"]');
+    ok('the Last in line is a button', Boolean(link) && /INV-1/.test(link.textContent), link && link.textContent);
+    link.click(); await wait(20);
+    const inv = text(w, '#qdWrap .qd-inv');
+    ok('it opens the full invoice as a second sheet over the details, not a full page', /INV-1/.test(inv) && /Invented Supply/.test(inv) && /Lexani LX/.test(inv) && !$(w, '#qdWrap .hp-over'), inv);
+    ok('with its lines and total', /TIRE/.test(inv) && /8/.test(inv) && /Not paid yet/.test(inv), inv);
+    ok('the details sheet is still there under it', sheetUp(w) && all(w, '#qdWrap .qd-sheet').length === 2);
+    const invSheet = $(w, '#qdWrap .qd-inv');
+    await wait(60); await search(w, 'a');
+    ok('a redraw does not make the invoice rise again', $(w, '#qdWrap .qd-inv') === invSheet);
+    $(w, '#qdWrap .qd-inv [data-hp="close"].qd-x').click(); await wait(30);
+    ok('its X takes the invoice away and keeps the details', !$(w, '#qdWrap .qd-inv') && sheetUp(w));
+    $(w, '#qdWrap [data-qd="invoice"]').click(); await wait(20);
+    $(w, '#qdWrap .qd-scrim[data-hp="close"]').click(); await wait(30);
+    ok('and so does tapping the dark area above it', !$(w, '#qdWrap .qd-inv') && sheetUp(w));
+    $(w, '#qdWrap [data-qd="invoice"]').click(); await wait(20);
+    w.history.back(); await wait(60);
+    ok('the phone Back closes the invoice first', !$(w, '#qdWrap .qd-inv') && sheetUp(w));
+    w.history.back(); await wait(60);
+    ok('and the next Back closes the sheet', !sheetUp(w));
+    w.close();
+  }
+
   // ---- when the numbers are not there -------------------------------------------
   {
     const { w } = boot({ historyFail: true });
@@ -180,48 +222,10 @@ const tapOnce = async (w, el) => {
     w.close();
   }
 
-  // ---- the sheet follows the list's redraws (reviewer's two findings) -------------
+  // ---- movements: one to a row ------------------------------------------------------
   {
-    const { w, recounts } = boot();
-    await wait(80);
-    await hold(w, left(w, 'a'));
-    // A search that matches nothing makes the list take its early return.
-    const q = w.document.getElementById('q'); q.value = 'zzz'; q.dispatchEvent(new w.Event('input', { bubbles: true })); await wait(20);
-    $(w, '#qdWrap [data-act="cminus"]').click(); await wait(10);
-    $(w, '#qdWrap [data-act="csave"]').click(); await wait(40);
-    ok('a save answered while the list shows "No matches" still reaches the sheet', recounts.length === 1 && /Count saved: 5/.test(text(w, '#qdWrap .salemsg')), text(w, '#qdWrap'));
-    ok('and the panel is not left on Saving…', !/Saving/.test(text(w, '#qdWrap')));
-    w.close();
-  }
-  {
-    const { w } = boot();
-    await wait(80);
-    await hold(w, left(w, 'a'));
-    const box = $(w, '#rcQty'); box.focus();
-    box.value = '12'; box.dispatchEvent(new w.Event('input', { bubbles: true })); await wait(10);
-    // Something redraws the page while he types (the Health read, the history, a stock read).
-    const q = w.document.getElementById('q'); q.value = 'a'; q.dispatchEvent(new w.Event('input', { bubbles: true })); await wait(20);
-    ok('a redraw while he types leaves the box itself alone', $(w, '#rcQty') === box && box.value === '12' && w.document.activeElement === box);
-    ok('and the count he typed is still the count', /Book 6 → 12/.test(text(w, '#rcSaid')), text(w, '#rcSaid'));
-    w.close();
-  }
-
-  // ---- the sheet is built once: no second rise (his phone, 28 Oct) ---------------------
-  {
-    const { w } = boot();
-    await wait(80);
-    await hold(w, left(w, 'a'));
-    const shell = $(w, '#qdWrap .qd-sheet'), scrim = $(w, '#qdWrap .qd-scrim');
-    await wait(150); // the Health read and the history land
-    const q = w.document.getElementById('q'); q.value = 'a'; q.dispatchEvent(new w.Event('input', { bubbles: true })); await wait(20);
-    $(w, '#qdWrap [data-act="cminus"]').click(); await wait(10);
-    ok('answers and redraws change what is inside the sheet, never the sheet itself', $(w, '#qdWrap .qd-sheet') === shell && $(w, '#qdWrap .qd-scrim') === scrim);
-    ok('and the contents did follow (the count went down)', $(w, '#rcQty').value === '5', $(w, '#rcQty').value);
-    ok('and the profit arrived inside the same sheet', /Profit/.test(text(w, '#qdWrap')));
-    $(w, '#qdWrap .qd-scrim').click(); await wait(20);
-    await hold(w, left(w, 'a'));
-    ok('opened again later it is a fresh sheet, so it rises once more', $(w, '#qdWrap .qd-sheet') !== shell);
-    w.close();
+    const src = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    ok('the sheet draws the movement cards one to a row', /\.qd-body \.hp-chips\{\s*grid-template-columns:minmax\(0,1fr\);\s*\}/.test(src));
   }
 
   // ---- signing out ----------------------------------------------------------
@@ -235,27 +239,23 @@ const tapOnce = async (w, el) => {
     w.close();
   }
 
-  // ---- a count on its way turns another hold away -----------------------------------
+  // ---- a count on its way does not stop a hold --------------------------------------
   {
     let release = null;
-    // The recount waits on an answer until released.
-    const stuck = phone({
+    const s = phone({
       rows: PRODUCTS.map((p) => ({ ...p })),
       sales: SALES,
       before: (win) => { win.eval(RULES); },
       recount: () => new Promise((res) => { release = () => res({ ok: true, status: 200, json: () => Promise.resolve({ product_id: 'a', already: false, qty_before: 6, qty_after: 5 }) }); }),
-    });
-    const s = stuck.w;
+    }).w;
     await wait(80);
-    await hold(s, left(s, 'a'));
-    $(s, '#qdWrap [data-act="cminus"]').click(); await wait(10);
-    $(s, '#qdWrap [data-act="csave"]').click(); await wait(30);
-    ok('(the count is saving)', /Saving/.test(text(s, '#qdWrap [data-act="csave"]')), text(s, '#qdWrap [data-act="csave"]'));
-    $(s, '#qdWrap .qd-scrim').click(); await wait(20);
-    ok('closing the sheet leaves a saving count alone', !sheetUp(s) && Boolean($(s, '#list .recount')));
+    await tapOnce(s, left(s, 'a'));
+    $(s, '[data-act="cminus"]').click(); await wait(10);
+    $(s, '[data-act="csave"]').click(); await wait(30);
+    ok('(a count is saving)', /Saving/.test(text(s, '[data-act="csave"]')), text(s, '[data-act="csave"]'));
     await hold(s, left(s, 'b'));
-    ok('another tire cannot be held open meanwhile', !sheetUp(s));
-    ok('and it says why', /A count is still saving/.test(text(s, '.salemsg')), text(s, '.salemsg'));
+    ok('holding another tire still opens its details', sheetUp(s) && /195\/65R15/.test(text(s, '#qdWrap .qd-head')), text(s, '#qdWrap .qd-head'));
+    ok('and the saving count is left alone behind it', Boolean($(s, '#list .recount')) && /Saving/.test(text(s, '#list [data-act="csave"]')));
     if (release) release();
     await wait(40);
     s.close();

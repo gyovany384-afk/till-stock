@@ -10,7 +10,7 @@
 //
 //   node tests/stock-read.test.cjs
 // ============================================================
-const { phone, ok, finish, wait, list, fresh, onScreen, stockCalls, row, book, reply } = require('./harness.cjs');
+const { pull, phone, ok, finish, wait, list, fresh, onScreen, stockCalls, row, book, reply } = require('./harness.cjs');
 
 const headerOf = (call, name) => {
   const h = call.headers || {};
@@ -216,7 +216,7 @@ const countOn = (w, id) => (((w.document.querySelector('.row[data-id="' + id + '
     await wait(40);
     ok('a tire sold down to nothing stays on screen with its new count',
       list(w).indexOf('data-id="p1"') !== -1 && list(w).indexOf('0') !== -1 && /sold/.test(list(w)), list(w).slice(0, 300));
-    w.document.getElementById('refreshBtn').click();
+    await pull(w);
     await wait(60);
     ok('and is gone at the next read', list(w).indexOf('data-id="p1"') === -1 && list(w).indexOf('Nothing is in stock') !== -1, list(w).slice(0, 300));
     w.close();
@@ -235,7 +235,7 @@ const countOn = (w, id) => (((w.document.querySelector('.row[data-id="' + id + '
     w.document.querySelector('[data-act="confirm"]').click();
     await wait(30);
     rows[0].qty = 0;                       // the sale went in after all
-    w.document.getElementById('refreshBtn').click();
+    await pull(w);
     await wait(60);
     const head = (w.document.querySelector('.waiting .w-head') || {}).textContent || '';
     ok('a waiting sale on a tire now out of stock says so', /out of stock and not shown/.test(head), head);
@@ -258,7 +258,7 @@ const countOn = (w, id) => (((w.document.querySelector('.row[data-id="' + id + '
     w.document.querySelector('[data-act="confirm"]').click();
     await wait(30);
     rows.splice(0, 1);                     // archived at the counter
-    w.document.getElementById('refreshBtn').click();
+    await pull(w);
     await wait(60);
     const head = (w.document.querySelector('.waiting .w-head') || {}).textContent || '';
     ok('a waiting sale on a tire taken off the book still says that', /no longer on the stock list/.test(head), head);
@@ -280,7 +280,7 @@ const countOn = (w, id) => (((w.document.querySelector('.row[data-id="' + id + '
     await wait(60);
     const first = (w.document.querySelector('.salemsg') || {}).textContent || '';
     after(rows);
-    w.document.getElementById('refreshBtn').click();
+    await pull(w);
     await wait(60);
     return { w, first, then: (w.document.querySelector('.salemsg') || {}).textContent || '' };
   };
@@ -309,7 +309,7 @@ const countOn = (w, id) => (((w.document.querySelector('.row[data-id="' + id + '
     w.document.querySelector('[data-act="confirm"]').click();
     await wait(30);
     rows[0].qty = 0;
-    w.document.getElementById('refreshBtn').click();
+    await pull(w);
     await wait(60);
     const msg = (w.document.querySelector('.salemsg') || {}).textContent || '';
     ok('a waiting sale keeps its own words through a read', /may or may not have gone through/.test(msg), msg);
@@ -343,7 +343,7 @@ const countOn = (w, id) => (((w.document.querySelector('.row[data-id="' + id + '
     w.fetch = (u, init) => (String(u).indexOf('/rest/v1/products') !== -1
       ? new Promise((res) => { release = () => res(real(u, init)) })
       : real(u, init));
-    w.document.getElementById('refreshBtn').click();
+    await pull(w);
     await wait(30);
     w.document.getElementById('signOutBtn').click();
     await wait(20);
@@ -365,7 +365,7 @@ const countOn = (w, id) => (((w.document.querySelector('.row[data-id="' + id + '
     w.fetch = (u, init) => (String(u).indexOf(what) !== -1
       ? new Promise((res, rej) => { release = () => answer(res, rej, real(u, init)) })
       : real(u, init));
-    w.document.getElementById('refreshBtn').click();
+    await pull(w);
     await wait(30);
     w.document.getElementById('signOutBtn').click();
     await wait(20);
@@ -400,7 +400,7 @@ const countOn = (w, id) => (((w.document.querySelector('.row[data-id="' + id + '
     w.fetch = (u, init) => (String(u).indexOf('/rpc/is_staff') !== -1
       ? new Promise((res) => { release = () => res({ ok: false, status: 401, headers: { get: () => null }, json: () => Promise.resolve({ message: 'JWT expired' }), text: () => Promise.resolve('') }) })
       : real(u, init));
-    w.document.getElementById('refreshBtn').click();
+    await pull(w);
     await wait(30);
     w.document.getElementById('signOutBtn').click();
     await wait(20);
@@ -428,10 +428,10 @@ const countOn = (w, id) => (((w.document.querySelector('.row[data-id="' + id + '
       if (String(u).indexOf('/rest/v1/products') === -1 || release) return real(u, init);
       return new Promise((res) => { release = () => res(reply(snapshot)) });
     };
-    w.document.getElementById('refreshBtn').click();   // read one, held at qty 4
+    await pull(w);   // read one, held at qty 4
     await wait(30);
     rows[0].qty = 1;                                   // the counter sold three
-    w.document.getElementById('refreshBtn').click();   // read two, answers now
+    await pull(w);   // read two, answers now
     await wait(60);
     ok('(the newer read is on screen)', countOn(w, 'p1') === '1 in stock', countOn(w, 'p1'));
     release();
@@ -454,7 +454,7 @@ const countOn = (w, id) => (((w.document.querySelector('.row[data-id="' + id + '
       if (String(u).indexOf('/rest/v1/products') === -1 || release) return real(u, init);
       return new Promise((res) => { release = () => res(reply(snapshot)) });
     };
-    w.document.getElementById('refreshBtn').click();
+    await pull(w);
     await wait(30);
     w.document.getElementById('signOutBtn').click();
     await wait(20);

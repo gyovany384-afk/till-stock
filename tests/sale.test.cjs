@@ -15,7 +15,7 @@
 //
 //   node tests/sale.test.cjs
 // ============================================================
-const { phone, ok, finish, wait, list, row, reply } = require('./harness.cjs');
+const { pull, phone, ok, finish, wait, list, row, reply } = require('./harness.cjs');
 
 const headerOf = (call, name) => {
   const h = call.headers || {};
@@ -190,7 +190,9 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     await wait(60);
     const text = w.document.body.textContent;
     ok('the page no longer says it can never change anything', !/can only look/.test(text) && !/read-only/.test(text));
-    ok('and says a tap logs a sale', /tap a tire to log a sale/.test(text));
+    // The blue strip that said "tap a tire to log a sale" was taken off every
+    // screen on his word, 28 Oct 2026; the right half of a card says Sell.
+    ok('the blue banner strip is gone from every screen', !w.document.getElementById('banner'));
     w.close();
   }
 
@@ -301,7 +303,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const { w } = phone({ rows: two(), sale: (body) => new Promise((r) => { release = () => r(reply({ id: body.p_id, already: false, product: '205/55R16 Marchetti Primato 4', qty_before: 10, qty_left: 9, believed: 10 })) }) })
     await wait(60)
     await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]')
-    w.document.getElementById('refreshBtn').click(); await wait(60)
+    await pull(w); await wait(60)
     release(); await wait(40)
     ok('the tire shows what is left even after the list was read again underneath it', countOn(w, 'p1') === '9 in stock' && /9 left/.test(said(w)), [countOn(w, 'p1'), said(w)])
     w.close()
@@ -359,7 +361,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     await wait(60)
     await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     rows.splice(0, 1)   // archived at the counter while the answer was lost
-    w.document.getElementById('refreshBtn').click(); await wait(60)
+    await pull(w); await wait(60)
     const top = $(w, '#list > .waiting')
     ok('a sale waiting on a tire taken off the list is drawn above the list',
       Boolean(top) && /no longer on the stock list/.test(top.textContent) && /1 × 205\/55R16 Marchetti Primato 4/.test(top.textContent), top && top.textContent)
@@ -381,7 +383,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     await wait(60)
     await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     rows.splice(0, 1)
-    w.document.getElementById('refreshBtn').click(); await wait(60)
+    await pull(w); await wait(60)
     await tap(w, '.waiting [data-act="leave"]'); await wait(60)
     ok('Leave it above the list lets the sale go', !$(w, '.waiting') && w.localStorage.getItem(PENDING) === null)
     ok('and says so above the list', /Left as it is/.test(topSaid(w)), topSaid(w))
@@ -402,7 +404,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     await wait(60)
     await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     rows.splice(0, 1)
-    w.document.getElementById('refreshBtn').click(); await wait(60)
+    await pull(w); await wait(60)
     await tap(w, '.waiting [data-act="confirm"]'); await wait(30)
     ok('a retry refused for a tire no longer on the book says so above the list', /not on the book any more/.test(topSaid(w)), topSaid(w))
     ok('and lets the sale go', !$(w, '.waiting') && w.localStorage.getItem(PENDING) === null)
@@ -766,7 +768,7 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     await tap(w, '.row[data-id="p1"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
     const real = w.fetch
     w.fetch = (u, init) => (String(u).indexOf(what) !== -1 ? Promise.reject(new Error('offline')) : real(u, init))
-    w.document.getElementById('refreshBtn').click(); await wait(60)
+    await pull(w); await wait(60)
     const top = $(w, '#list > .waiting')
     ok('a failed read (' + what.split('/').pop() + ') keeps the waiting sale on screen, with Try again and Leave it',
       Boolean(top) && /could not be read/.test(top.textContent) && Boolean($(w, '.waiting [data-act="leave"]')) && /Couldn.t/.test(list(w)), top && top.textContent)

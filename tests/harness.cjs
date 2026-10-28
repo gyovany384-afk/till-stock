@@ -315,6 +315,20 @@ function finish(label) {
 }
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+// A PULL DOWN TO REFRESH, the way a thumb does it (28 Oct 2026: the header's
+// refresh button was replaced by it): touch down at the top of whichever list is
+// in front, drag down past the line, let go.
+const pull = async (w, dist = 120) => {
+  const ids = ['list', 'salesList', 'notesList', 'healthList', 'timeList'];
+  const el = ids.map((id) => w.document.getElementById(id)).find((x) => x && !x.hidden && x.style.display !== 'none');
+  const fire = (type, y) => {
+    const ev = new w.Event(type, { bubbles: true, cancelable: true });
+    ev.touches = type === 'touchend' ? [] : [{ clientY: y }];
+    el.dispatchEvent(ev);
+  };
+  fire('touchstart', 100); fire('touchmove', 100 + dist / 2); fire('touchmove', 100 + dist); fire('touchend', 100 + dist);
+  await wait(10);
+};
 const list = (w) => (w.document.getElementById('list') || {}).innerHTML || '';
 const fresh = (w) => (w.document.getElementById('freshText') || {}).textContent || '';
 const onScreen = (w, id) => {
@@ -336,5 +350,5 @@ const tap = (w, sel) => {
   return true;
 };
 
-module.exports = { phone, ok, finish, wait, list, fresh, onScreen, stockCalls, row, book, reply,
+module.exports = { phone, ok, finish, wait, pull, list, fresh, onScreen, stockCalls, row, book, reply,
   salesCalls, salesList, sheet, sheetOpen, tap };
