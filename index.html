@@ -129,6 +129,11 @@
   .statusline{ display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:8px;
     font-size:12px; color:var(--faint); }
   .statusline .fresh{ display:inline-flex; align-items:center; gap:5px; }
+  /* SORT, on the Stock tab — his ask 28 Oct 2026: "sort by price in stock tab". */
+  .sortbtn{ margin-right:auto; min-height:32px; padding:0 12px; border-radius:999px; border:1px solid var(--line-strong);
+    background:var(--surface-2); color:var(--ink); font-family:inherit; font-size:12.5px; font-weight:600; }
+  .sortbtn[hidden]{ display:none; }
+  .sortbtn b{ font-weight:800; }
   .dot{ width:7px; height:7px; border-radius:50%; background:var(--good); }
 
   /* ---------- Count stock ---------- */
@@ -1067,6 +1072,7 @@
       <button type="button" class="clr" id="clrBtn" aria-label="Clear search">&times;</button>
     </div>
     <div class="statusline">
+      <button type="button" class="sortbtn" id="sortBtn" aria-label="Change how the stock is sorted"></button>
       <span class="fresh" id="freshText"></span>
     </div>
   </div>
@@ -1531,7 +1537,7 @@
     // included (a search can hide the very tire the sheet is open on).
     if (qd) renderQd();
     var q = query.trim().toLowerCase();
-    var shown = q ? products.filter(function(p){ return matches(p, q); }) : products;
+    var shown = sorted(q ? products.filter(function(p){ return matches(p, q); }) : products);
     var top = aboveTheList(withOut && q ? shown.concat(outProducts.filter(function(p){ return matches(p, q); })) : shown);
     if (!products.length){
       // IT NO LONGER NAMES A MACHINE. The old wording — "Has your shop computer
@@ -1548,7 +1554,7 @@
     }
     // The out-of-stock tires this search would turn up, offered behind a button
     // and drawn under their own heading once it is pressed.
-    var outShown = q ? outProducts.filter(function(p){ return matches(p, q); }) : [];
+    var outShown = sorted(q ? outProducts.filter(function(p){ return matches(p, q); }) : []);
     var outButton = q && !withOut && outShown.length
       ? '<button type="button" class="outbtn" data-act="without">Search out of stock/negative</button>' : '';
     if (!withOut) outShown = [];
@@ -1596,6 +1602,21 @@
     }
     html += outButton + adders;
     $('list').innerHTML = html;
+  }
+  // HOW THE STOCK TAB IS ORDERED: by size (the book's own order), or by sell
+  // price, cheapest first or dearest first, with size breaking a tie. Kept on this
+  // phone like the Health tab's view is. Sorting is on the way to the screen only.
+  var SORT_KEY = 'till_stock_sort', SORTS = ['size', 'low', 'high'];
+  var sortMode = 'size';
+  try { var sv = localStorage.getItem(SORT_KEY); if (SORTS.indexOf(sv) !== -1) sortMode = sv; } catch(e){}
+  function sortWords(){ return sortMode === 'low' ? 'Price, low first' : sortMode === 'high' ? 'Price, high first' : 'Size'; }
+  function drawSort(){ $('sortBtn').innerHTML = 'Sort: <b>' + sortWords() + '</b>'; }
+  function sorted(list){
+    if (sortMode === 'size') return list;
+    var dir = sortMode === 'low' ? 1 : -1;
+    return list.slice().sort(function(a, b){
+      return dir * ((Number(a.sellPrice) || 0) - (Number(b.sellPrice) || 0)) || bySize(a, b);
+    });
   }
   function bySize(a, b){ return String(a.size||'').localeCompare(String(b.size||''), undefined, {numeric:true}); }
   function saidHtml(s){ return '<div class="salemsg' + (s.tone ? ' ' + s.tone : '') + '" role="status">' + esc(s.text) + '</div>'; }
@@ -4470,6 +4491,7 @@
     $('timerBtn').classList.toggle('on', onTime);
     $('timerBtn').setAttribute('aria-pressed', onTime ? 'true' : 'false');
     $('searchWrap').hidden = onTime;
+    $('sortBtn').hidden = !onStock;
     [['tabStock', onStock], ['tabSales', onSales], ['tabNotes', onNotes], ['tabHealth', onHealth]].forEach(function(t){
       $(t[0]).classList.toggle('on', t[1]);
       $(t[0]).setAttribute('aria-selected', t[1] ? 'true' : 'false');
@@ -4567,6 +4589,15 @@
     $('searchWrap').classList.remove('has');
     showLogin(); document.getElementById('loginMsg').className = 'msg';
   });
+  $('sortBtn').addEventListener('click', function(){
+    sortMode = SORTS[(SORTS.indexOf(sortMode) + 1) % SORTS.length];
+    try { localStorage.setItem(SORT_KEY, sortMode); } catch(e){}
+    drawSort();
+    $('list').scrollTop = 0;
+    renderList();
+  });
+  drawSort();
+
   // PULL DOWN TO REFRESH — his comment on the practice copy, 28 Oct 2026: "pull
   // down to refresh instead of button". The header's refresh button is gone.
   // Drag the list down from its very top (a finger, or a mouse on a computer) and
