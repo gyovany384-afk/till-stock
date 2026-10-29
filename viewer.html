@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#2563eb">
+<title>Stock lookup</title>
+<style>
+  :root{ --bg:#f6f7f9; --card:#fff; --ink:#0f172a; --ink2:#475569; --mute:#64748b; --faint:#94a3b8; --line:rgba(15,23,42,.08); --blue:#2563eb; --red:#dc2626; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; background:var(--bg); color:var(--ink); font-family:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; font-size:15px; }
+  button,input{ font:inherit; }
+  .screen[hidden]{ display:none; }
+
+  /* sign-in */
+  .login{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .logincard{ width:100%; max-width:360px; background:var(--card); border:1px solid var(--line); border-radius:18px; padding:26px 22px; }
+  .logo{ width:40px; height:40px; border-radius:12px; background:var(--blue); color:#fff; font-weight:800; display:flex; align-items:center; justify-content:center; margin-bottom:14px; }
+  h1{ font-size:20px; margin:0 0 4px; font-weight:800; }
+  .hint{ color:var(--mute); font-size:13.5px; margin:0 0 18px; }
+  label{ display:block; font-size:12.5px; font-weight:700; color:var(--ink2); margin:12px 0 6px; }
+  .field{ width:100%; height:46px; border:1px solid var(--line); border-radius:12px; padding:0 14px; font-size:16px; background:#fff; color:var(--ink); }
+  .field:focus{ outline:2px solid rgba(37,99,235,.35); border-color:var(--blue); }
+  .btn{ width:100%; height:48px; margin-top:18px; border:none; border-radius:12px; background:var(--blue); color:#fff; font-weight:700; font-size:16px; }
+  .btn[disabled]{ opacity:.6; }
+  .msg{ margin-top:12px; font-size:13.5px; color:var(--red); min-height:18px; }
+
+  /* app */
+  .top{ position:sticky; top:0; z-index:5; background:var(--bg); padding:calc(10px + env(safe-area-inset-top)) 14px 10px; border-bottom:1px solid var(--line); }
+  .toprow{ display:flex; align-items:center; gap:8px; }
+  .title{ font-size:19px; font-weight:800; flex:1; }
+  .icon{ width:40px; height:40px; border-radius:12px; border:1px solid var(--line); background:#fff; color:var(--ink2); display:flex; align-items:center; justify-content:center; padding:0; }
+  .icon svg{ width:20px; height:20px; }
+  .search{ margin-top:10px; display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--line); border-radius:14px; padding:0 12px; height:46px; }
+  .search svg{ width:18px; height:18px; color:var(--faint); flex:0 0 auto; }
+  .search input{ border:none; outline:none; background:none; width:100%; font-size:16px; color:var(--ink); }
+  .status{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:12.5px; color:var(--mute); }
+  .sortbtn{ border:none; background:none; color:var(--blue); font-weight:700; font-size:12.5px; padding:4px 0; }
+  .list{ padding:12px 14px calc(30px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:10px; }
+  .row{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px 16px; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 14px; align-items:center; }
+  .name{ font-weight:800; font-size:16px; overflow-wrap:anywhere; }
+  .brandline{ color:var(--ink2); font-size:14px; overflow-wrap:anywhere; }
+  .sub{ grid-column:1; color:var(--mute); font-size:12.5px; }
+  .sub span{ margin:0 5px; color:var(--faint); }
+  .price{ grid-row:1 / span 3; grid-column:2; text-align:right; }
+  .sell{ font-size:20px; font-weight:800; }
+  .count{ font-size:12.5px; color:var(--mute); margin-top:2px; }
+  .empty{ text-align:center; color:var(--mute); padding:44px 20px; line-height:1.5; }
+  .empty b{ display:block; color:var(--ink); font-size:16px; margin-bottom:4px; }
+</style>
+</head>
+<body>
+
+<div class="screen login" id="loginScreen" hidden>
+  <form class="logincard" id="loginForm" autocomplete="on">
+    <div class="logo">T</div>
+    <h1>Stock lookup</h1>
+    <p class="hint">Sign in to look up tires and prices.</p>
+    <label for="email">Email</label>
+    <input class="field" id="email" type="email" autocomplete="username" autocapitalize="off" required>
+    <label for="password">Password</label>
+    <input class="field" id="password" type="password" autocomplete="current-password" required>
+    <button class="btn" id="loginBtn" type="submit">Sign in</button>
+    <div class="msg" id="loginMsg" role="alert"></div>
+  </form>
+</div>
+
+<div class="screen" id="appScreen" hidden>
+  <div class="top">
+    <div class="toprow">
+      <div class="title">Stock lookup</div>
+      <button class="icon" id="refreshBtn" type="button" aria-label="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+      </button>
+      <button class="icon" id="signOutBtn" type="button" aria-label="Sign out">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      </button>
+    </div>
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="q" type="search" inputmode="search" enterkeyhint="search" autocapitalize="off" autocomplete="off" placeholder="Search size, brand, rack, code…" aria-label="Search stock">
+    </div>
+    <div class="status">
+      <button class="sortbtn" id="sortBtn" type="button" aria-label="Change how the stock is sorted"></button>
+      <span id="freshText"></span>
+    </div>
+  </div>
+  <div class="list" id="list"></div>
+</div>
+
+<script>
+(function(){
+  // THE LOOK-ONLY PAGE — 29 Oct 2026. A person who may see the sell price and
+  // the basic details of a product, and nothing else.
+  //
+  // IT IS A SEPARATE PAGE ON PURPOSE, not the staff phone page with buttons
+  // hidden. Everything the staff page can do — sell, recount, move, notes,
+  // timers, Stock Health, cost — is simply not in this file, so there is nothing
+  // to unhide. And the page is only the convenience: the lock is in the
+  // database. A viewer is NOT on the staff list, so every staff table and
+  // function refuses them, and the one thing they can call,
+  // till_stock.viewer_products(), returns eight columns and no cost.
+  //
+  // The key below is the publishable kind and is meant to be in a page; this
+  // repo is public. It opens nothing without a signed-in account on the viewers
+  // list (db/2026-10-29-viewers.sql in the desktop repo).
+  var SUPA_URL = 'https://bvyuhdveucdfwaltjoks.supabase.co';
+  var ANON = 'sb_publishable_DdmxpTjPB9BoG4CeNE2qJA_UpNuQx-I';
+  var SCHEMA = 'till_stock';
+  // Its own key: never the staff page's, so the two sign-ins cannot be mixed up.
+  var SESSION_KEY = 'till_stock_viewer_session_v1';
+  var PAGE = 1000, MAX_PAGES = 50;
+
+  var $ = function(id){ return document.getElementById(id); };
+  var session = null, products = [], checkedAt = null, readGen = 0, sessionGen = 0;
+  var SORTS = ['size', 'low', 'high'], SORT_KEY = 'till_stock_viewer_sort', sortMode = 'size';
+  try { session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e){ session = null; }
+  try { var sv = localStorage.getItem(SORT_KEY); if (SORTS.indexOf(sv) !== -1) sortMode = sv; } catch(e){}
+
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
+  // Cents become dollars here and nowhere else.
+  function money2(dollars){ return '$' + (Number(dollars) || 0).toFixed(2); }
+
+  // ---------- screens ----------
+  function only(which){ $('loginScreen').hidden = which !== 'login'; $('appScreen').hidden = which !== 'app'; }
+  function showLogin(msg){ only('login'); $('loginMsg').textContent = msg || ''; $('loginBtn').disabled = false; $('loginBtn').textContent = 'Sign in'; }
+  function showApp(){ only('app'); }
+
+  // ---------- auth ----------
+  function saveSession(d){
+    session = {
+      access_token: d.access_token, refresh_token: d.refresh_token,
+      expires_at: Date.now() + ((d.expires_in || 3600) * 1000),
+      email: (d.user && d.user.email) || (session && session.email) || ''
+    };
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch(e){}
+  }
+  function clearSession(){ sessionGen += 1; session = null; try { localStorage.removeItem(SESSION_KEY); } catch(e){} }
+  function login(email, password){
+    return fetch(SUPA_URL + '/auth/v1/token?grant_type=password', {
+      method: 'POST', headers: { 'apikey': ANON, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: password })
+    }).then(function(res){
+      if (!res.ok) return res.json().catch(function(){ return {}; }).then(function(j){
+        throw { message: (res.status === 400 || res.status === 401 || res.status === 422) ? 'That email or password is not right.' : (j.error_description || j.msg || 'Sign-in failed') };
+      });
+      return res.json();
+    });
+  }
+  function refresh(){
+    if (!session || !session.refresh_token) return Promise.resolve(false);
+    return fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST', headers: { 'apikey': ANON, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: session.refresh_token })
+    }).then(function(res){
+      if (!res.ok){ clearSession(); return false; }
+      return res.json().then(function(d){ saveSession(d); return true; });
+    }).catch(function(){ return false; });
+  }
+  // One request to the database. Both profile headers go on it, or a call looks
+  // in the wrong schema and answers with nothing. A 401 gets one refresh, and the
+  // retry carries the same headers.
+  function call(method, path, extra, retried){
+    var headers = { 'apikey': ANON, 'Content-Profile': SCHEMA, 'Accept-Profile': SCHEMA };
+    if (method === 'POST') headers['Content-Type'] = 'application/json';
+    if (session && session.access_token) headers['Authorization'] = 'Bearer ' + session.access_token;
+    if (extra) for (var k in extra) if (extra.hasOwnProperty(k)) headers[k] = extra[k];
+    return fetch(SUPA_URL + path, { method: method, headers: headers, body: method === 'POST' ? '{}' : undefined }).then(function(res){
+      if (res.status === 401 && !retried && session && session.refresh_token){
+        return refresh().then(function(ok){
+          if (ok) return call(method, path, extra, true);
+          // A refresh that failed on the NETWORK leaves the session in place: that is
+          // a dropped connection, not a sign-out. Say so instead of returning the 401.
+          if (session) throw new Error('offline');
+          return res;
+        });
+      }
+      return res;
+    });
+  }
+
+  // ---------- the door ----------
+  // Three answers, not two: an empty screen has different causes, and a dropped
+  // connection must not read as "you are not allowed".
+  function isViewer(){
+    return call('POST', '/rest/v1/rpc/is_viewer').then(function(res){
+      if (res.status === 401) return 'signed-out';
+      if (!res.ok) return 'unknown';
+      return res.json().then(function(v){ return v === true ? 'yes' : 'no'; }).catch(function(){ return 'unknown'; });
+    }).catch(function(){ return 'unknown'; });
+  }
+
+  // ---------- the read ----------
+  // Paged, because PostgREST returns at most 1,000 rows and says nothing about
+  // the ones it left behind. The function orders by id, so pages do not overlap.
+  function pageOf(from){
+    return call('GET', '/rest/v1/rpc/viewer_products?order=id', { 'Range-Unit': 'items', 'Range': from + '-' + (from + PAGE - 1) }).then(function(res){
+      if (res.status === 401) return { expired: true };
+      if (res.status === 416) return { rows: [] };
+      if (!res.ok) throw new Error('read failed');
+      return res.json().then(function(rows){ return { rows: Array.isArray(rows) ? rows : [] }; });
+    });
+  }
+  function rowToProduct(r){
+    return {
+      id: r.id, productCode: r.product_code || '', size: r.size || '', brand: r.brand || '', type: r.type || '',
+      location: r.location || '', qty: Number(r.qty) || 0, sellPrice: (Number(r.price_cents) || 0) / 100
+    };
+  }
+  function bySize(a, b){ return String(a.size || '').localeCompare(String(b.size || ''), undefined, { numeric: true }); }
+
+  function load(){
+    var mine = sessionGen, gen = ++readGen;
+    var stale = function(){ return sessionGen !== mine || !session || gen !== readGen; };
+    $('list').innerHTML = '<div class="empty">Loading…</div>';
+    var rows = [];
+    function page(from, n){
+      if (n > MAX_PAGES) return Promise.resolve(false);
+      return pageOf(from).then(function(a){
+        if (a.expired) return 'expired';
+        rows = rows.concat(a.rows);
+        return a.rows.length < PAGE ? true : page(from + PAGE, n + 1);
+      });
+    }
+    return isViewer().then(function(allowed){
+      if (stale()) return;
+      if (allowed === 'signed-out'){ clearSession(); showLogin('Your session expired — sign in again.'); return; }
+      if (allowed === 'no'){
+        showApp();
+        $('list').innerHTML = '<div class="empty"><b>This account can’t look at stock yet.</b>Ask the shop to turn it on.</div>';
+        return;
+      }
+      if (allowed === 'unknown'){
+        showApp();
+        $('list').innerHTML = '<div class="empty"><b>Couldn’t check your access.</b>Check your connection and tap refresh.</div>';
+        return;
+      }
+      return page(0, 1).then(function(done){
+        if (stale()) return;
+        if (done === 'expired'){ clearSession(); showLogin('Your session expired — sign in again.'); return; }
+        products = rows.map(rowToProduct).sort(bySize);
+        checkedAt = Date.now();
+        showApp();
+        draw();
+      });
+    }).catch(function(){
+      if (stale()) return;
+      showApp();
+      $('list').innerHTML = '<div class="empty"><b>Couldn’t load stock.</b>Check your connection and tap refresh.</div>';
+    });
+  }
+
+  // ---------- drawing ----------
+  var norm = function(s){ return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); };
+  function hay(p){ return norm([p.size, p.brand, p.type, p.location, p.productCode].join(' ')); }
+  function sortWords(){ return sortMode === 'low' ? 'Price, low first' : sortMode === 'high' ? 'Price, high first' : 'Size'; }
+  function sorted(list){
+    if (sortMode === 'size') return list;
+    var dir = sortMode === 'low' ? 1 : -1;
+    return list.slice().sort(function(a, b){ return dir * ((a.sellPrice || 0) - (b.sellPrice || 0)) || bySize(a, b); });
+  }
+  function draw(){
+    $('sortBtn').innerHTML = 'Sort: ' + esc(sortWords());
+    var q = norm($('q').value);
+    var shown = sorted(q ? products.filter(function(p){ return hay(p).indexOf(q) !== -1; }) : products);
+    $('freshText').textContent = checkedAt ? 'checked just now' : '';
+    if (!products.length){ $('list').innerHTML = '<div class="empty"><b>Nothing is in stock right now.</b></div>'; return; }
+    if (!shown.length){ $('list').innerHTML = '<div class="empty"><b>No matches</b>for “' + esc($('q').value.trim()) + '”.</div>'; return; }
+    var html = '';
+    shown.forEach(function(p){
+      var sub = [];
+      if (p.type) sub.push(esc(p.type));
+      if (p.location) sub.push('📍 ' + esc(p.location));
+      if (p.productCode) sub.push('#' + esc(p.productCode));
+      html += '<div class="row" data-id="' + esc(p.id) + '">'
+        + '<div class="name">' + esc(p.size || p.brand || 'Product') + '</div>'
+        + (p.size && p.brand ? '<div class="brandline">' + esc(p.brand) + '</div>' : '')
+        + (sub.length ? '<div class="sub">' + sub.join('<span>·</span>') + '</div>' : '')
+        + '<div class="price"><div class="sell">' + money2(p.sellPrice) + '</div><div class="count">' + p.qty + ' in stock</div></div>'
+        + '</div>';
+    });
+    $('list').innerHTML = html;
+  }
+
+  // ---------- events ----------
+  $('loginForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    $('loginBtn').disabled = true; $('loginBtn').textContent = 'Signing in…'; $('loginMsg').textContent = '';
+    login($('email').value.trim(), $('password').value).then(function(d){
+      saveSession(d); $('password').value = ''; return load();
+    }).catch(function(err){
+      showLogin((err && err.message) || 'Couldn’t sign in. Check your connection.');
+    });
+  });
+  $('signOutBtn').addEventListener('click', function(){ clearSession(); products = []; $('q').value = ''; showLogin(''); });
+  $('refreshBtn').addEventListener('click', function(){ if (session) load(); });
+  $('q').addEventListener('input', draw);
+  $('sortBtn').addEventListener('click', function(){
+    sortMode = SORTS[(SORTS.indexOf(sortMode) + 1) % SORTS.length];
+    try { localStorage.setItem(SORT_KEY, sortMode); } catch(e){}
+    draw();
+  });
+
+  if (session) load(); else showLogin('');
+})();
+</script>
+</body>
+</html>
