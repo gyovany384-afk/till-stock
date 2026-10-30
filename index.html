@@ -751,9 +751,36 @@
   .pill.alt{ background:var(--alt-bg); color:#fff; }
   .hs-body{ border-top:1px solid var(--line); background:var(--surface-2); }
   .hnote{ padding:12px 14px; font-size:13px; color:var(--muted); }
-  .hband{ display:flex; align-items:center; gap:9px; padding:10px 13px; background:var(--tb); }
-  .hband .hb-dot{ width:10px; height:10px; border-radius:50%; background:var(--tf); flex:0 0 10px; }
-  .hband .hb-name{ font-size:13px; font-weight:800; letter-spacing:.05em; color:var(--tf); }
+  /* THE TIER BUTTONS — 29 Oct 2026, his approved mockup: a row per size with a
+     button per tier in place of the pills, and the tier switch above the list
+     gone. Colour is the tier's STATE, the same on every tier, as on the counter:
+     yellow low, red out, green good, grey with no target, dashed yellow for a
+     starred brand another one covers. */
+  :root{ --st-short-bg:#fef3c7; --st-short-fg:#92400e; --st-out-bg:#fee2e2; --st-out-fg:#b91c1c;
+    --st-ok-bg:#e7f8ee; --st-ok-fg:#15803d; --st-none-bg:#eef1f8; --st-none-fg:#475569; --st-alt-line:#e0b34a; }
+  @media (prefers-color-scheme: dark){
+    :root{ --st-short-bg:rgba(251,191,36,.16); --st-short-fg:#fcd34d; --st-out-bg:rgba(248,113,113,.16); --st-out-fg:#fca5a5;
+      --st-ok-bg:rgba(74,222,128,.14); --st-ok-fg:#4ade80; --st-none-bg:rgba(255,255,255,.07); --st-none-fg:#94a3b8; --st-alt-line:#a8842f; }
+  }
+  .st-short, .st-alt{ --sb:var(--st-short-bg); --sf:var(--st-short-fg); }
+  .st-out{ --sb:var(--st-out-bg); --sf:var(--st-out-fg); }
+  .st-ok{ --sb:var(--st-ok-bg); --sf:var(--st-ok-fg); }
+  .st-none, .st-empty{ --sb:var(--st-none-bg); --sf:var(--st-none-fg); }
+  .hsr-head{ display:flex; align-items:baseline; gap:8px; padding:11px 13px 8px; }
+  .hsr-head .hpin{ align-self:center; }
+  .tiers{ display:grid; gap:6px; padding:0 10px 10px; }
+  .tb{ min-height:56px; min-width:0; border:none; border-radius:11px; background:var(--sb); color:var(--sf);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; padding:6px 4px; font-family:inherit;
+    font-weight:800; line-height:1.15; outline:2px solid transparent; outline-offset:-2px; transition:outline-color .12s; cursor:pointer; }
+  .tb .nm{ font-size:13px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tb .ct{ font-size:15px; font-variant-numeric:tabular-nums; }
+  .tb.st-alt{ outline:1.5px dashed var(--st-alt-line); outline-offset:-1.5px; }
+  .tb.st-empty{ background:transparent; color:var(--faint); outline:1.5px dashed var(--line-strong); outline-offset:-1.5px; cursor:default; }
+  .tb.on{ outline:2px solid currentColor; outline-offset:-2px; }
+  .tb:focus-visible{ outline:3px solid var(--accent); outline-offset:1px; }
+  .hband{ display:flex; align-items:center; gap:9px; padding:10px 13px; background:var(--sb); }
+  .hband .hb-dot{ width:10px; height:10px; border-radius:50%; background:var(--sf); flex:0 0 10px; }
+  .hband .hb-name{ font-size:13px; font-weight:800; letter-spacing:.05em; color:var(--sf); }
   .hband .hb-top{ margin-left:auto; min-width:0; font-size:12.5px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .hband .hb-top b{ color:var(--ink); }
   .hcols, .htire{ display:grid; grid-template-columns:22px minmax(0,1fr) 54px 40px 34px 14px; gap:6px; align-items:center; }
@@ -1133,7 +1160,7 @@
 <!-- STOCK HEALTH'S RULES — the desk's own, built for this page by
      scripts/build-phone-health.mjs in the desktop repo. Loaded first so the
      page below finds TillHealth; if it fails to load, only the Health tab says so. -->
-<script src="health.js?v=ed13628e14"></script>
+<script src="health.js?v=68ebbfee3d"></script>
 <script>
 (function(){
   // ---- Supabase: the STOCK ROOM computer's own project ----
@@ -3808,7 +3835,10 @@
   function keepView(){ try { localStorage.setItem(HEALTH_KEY, JSON.stringify(hView)); } catch(e){} }
   // Each list's own search and how far down it has been shown — the desk's
   // "search bar for each tier" and "load limit, 25".
-  var hQ = Object.create(null), hLimit = Object.create(null), hOpen = null;
+  // hOpen is the size open; hTier the tier button it was opened from ('*' on a
+  // list with one button). Only a tier button opens a size, and it shows only
+  // that tier's tires (his 29 Oct ruling, as on the counter).
+  var hQ = Object.create(null), hLimit = Object.create(null), hOpen = null, hTier = null, hOpenList = null;
   var HEALTH_STEP = 25;
   // THE TIRE OPENED: { id, list, key, lines, failed, all, shown, invoice }.
   // `lines` is the stock history once it answers; null until then, and the
@@ -3930,7 +3960,7 @@
     keepPillInView(bar.querySelector('.segrow'));
     var box = $('q');
     if (tab === TAB_HEALTH){
-      box.placeholder = cur && cur.id === 'parts' ? 'Find a part' : 'Find a size' + (cur && cur.tier ? ' in ' + cur.title : '');
+      box.placeholder = cur && cur.id === 'parts' ? 'Find a part' : 'Find a size' + (cur && cur.tier === '' ? ' with no tier' : '');
     }
   }
 
@@ -3950,6 +3980,10 @@
       return;
     }
     var list = currentList();
+    // A SIZE OPEN IN ONE LIST IS NOT CARRIED INTO ANOTHER (a refresh can drop the list
+    // it was opened in): it opens only from a tier button, so it closes instead.
+    if (list && hOpen !== null && hOpenList !== list.id) hOpen = null;
+    if (hOpen === null) hOpenList = null;
     // THE TWO SWITCHES SCROLL WITH THE LIST, not in the header: on a phone the
     // header was already half the screen.
     var h = '<div class="hsws">'
@@ -3974,26 +4008,37 @@
     h += '<div class="hcount">' + r.total + (r.total === 1 ? ' size' : ' sizes') + '</div>';
     r.rows.forEach(function(s){
       var open = hOpen === s.key;
-      h += '<div class="hsize' + (open ? ' open' : '') + '"><button type="button" class="hs-head" data-hsize="' + esc(s.key) + '" aria-expanded="' + open + '">'
-        + '<span class="hs-main"><span class="hs-top">' + (s.pinned ? PIN : '') + '<span class="hs-size">' + esc(s.size) + '</span>'
-        + '<span class="hs-on">' + s.onHand + ' on hand</span></span>' + pillsHtml(s.pills) + '</span>' + CHEV + '</button>';
-      if (open) h += sizeBody(list, s.key);
-      h += '</div>';
+      // THE OPEN BUTTON is the one the body drew (sizeOpen settles a tier the size no longer has).
+      var body = open ? sizeBody(list, s.key) : null;
+      var openTier = body ? body.tier : null;
+      h += '<div class="hsize' + (open ? ' open' : '') + '"><div class="hsr-head">' + (s.pinned ? PIN : '') + '<span class="hs-size">' + esc(s.size) + '</span>'
+        + '<span class="hs-on">' + s.onHand + ' on hand</span></div>'
+        + '<div class="tiers" style="grid-template-columns:repeat(' + s.buttons.length + ',minmax(0,1fr))">';
+      s.buttons.forEach(function(b){
+        var gone = b.state === 'empty', on = openTier === b.key;
+        h += '<button type="button" class="tb st-' + b.state + (on ? ' on' : '') + '" data-hkey="' + esc(s.key) + '" data-htb="' + esc(b.key) + '"'
+          + ' aria-pressed="' + on + '" aria-label="' + esc(s.size + ', ' + b.label + ' ' + (gone ? 'no tires on this tier' : b.words)) + '"' + (gone ? ' disabled' : '') + '>'
+          + '<span class="nm">' + esc(b.label) + '</span><span class="ct">' + esc(b.words) + '</span></button>';
+      });
+      h += '</div>' + (body ? body.html : '') + '</div>';
     });
     if (!r.rows.length) h += '<div class="empty">' + (q.trim() ? 'Nothing in that size.' : 'Nothing here.') + '</div>';
     if (r.more) h += '<button type="button" class="hmore" data-act="hmore">Show ' + Math.min(HEALTH_STEP, r.more) + ' more · ' + r.more + ' left</button>';
     el.innerHTML = h;
   }
 
-  // One size, opened in its list: the tier's band, its top seller, its tires.
+  // One size, opened on one tier button: the tier's band, its top seller, its
+  // tires. Answers { tier, html } — the tier it drew (the pressed one, else the
+  // first the size has) and the body to put under the buttons.
   function sizeBody(list, key){
-    var s = TH.sizeOpen(health, list, key, { showOut: hView.out });
-    if (!s) return '';
+    var s = TH.sizeOpen(health, list, key, { showOut: hView.out, tier: hTier });
+    if (!s) return { tier: null, html: '' };
     var h = '<div class="hs-body">';
-    if (s.allOut) h += '<div class="hnote">Every tire in this size is out of stock. Turn Out of stock on to see them.</div>';
+    if (s.allOut) h += '<div class="hnote">Nothing here is in stock. Turn Out of stock on to see the tires.</div>';
     s.bands.forEach(function(b){
       if (!b.tires.length) return;
-      h += '<div class="hband t-' + tierClass(b.tier) + '"><span class="hb-dot"></span><span class="hb-name">' + esc(b.title.toUpperCase()) + '</span>'
+      // The band takes the colour of the tier's STATE, as the button above it does.
+      h += '<div class="hband st-' + s.state + '"><span class="hb-dot"></span><span class="hb-name">' + esc(b.title.toUpperCase()) + '</span>'
         + (b.top ? '<span class="hb-top">Top seller: <b>' + esc(b.top.brand) + '</b> ' + starHtml(b.top.must) + '</span>' : '') + '</div>'
         + '<div class="hcols"><span></span><span></span><span>Price</span><span>/mo</span><span>Stock</span><span></span></div>';
       b.tires.forEach(function(t){
@@ -4007,7 +4052,7 @@
           + '<span class="ht-num">' + t.rack + '</span>' + CHEV + '</button>';
       });
     });
-    return h + '</div>';
+    return { tier: s.tier, html: h + '</div>' };
   }
 
   // ---- one tire, opened — the desk's tire panel, read only ----
@@ -4273,7 +4318,7 @@
     if (!hPage || !health || !TH){ wrap.hidden = true; wrap.innerHTML = ''; return; }
     var v = TH.tireView(health, hPage.id, { lines: hPage.failed ? null : hPage.lines, list: hPage.list, key: hPage.key });
     if (!v){ hPage = null; rewindLayers(); wrap.hidden = true; wrap.innerHTML = ''; return; }
-    var back = hPage.list && hPage.list.id !== 'parts' && hPage.key ? (v.size || 'Back') + (hPage.list.tier !== null ? ' · ' + (hPage.list.tier ? hPage.list.title : 'No tier') : '') : (v.part ? 'Parts' : 'Back');
+    var back = hPage.list && hPage.list.id !== 'parts' && hPage.key ? (v.size || 'Back') + (hPage.list.tier === '' ? ' · No tier' : '') : (v.part ? 'Parts' : 'Back');
     var h = '<div class="hp-top">'
       + '<button type="button" class="hp-back" data-hp="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>' + esc(back) + '</button>'
       + '<div class="hp-title">' + esc(v.title) + '</div>'
@@ -4401,8 +4446,17 @@
       keepView(); hOpen = null; renderHealth(); return;
     }
     if (b.getAttribute('data-act') === 'hmore'){ hLimit[list.id] = (hLimit[list.id] || HEALTH_STEP) + HEALTH_STEP; renderHealth(); return; }
-    // ONE SIZE OPEN AT A TIME — the desk's 14 Oct rule.
-    if (b.hasAttribute('data-hsize')){ var k = b.getAttribute('data-hsize'); hOpen = hOpen === k ? null : k; renderHealth(); return; }
+    // ONE SIZE OPEN AT A TIME — the desk's 14 Oct rule. ONLY A TIER BUTTON OPENS
+    // ONE: the same button again closes it, another button on the open size
+    // switches tier. Compared with the tier the card DREW as open (the stored
+    // one can be stale — the size's tier may have gone since), as the desk does.
+    if (b.hasAttribute('data-htb')){
+      var k = b.getAttribute('data-hkey'), tk = b.getAttribute('data-htb');
+      var shown = hOpen === k ? TH.sizeOpen(health, list, k, { showOut: hView.out, tier: hTier }) : null;
+      if (shown && shown.tier === tk){ hOpen = null; hTier = null; }
+      else { hOpen = k; hTier = tk; hOpenList = list.id; }
+      renderHealth(); return;
+    }
     if (b.hasAttribute('data-htire')){ openTire(b.getAttribute('data-htire'), list, hOpen); return; }
     if (b.hasAttribute('data-hpart')){ openTire(b.getAttribute('data-hpart'), list, null); return; }
   });

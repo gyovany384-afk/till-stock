@@ -87,19 +87,30 @@ const tap = (w, sel) => { const el = $(w, sel); if (el) el.click(); return Boole
     // The list is what the desk's rules say — asked of the same rules directly.
     const TH = w.TillHealth;
     ok('the type chips are the rules\' tabs', text(w, '#healthBar').indexOf('Car') !== -1 && text(w, '#healthBar').indexOf('Parts') !== -1);
-    const size = $(w, '[data-hsize="225/65/17"]');
+    const size = $(w, '[data-hkey="225/65/17"]') && $(w, '[data-hkey="225/65/17"]').closest('.hsize');
     ok('the size is listed', Boolean(size), w.document.getElementById('healthList').innerHTML.slice(0, 300));
-    ok('it is pinned, from the shared pins the desk writes', Boolean(size && size.querySelector('.hpin')));
-    const pills = size ? [...size.querySelectorAll('.pill')].map((p) => p.textContent) : [];
-    ok('its pills are exactly the rules\' answer', pills.length > 0 && pills.join('|') === (function () {
+    ok('it is pinned, from the shared pins the desk writes (kept under the old per-tier list)', Boolean(size && size.querySelector('.hpin')));
+    // THE TIER BUTTONS — 29 Oct 2026: three across, no pills, no tier switch above the list.
+    const labels = size ? [...size.querySelectorAll('.tb')].map((p) => p.textContent) : [];
+    ok('three tier buttons, each saying what the rules answer', labels.length === 3 && labels.join('|') === (function () {
       const m = TH.open({ products: PRODUCTS, sales: SALES, deliveries: DELIVERIES, delivery_lines: LINES, delivery_returns: [], settings: [] },
         { tax_rate_bp: '825' }, (function(){ const d = new Date(); const p = (n) => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); })());
-      const l = TH.lists(m, 'car').find((x) => x.tier === 'affordable');
-      return TH.sizeRows(m, l, {}).rows.find((x) => x.key === '225/65/17').pills.map((p) => p.label).join('|');
-    })(), pills);
+      const l = TH.lists(m, 'car')[0];
+      return TH.sizeRows(m, l, {}).rows.find((x) => x.key === '225/65/17').buttons.map((b) => b.label + b.words).join('|');
+    })(), labels);
+    ok('the Mid and Premium buttons are empty and cannot be pressed (no tire on those tiers)', size && size.querySelectorAll('.tb.st-empty[disabled]').length === 2);
+    ok('the old pills and the tier switch are gone', !$(w, '#healthList .pill') && !$(w, '#healthBar .htiers'));
+    ok('a size opens from a tier button only — the size name opens nothing', !$(w, '[data-hsize]') && !size.querySelector('.hs-body'));
 
-    tap(w, '[data-hsize="225/65/17"]');
+    tap(w, '[data-hkey="225/65/17"][data-htb="affordable"]');
     await wait(20);
+    ok('the pressed button is marked open and its band takes the state colour of the tier', Boolean($(w, '.tb.on')) && /^st-(short|out|ok|none|alt)$/.test([...$(w, '.hband').classList].find((c) => c.indexOf('st-') === 0) || ''));
+    // Press the same button: it closes. A button with no tire behind it does nothing.
+    tap(w, '[data-hkey="225/65/17"][data-htb="mid"]'); await wait(10);
+    ok('an empty tier button does nothing', Boolean($(w, '.tb.on[data-htb="affordable"]')) && w.document.querySelectorAll('.hs-body').length === 1);
+    tap(w, '[data-hkey="225/65/17"][data-htb="affordable"]'); await wait(10);
+    ok('the same button again closes the size', !$(w, '.hs-body') && !$(w, '.tb.on'));
+    tap(w, '[data-hkey="225/65/17"][data-htb="affordable"]'); await wait(10);
     const tires = [...w.document.querySelectorAll('[data-htire]')].map((b) => b.getAttribute('data-htire'));
     ok('opening the size lists its tires, cheapest first', tires.join(',') === 'b,a', tires);
     ok('the star is drawn, never a button: look only', Boolean($(w, '[data-htire="a"] .hstar.on')) && !$(w, '[data-htire="a"] .hstar button'));
@@ -135,7 +146,7 @@ const tap = (w, sel) => { const el = $(w, sel); if (el) el.click(); return Boole
     const { w } = boot({ historyFail: true });
     await wait(80);
     tap(w, '#tabHealth'); await wait(120);
-    tap(w, '[data-hsize="225/65/17"]'); await wait(20);
+    tap(w, '[data-hkey="225/65/17"][data-htb="affordable"]'); await wait(20);
     tap(w, '[data-htire="a"]'); await wait(60);
     ok('a failed history read falls back to the book, and says so',
       text(w, '#hpWrap').indexOf('From the book') !== -1 && text(w, '#hpWrap').indexOf('Sold at $228.00') !== -1);
@@ -167,7 +178,7 @@ const tap = (w, sel) => { const el = $(w, sel); if (el) el.click(); return Boole
     const { w } = boot({ returns: [{ id: 'r1', delivery_id: 'd1', product_id: 'a', qty: 2, cost_cents: 6600, returned_on: day(30) }] });
     await wait(80);
     tap(w, '#tabHealth'); await wait(120);
-    tap(w, '[data-hsize="225/65/17"]'); await wait(20);
+    tap(w, '[data-hkey="225/65/17"][data-htb="affordable"]'); await wait(20);
     tap(w, '[data-htire="a"]'); await wait(60);
     tap(w, '[data-hp="invoice"]'); await wait(10);
     const inv = text(w, '.hp-over');
