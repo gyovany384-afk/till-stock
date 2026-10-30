@@ -757,15 +757,21 @@
      yellow low, red out, green good, grey with no target, dashed yellow for a
      starred brand another one covers. */
   :root{ --st-short-bg:#fef3c7; --st-short-fg:#92400e; --st-out-bg:#fee2e2; --st-out-fg:#b91c1c;
-    --st-ok-bg:#e7f8ee; --st-ok-fg:#15803d; --st-none-bg:#eef1f8; --st-none-fg:#475569; --st-alt-line:#e0b34a; }
+    --st-ok-bg:#e7f8ee; --st-ok-fg:#15803d; --st-none-bg:#eef1f8; --st-none-fg:#475569; --st-alt-line:#e0b34a;
+    --st-pick-bg:#dbeafe; --st-pick-fg:#1d4ed8; }
   @media (prefers-color-scheme: dark){
     :root{ --st-short-bg:rgba(251,191,36,.16); --st-short-fg:#fcd34d; --st-out-bg:rgba(248,113,113,.16); --st-out-fg:#fca5a5;
-      --st-ok-bg:rgba(74,222,128,.14); --st-ok-fg:#4ade80; --st-none-bg:rgba(255,255,255,.07); --st-none-fg:#94a3b8; --st-alt-line:#a8842f; }
+      --st-ok-bg:rgba(74,222,128,.14); --st-ok-fg:#4ade80; --st-none-bg:rgba(255,255,255,.07); --st-none-fg:#94a3b8; --st-alt-line:#a8842f;
+      --st-pick-bg:rgba(96,165,250,.18); --st-pick-fg:#93c5fd; }
   }
   .st-short, .st-alt{ --sb:var(--st-short-bg); --sf:var(--st-short-fg); }
   .st-out{ --sb:var(--st-out-bg); --sf:var(--st-out-fg); }
   .st-ok{ --sb:var(--st-ok-bg); --sf:var(--st-ok-fg); }
   .st-none, .st-empty{ --sb:var(--st-none-bg); --sf:var(--st-none-fg); }
+  /* BLUE WHEN NO BRAND IS STARRED (29 Oct 2026, his ask: "show as a blue button,
+     this way user knows that a selection is require"). After the others so it wins;
+     never on Out or no-target, which tierSummary leaves unflagged. */
+  .st-pick{ --sb:var(--st-pick-bg); --sf:var(--st-pick-fg); }
   .hsr-head{ display:flex; align-items:baseline; gap:8px; padding:11px 13px 8px; }
   .hsr-head .hpin{ align-self:center; }
   .tiers{ display:grid; gap:6px; padding:0 10px 10px; }
@@ -1160,7 +1166,7 @@
 <!-- STOCK HEALTH'S RULES — the desk's own, built for this page by
      scripts/build-phone-health.mjs in the desktop repo. Loaded first so the
      page below finds TillHealth; if it fails to load, only the Health tab says so. -->
-<script src="health.js?v=68ebbfee3d"></script>
+<script src="health.js?v=99d969d490"></script>
 <script>
 (function(){
   // ---- Supabase: the STOCK ROOM computer's own project ----
@@ -4016,7 +4022,7 @@
         + '<div class="tiers" style="grid-template-columns:repeat(' + s.buttons.length + ',minmax(0,1fr))">';
       s.buttons.forEach(function(b){
         var gone = b.state === 'empty', on = openTier === b.key;
-        h += '<button type="button" class="tb st-' + b.state + (on ? ' on' : '') + '" data-hkey="' + esc(s.key) + '" data-htb="' + esc(b.key) + '"'
+        h += '<button type="button" class="tb st-' + b.state + (b.pick ? ' st-pick' : '') + (on ? ' on' : '') + '" data-hkey="' + esc(s.key) + '" data-htb="' + esc(b.key) + '"'
           + ' aria-pressed="' + on + '" aria-label="' + esc(s.size + ', ' + b.label + ' ' + (gone ? 'no tires on this tier' : b.words)) + '"' + (gone ? ' disabled' : '') + '>'
           + '<span class="nm">' + esc(b.label) + '</span><span class="ct">' + esc(b.words) + '</span></button>';
       });
