@@ -4645,7 +4645,7 @@
     // The sales screen goes with it, and showLogin below is where that is done
     // — there are seven roads to the sign-in screen and this button is only one
     // of them.
-    clearSession(); products = []; outProducts = []; withOut = false; hidden = 0; outIds = Object.create(null); checkedAt = null; renderFresh(); $('list').innerHTML = ''; $('q').value = ''; query = '';
+    clearSession(); products = []; outProducts = []; withOut = false; hidden = 0; outIds = Object.create(null); checkedAt = null; renderFresh(); $('list').innerHTML = ''; $('q').value = ''; searchTyped(''); query = '';
     $('searchWrap').classList.remove('has');
     showLogin(); document.getElementById('loginMsg').className = 'msg';
   });
@@ -4726,6 +4726,28 @@
   document.addEventListener('mousemove', function(e){ if (pullTouch && (e.buttons & 1)) pullMove(e.clientY); else if (pullTouch) pullEnd(true); });
   document.addEventListener('mouseup', function(){ pullEnd(false); });
 
+  // THE SEARCH LOG — 1 Nov 2026, the owner's ask. A search on the Stock tab that sits
+  // still for five seconds goes to till_stock.log_search, for the desktop's Search
+  // log tab. This page is staff only (viewers have viewer.html) and the database
+  // refuses anybody else. A failure is dropped without a word: looking a tire up
+  // must work the same with the log broken. The rule is the desktop's
+  // makeSearchRecorder in src/state/searchlog.js.
+  var SEARCH_WAIT_MS = 5000, searchTimer = null, searchSent = '';
+  function cleanSearch(v){ return String(v == null ? '' : v).trim().replace(/\s+/g, ' ').slice(0, 80); }
+  function searchTyped(v){
+    if (searchTimer !== null){ clearTimeout(searchTimer); searchTimer = null; }
+    var text = cleanSearch(v), same = text.toLowerCase();
+    if (!text) searchSent = '';
+    if (text.length < 2 || same === searchSent) return;
+    searchTimer = setTimeout(function(){
+      searchTimer = null;
+      // Moved to another tab while it waited, or changed: this is not that search.
+      if (tab !== TAB_STOCK || cleanSearch($('q').value).toLowerCase() !== same) return;
+      searchSent = same;
+      try { rpc('log_search', { p_screen: 'phone', p_query: text }).catch(function(){}); } catch(e){}
+    }, SEARCH_WAIT_MS);
+  }
+
   $('q').addEventListener('input', function(){
     if (tab === TAB_NOTES){
       notesQuery = this.value;
@@ -4750,6 +4772,7 @@
       return;
     }
     query = this.value;
+    searchTyped(query);
     phoneSaid = null;
     if (!query.trim()) withOut = false;
     $('searchWrap').classList.toggle('has', !!query);
@@ -4762,6 +4785,7 @@
     if (tab === TAB_NOTES){ notesQuery = ''; renderNotes(); return; }
     if (tab === TAB_HEALTH){ var hc = health && currentList(); if (hc){ hQ[hc.id] = ''; hLimit[hc.id] = HEALTH_STEP; } hOpen = null; renderHealth(); return; }
     query = ''; withOut = false;
+    searchTyped('');
     renderList();
   });
   // A tap on a clear button must NOT pull focus off the search input — if it
