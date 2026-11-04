@@ -53,7 +53,7 @@ function boot(over = {}) {
       }
       if (u.indexOf('/rest/v1/delivery_lines') !== -1) return reply(LINES, 206);
       if (u.indexOf('/rest/v1/delivery_returns') !== -1) return reply(over.returns || [], 206);
-      if (u.indexOf('/rest/v1/deliveries') !== -1) return reply(DELIVERIES, 206);
+      if (u.indexOf('/rest/v1/deliveries') !== -1) return reply(over.deliveries || DELIVERIES, 206);
       if (u.indexOf('/rest/v1/settings') !== -1) return reply([{ key: 'tax_rate_bp', value: '825' }, { key: 'health_pin:car|affordable#225/65/17', value: '1790000000000' }], 206);
       return undefined;
     },
@@ -184,6 +184,21 @@ const tap = (w, sel) => { const el = $(w, sel); if (el) el.click(); return Boole
     const inv = text(w, '.hp-over');
     ok('the returned tires are still a line on the invoice', inv.indexOf('RETURNED') !== -1 && inv.indexOf('−$132.00') !== -1, inv);
     ok('and the total is only what was charged', inv.indexOf('Charged, after returns$330.00') !== -1 && inv.indexOf('Lines added up $462.00') !== -1, inv);
+    w.close();
+  }
+
+  // 4 Nov 2026, the Credit button: a credit on an invoice comes off the total the same way.
+  {
+    const credited = DELIVERIES.map((d) => ({ ...d, total_cents: 46200, credits: [{ id: 'c1', cents: 5000, date: day(2) }] }));
+    const { w } = boot({ deliveries: credited });
+    await wait(80);
+    tap(w, '#tabHealth'); await wait(120);
+    tap(w, '[data-hkey="225/65/17"][data-htb="affordable"]'); await wait(20);
+    tap(w, '[data-htire="a"]'); await wait(60);
+    tap(w, '[data-hp="invoice"]'); await wait(10);
+    const inv = text(w, '.hp-over');
+    ok('the credit is listed on the invoice', inv.indexOf('CREDIT') !== -1 && inv.indexOf('−$50.00') !== -1, inv);
+    ok('and the total is what was charged after it', inv.indexOf('Charged, after credits$412.00') !== -1 && inv.indexOf('Invoice total $462.00 · credited −$50.00') !== -1, inv);
     w.close();
   }
 

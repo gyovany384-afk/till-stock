@@ -1166,7 +1166,7 @@
 <!-- STOCK HEALTH'S RULES — the desk's own, built for this page by
      scripts/build-phone-health.mjs in the desktop repo. Loaded first so the
      page below finds TillHealth; if it fails to load, only the Health tab says so. -->
-<script src="health.js?v=99d969d490"></script>
+<script src="health.js?v=1119ce48b8"></script>
 <script>
 (function(){
   // ---- Supabase: the STOCK ROOM computer's own project ----
@@ -4293,6 +4293,12 @@
       h += '<div class="hp-inv head" style="color:var(--low)"><span>RETURNED</span><span></span><span></span><span></span></div>';
       inv.returns.forEach(function(r){
         h += '<div class="hp-inv"><span style="font-weight:700;overflow-wrap:anywhere">' + esc(r.name) + ' · ' + esc(r.date) + '</span><span>−' + r.qty + '</span><span>' + esc(r.cost) + '</span><span style="font-weight:700;color:var(--low)">' + esc(r.total) + '</span></div>';
+      });
+    }
+    if ((inv.credits || []).length){
+      h += '<div class="hp-inv head" style="color:var(--low)"><span>CREDIT</span><span></span><span></span><span></span></div>';
+      inv.credits.forEach(function(c){
+        h += '<div class="hp-row"><span>' + esc(c.date) + '</span><b style="color:var(--low)">' + esc(c.amount) + '</b></div>';
       });
     }
     h += '<div class="hp-row"><span class="hp-faint">' + esc(inv.totalLabel) + '</span><b>' + esc(inv.total) + '</b></div>'
