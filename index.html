@@ -95,6 +95,7 @@
     color:var(--ink); display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
   .iconbtn:active{ background:var(--line); }
   .iconbtn svg{ width:19px; height:19px; }
+  a.iconbtn{ text-decoration:none; }
   /* Count reads as an action, not another utility, so it carries the accent.
      Named .tally, not .count — .count is already the green in-stock badge on a
      row, and it would repaint this button green and break its layout. */
@@ -1070,6 +1071,11 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4M12 14l3-3"/><circle cx="12" cy="14" r="8"/></svg>
         <span class="tbadge" id="timerBadge" hidden></span>
       </button>
+      <!-- 4 Nov 2026: the invoice test is its own page (invoice.html), a link here and no tab, so
+           none of the tab code above or below is touched. Staff only: the page checks. -->
+      <a class="iconbtn" id="invoiceBtn" href="invoice.html" aria-label="Invoice test">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
+      </a>
       <button class="iconbtn" id="signOutBtn" aria-label="Sign out">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
       </button>
