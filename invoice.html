@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#2563eb">
-<title>Invoice test</title>
+<title>Send an invoice</title>
 <style>
   :root{ --bg:#f6f7f9; --card:#fff; --ink:#0f172a; --ink2:#475569; --mute:#64748b; --faint:#94a3b8; --line:rgba(15,23,42,.08); --blue:#2563eb; --red:#dc2626; --good:#1a8a4c; --good-bg:#e7f5ec; --warn-bg:#fffbeb; --warn-line:#fde68a; --warn-ink:#78350f; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -58,7 +58,7 @@
 <div class="screen login" id="loginScreen" hidden>
   <form class="logincard" id="loginForm" autocomplete="on">
     <div class="logo">T</div>
-    <h1>Invoice test</h1>
+    <h1>Send an invoice</h1>
     <p class="hint">Sign in with the staff login to send an invoice picture.</p>
     <label class="lbl" for="email">Email</label>
     <input class="field" id="email" type="email" autocomplete="username" autocapitalize="off" required>
@@ -75,14 +75,14 @@
       <a class="icon" href="index.html" aria-label="Back to stock">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
       </a>
-      <div class="title">Invoice test</div>
+      <div class="title">Send an invoice</div>
       <button class="icon" id="signOutBtn" type="button" aria-label="Sign out">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
       </button>
     </div>
   </div>
   <div class="body">
-    <div class="banner"><b>Test — nothing here changes your stock.</b> The picture goes to the desktop, which reads it and then deletes it. You review it there.</div>
+    <div class="banner"><b>Nothing here changes your stock.</b> The picture goes to the counter computer, which reads it, fills in a delivery sheet and then deletes the picture. You check the sheet and finish it there.</div>
     <div class="pick">
       <label class="bigbtn primary" id="camLabel">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -106,7 +106,7 @@
 <script>
 (function(){
   // THE PHONE SENDS AN INVOICE PICTURE — 4 Nov 2026. Take a photo or pick one, it is shrunk
-  // here and sent to the desktop's Invoice test page, which reads it in the background. The
+  // here and sent to the desktop, which reads it in the background and offers it on its Receive delivery sheet. The
   // page shows what became of each picture. NOTHING HERE TOUCHES STOCK OR DELIVERIES.
   //
   // A SEPARATE PAGE ON PURPOSE, as viewer.html is: the staff page's sell, recount and
