@@ -34,6 +34,21 @@
   .icon svg{ width:20px; height:20px; }
   .body{ padding:14px 14px calc(30px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:14px; }
   .banner{ background:var(--warn-bg); border:1px solid var(--warn-line); color:var(--warn-ink); border-radius:14px; padding:12px 14px; font-size:13.5px; line-height:1.5; }
+  /* who is it from: the same kind of dropdown as the Supplier box on the desktop's delivery sheet */
+  .combo{ position:relative; }
+  .combo .field{ padding-right:52px; }
+  .chev{ position:absolute; right:3px; top:1px; width:44px; height:44px; border:none; background:transparent; display:flex; align-items:center; justify-content:center; color:var(--mute); padding:0; }
+  .chev svg{ width:18px; height:18px; transition:transform .15s; }
+  .combo.open .chev svg{ transform:rotate(180deg); }
+  .dd{ position:absolute; left:0; right:0; top:52px; z-index:8; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:0 14px 36px rgba(15,23,42,.16); overflow:auto; max-height:min(52vh,340px); }
+  .dd[hidden]{ display:none; }
+  .dd .head{ padding:10px 16px 4px; font-size:10.5px; font-weight:800; letter-spacing:.08em; color:var(--mute); }
+  .dd button{ width:100%; text-align:left; border:none; background:transparent; padding:12px 16px; min-height:48px; font-size:15px; font-weight:600; color:var(--ink); display:block; }
+  .dd button + button{ border-top:1px solid var(--line); }
+  .dd button.add{ color:#1d4ed8; font-weight:700; }
+  .dd .none{ padding:14px 16px; font-size:13.5px; color:var(--mute); }
+  .whonote{ margin:8px 2px 0; font-size:13px; font-weight:700; color:var(--good); min-height:16px; }
+  .whonote.warn{ color:var(--mute); font-weight:600; }
   .pick{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .bigbtn{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; min-height:104px; border-radius:16px; border:1px solid var(--line); background:#fff; color:var(--ink); font-weight:800; font-size:15px; text-align:center; padding:10px; cursor:pointer; }
   .bigbtn.primary{ background:var(--blue); border-color:var(--blue); color:#fff; }
@@ -83,6 +98,16 @@
   </div>
   <div class="body">
     <div class="banner"><b>Test — nothing here changes your stock.</b> The picture goes to the desktop, which reads it and then deletes it. You review it there.</div>
+    <div class="who">
+      <div class="sub" style="margin:0 2px 8px">1 · WHO IS IT FROM?</div>
+      <div class="combo" id="combo">
+        <input class="field" id="supplierBox" type="text" placeholder="Who dropped it off?" autocomplete="off" autocapitalize="words" aria-label="Supplier" role="combobox" aria-expanded="false" aria-controls="supplierList">
+        <button class="chev" id="supplierToggle" type="button" aria-label="Show the suppliers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="dd" id="supplierList" role="listbox" hidden></div>
+      </div>
+      <div class="whonote warn" id="whoNote">Pick the supplier first. The counter computer reads each supplier's invoice its own way.</div>
+    </div>
+    <div class="sub" style="margin:4px 2px -6px">2 · THE PICTURE</div>
     <div class="pick">
       <label class="bigbtn primary" id="camLabel">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -208,7 +233,8 @@
     if (!rows.length){ $('list').innerHTML = '<div class="empty">Nothing sent yet. Take a photo of an invoice.</div>'; return; }
     $('list').innerHTML = rows.map(function(r){
       var d = InvoiceSend.describe(r);
-      return '<div class="item"><div class="nm">' + esc(r.name) + ' · ' + esc(clock(r.sent_at)) + '</div><div class="st ' + d.tone + '">' + esc(d.text) + '</div></div>';
+      var who = String(r.name || '').split('||');
+      return '<div class="item"><div class="nm">' + esc(who.length > 1 && who[1] ? who[1] : who[0]) + ' · ' + esc(clock(r.sent_at)) + '</div><div class="st ' + d.tone + '">' + esc(d.text) + '</div></div>';
     }).join('');
   }
   function loadStatus(){
@@ -226,11 +252,82 @@
   }
   function stopPolling(){ if (timer){ clearInterval(timer); timer = null; } }
 
+  // ---------- who is it from ----------
+  // THE SUPPLIER NAMES THE BOOK ALREADY HAS: read from the deliveries (the same names the desktop's Supplier box offers),
+  // so a supplier that has had one delivery saved is here by itself. A name not here is typed. Read-only, and the one read
+  // this page makes besides its own functions.
+  var suppliers = [], supplier = '';
+  function getRows(path, retried){
+    var headers = { 'apikey': ANON, 'Accept-Profile': SCHEMA };
+    if (session && session.access_token) headers['Authorization'] = 'Bearer ' + session.access_token;
+    return fetch(SUPA_URL + '/rest/v1/' + path, { headers: headers }).then(function(res){
+      if (res.status === 401 && !retried && session && session.refresh_token){
+        return refresh().then(function(ok){ return ok ? getRows(path, true) : res; });
+      }
+      return res;
+    });
+  }
+  function loadSuppliers(){
+    var mine = sessionGen;
+    return getRows('deliveries?select=supplier&limit=5000').then(function(res){
+      if (mine !== sessionGen || !res.ok) return;
+      return res.json().then(function(rows){
+        var seen = {}, out = [];
+        (Array.isArray(rows) ? rows : []).forEach(function(r){
+          var n = String((r && r.supplier) || '').replace(/\s+/g, ' ').trim();
+          var k = n.toLowerCase();
+          if (!n || n === 'Supplier' || seen[k]) return;
+          seen[k] = true; out.push(n);
+        });
+        out.sort(function(a, b){ return a.toLowerCase() < b.toLowerCase() ? -1 : 1; });
+        if (mine === sessionGen){ suppliers = out; drawSuppliers(); }
+      });
+    }).catch(function(){ /* no list: a name can still be typed */ });
+  }
+  function typed(){ return $('supplierBox').value.replace(/\s+/g, ' ').trim(); }
+  function drawSuppliers(){
+    var q = typed().toLowerCase();
+    var shown = suppliers.filter(function(n){ return !q || n.toLowerCase().indexOf(q) !== -1; });
+    var exact = suppliers.some(function(n){ return n.toLowerCase() === q; });
+    var h = '';
+    if (shown.length) h += '<div class="head">' + (q ? 'MATCHING' : 'SUPPLIERS YOU BUY FROM') + '</div>';
+    h += shown.map(function(n){ return '<button type="button" role="option" data-name="' + esc(n) + '">' + esc(n) + '</button>'; }).join('');
+    if (q.length >= 3 && !exact) h += '<button type="button" class="add" data-new="1">Use “' + esc(typed()) + '” as a new supplier</button>';
+    h += '<button type="button" class="add" data-other="1">+ A supplier that is not listed</button>';
+    if (!shown.length && q.length < 3) h += '<div class="none">No suppliers loaded yet. Type the name as printed at the top of the invoice.</div>';
+    $('supplierList').innerHTML = h;
+  }
+  function openList(on){
+    $('supplierList').hidden = !on;
+    $('combo').classList.toggle('open', on);
+    $('supplierBox').setAttribute('aria-expanded', on ? 'true' : 'false');
+    if (on) drawSuppliers();
+  }
+  function chooseSupplier(name){
+    supplier = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 70);
+    if (supplier) $('supplierBox').value = supplier;
+    openList(false);
+    paintWho();
+  }
+  function paintWho(){
+    var on = Boolean(supplier) && !sending;
+    var known = suppliers.some(function(n){ return n.toLowerCase() === supplier.toLowerCase(); });
+    var note = $('whoNote');
+    if (supplier){
+      note.className = 'whonote';
+      note.textContent = 'Sending as ' + supplier + '’s invoice.' + (known ? '' : ' New supplier: the counter reads it the general way until its layout is added.');
+    } else {
+      note.className = 'whonote warn';
+      note.textContent = 'Pick the supplier first. The counter computer reads each supplier’s invoice its own way.';
+    }
+    $('camInput').disabled = !supplier; $('fileInput').disabled = !supplier;
+    $('camLabel').classList.toggle('off', !on); $('fileLabel').classList.toggle('off', !on);
+  }
+
   // ---------- sending ----------
   function setBusy(on){
     sending = on;
-    $('camLabel').classList.toggle('off', on);
-    $('fileLabel').classList.toggle('off', on);
+    paintWho();
   }
   function sendOne(file){
     setNote(InvoiceSend.isPdf(file) ? 'Getting the PDF ready…' : 'Shrinking the picture…');
@@ -238,7 +335,9 @@
       // A PDF has no small copy to show.
       if (p.preview){ $('thumb').src = p.preview; $('thumb').hidden = false; } else { $('thumb').hidden = true; }
       setNote('Sending…');
-      return rpc('send_invoice_test', { p_name: p.name, p_image: p.b64 }).then(function(res){
+      // The file's name first and the supplier after it: the database keeps 120 characters of it, and a name cut short must
+      // still end in the file's own kind (.jpg or .pdf is how the desktop knows how to open it).
+      return rpc('send_invoice_test', { p_name: p.name + '||' + supplier, p_image: p.b64 }).then(function(res){
         if (res.status === 401){ clearSession(); showLogin('Your session ended. Sign in again.'); throw new Error(''); }
         if (!res.ok) return res.json().catch(function(){ return {}; }).then(function(j){ throw new Error(j.message || 'The desktop did not take it. Try again.'); });
         setNote('Sent. The desktop is reading it now.');
@@ -248,6 +347,8 @@
   // Pictures go one after another, so a second page never overtakes the first.
   function sendAll(files){
     if (sending || !files.length) return Promise.resolve();
+    // Never a picture without whose invoice it is: the counter reads each supplier's invoice its own way.
+    if (!supplier){ setNote('Pick who it is from first.', true); return Promise.resolve(); }
     setBusy(true);
     var chain = Promise.resolve();
     files.forEach(function(f){ chain = chain.then(function(){ return sendOne(f); }); });
@@ -266,7 +367,7 @@
   // ---------- start ----------
   function enter(){
     $('thumb').hidden = true; setNote('');
-    only('app'); drawList([]); loadStatus(); startPolling();
+    only('app'); drawList([]); loadStatus(); startPolling(); loadSuppliers(); paintWho();
   }
   function check(){
     return isStaff().then(function(answer){
@@ -290,6 +391,17 @@
     }).catch(function(e){ showLogin((e && e.message) || 'Sign-in failed'); });
   });
   $('signOutBtn').addEventListener('click', function(){ clearSession(); showLogin(''); });
+  $('supplierBox').addEventListener('input', function(){ supplier = ''; paintWho(); openList(true); });
+  $('supplierBox').addEventListener('focus', function(){ openList(true); });
+  $('supplierToggle').addEventListener('click', function(){ openList($('supplierList').hidden); });
+  $('supplierList').addEventListener('click', function(ev){
+    var b = ev.target.closest ? ev.target.closest('button') : null;
+    if (!b) return;
+    if (b.getAttribute('data-name')) chooseSupplier(b.getAttribute('data-name'));
+    else if (b.getAttribute('data-new')) chooseSupplier(typed());
+    else if (b.getAttribute('data-other')){ supplier = ''; $('supplierBox').value = ''; paintWho(); openList(false); $('supplierBox').focus(); }
+  });
+  document.addEventListener('click', function(ev){ if (!$('combo').contains(ev.target)) openList(false); });
   $('camInput').addEventListener('change', function(){ picked(this); });
   $('fileInput').addEventListener('change', function(){ picked(this); });
   document.addEventListener('visibilitychange', function(){ if (!document.hidden && !$('appScreen').hidden) loadStatus(); });
