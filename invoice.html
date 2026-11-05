@@ -91,8 +91,8 @@
       </label>
       <label class="bigbtn" id="fileLabel">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-        Choose from phone
-        <input id="fileInput" type="file" accept="image/*" multiple>
+        Choose photo or PDF
+        <input id="fileInput" type="file" accept="image/*,application/pdf,.pdf" multiple>
       </label>
     </div>
     <div class="note" id="note" role="status" aria-live="polite"></div>
@@ -233,9 +233,10 @@
     $('fileLabel').classList.toggle('off', on);
   }
   function sendOne(file){
-    setNote('Shrinking the picture…');
-    return InvoiceSend.shrink(file).then(function(p){
-      $('thumb').src = p.preview; $('thumb').hidden = false;
+    setNote(InvoiceSend.isPdf(file) ? 'Getting the PDF ready…' : 'Shrinking the picture…');
+    return InvoiceSend.prepare(file).then(function(p){
+      // A PDF has no small copy to show.
+      if (p.preview){ $('thumb').src = p.preview; $('thumb').hidden = false; } else { $('thumb').hidden = true; }
       setNote('Sending…');
       return rpc('send_invoice_test', { p_name: p.name, p_image: p.b64 }).then(function(res){
         if (res.status === 401){ clearSession(); showLogin('Your session ended. Sign in again.'); throw new Error(''); }

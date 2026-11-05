@@ -38,10 +38,40 @@ var InvoiceSend = (function(){
 
   // invoice-20261104-153045.jpg — the desktop reads the extension to know what it was given,
   // and a name that sorts by time tells the pictures apart on both screens.
-  function nameFor(when){
+  function nameFor(when, ext){
     var d = when instanceof Date ? when : new Date();
     var p = function(n){ return (n < 10 ? '0' : '') + n; };
-    return 'invoice-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()) + '.jpg';
+    return 'invoice-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()) + '.' + (ext || 'jpg');
+  }
+
+  // A PDF from the Files app (a supplier's emailed invoice) — by its type, or by its name when
+  // the phone gives the file no type, which iOS does for some files.
+  function isPdf(file){
+    if (!file) return false;
+    return /^application\/pdf$/i.test(file.type || '') || /\.pdf$/i.test(file.name || '');
+  }
+
+  // The file's bytes as base64, in steps so a big file cannot overflow the call stack.
+  function base64OfFile(file){
+    return file.arrayBuffer().then(function(buf){
+      var bytes = new Uint8Array(buf), bin = '', STEP = 0x8000;
+      for (var i = 0; i < bytes.length; i += STEP) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + STEP));
+      return btoa(bin);
+    });
+  }
+
+  // A PDF cannot be shrunk on a phone the way a photo can, so it goes as it is — or not at all.
+  function sendablePdf(file){
+    return base64OfFile(file).then(function(b64){
+      if (!fits(b64)) throw new Error('That PDF is too big to send (about 1 MB at most). Take a photo of it, or screenshot it, instead.');
+      return { b64: b64, name: nameFor(new Date(), 'pdf'), preview: '' };
+    });
+  }
+
+  // Whatever was picked, made ready to send: a PDF as it is, a picture shrunk.
+  function prepare(file, doc){
+    if (isPdf(file)) return sendablePdf(file);
+    return shrink(file, doc);
   }
 
   // One line of what happened to a picture, from the status the database keeps.
@@ -57,7 +87,7 @@ var InvoiceSend = (function(){
   function shrink(file, doc){
     doc = doc || (typeof document !== 'undefined' ? document : null);
     return new Promise(function(resolve, reject){
-      if (!file || !/^image\//i.test(file.type || '')){ reject(new Error('That is not a picture. Take a photo or choose an image.')); return; }
+      if (!file || !/^image\//i.test(file.type || '')){ reject(new Error('That is not a picture or a PDF. Take a photo or choose a picture or PDF.')); return; }
       var url = URL.createObjectURL(file);
       var img = new Image();
       img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error('That picture could not be opened.')); };
@@ -93,7 +123,7 @@ var InvoiceSend = (function(){
     });
   }
 
-  return { MAX_SIDE: MAX_SIDE, LIMIT: LIMIT, QUALITIES: QUALITIES, fitSize: fitSize, bareBase64: bareBase64, fits: fits, nameFor: nameFor, describe: describe, shrink: shrink };
+  return { MAX_SIDE: MAX_SIDE, LIMIT: LIMIT, QUALITIES: QUALITIES, fitSize: fitSize, bareBase64: bareBase64, fits: fits, nameFor: nameFor, describe: describe, shrink: shrink, isPdf: isPdf, base64OfFile: base64OfFile, prepare: prepare };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = InvoiceSend;

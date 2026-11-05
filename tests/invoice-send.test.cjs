@@ -37,6 +37,13 @@ ok('the name sorts by time and ends .jpg for the desktop reader',
   IS.nameFor(new Date(2026, 10, 4, 15, 30, 45)) === 'invoice-20261104-153045.jpg', IS.nameFor(new Date(2026, 10, 4, 15, 30, 45)));
 ok('single digits are padded', IS.nameFor(new Date(2026, 0, 5, 1, 2, 3)) === 'invoice-20260105-010203.jpg');
 
+// ---- a PDF from the Files app
+const pdf = (bytes, name = 'inv.pdf', type = 'application/pdf') => new File([new Uint8Array(bytes)], name, { type });
+ok('a PDF is known by its type', IS.isPdf(pdf(1)));
+ok('a PDF with no type is known by its name', IS.isPdf(pdf(1, 'Invoice 5521.PDF', '')));
+ok('a photo is not a PDF', !IS.isPdf(pdf(1, 'p.jpg', 'image/jpeg')) && !IS.isPdf(null));
+ok('a PDF is named .pdf, so the desktop reads it as one', IS.nameFor(new Date(2026, 10, 4, 15, 30, 45), 'pdf') === 'invoice-20261104-153045.pdf');
+
 // ---- the words for what became of it
 ok('waiting says it is waiting', IS.describe({ status: 'waiting' }).tone === 'wait');
 ok('read says so, with the desktop\'s note', (() => { const d = IS.describe({ status: 'read', note: '12 lines, 2 to check' }); return d.tone === 'ok' && /Read on the desktop — 12 lines, 2 to check/.test(d.text); })());
@@ -44,5 +51,16 @@ ok('read with no note still reads clean', IS.describe({ status: 'read' }).text =
 ok('unreadable says so and asks for another photo', (() => { const d = IS.describe({ status: 'unreadable', note: 'too dark' }); return d.tone === 'bad' && /too dark/.test(d.text) && /another photo/.test(d.text); })());
 ok('a status it does not know is never shown as success', IS.describe({ status: 'weird' }).tone === 'bad');
 
-console.log('\n' + passed + ' passed, ' + failed + ' failed');
-process.exit(failed ? 1 : 0);
+// ---- a PDF is prepared without shrinking (async, so the summary waits for it)
+(async () => {
+  const small = await IS.prepare(pdf(300));
+  ok('a small PDF goes as it is, with no preview', small.b64 === Buffer.from(new Uint8Array(300)).toString('base64') && /\.pdf$/.test(small.name) && small.preview === '', small.name);
+  let err = null;
+  try { await IS.prepare(pdf(1100000)); } catch (e) { err = e; }
+  ok('a PDF over the limit is refused in words, and says what to do instead', err && /too big/.test(err.message) && /photo/.test(err.message), err && err.message);
+  const justUnder = Math.floor(IS.LIMIT / 4) * 3;
+  const fine = await IS.prepare(pdf(justUnder));
+  ok('a PDF just under the limit still goes', fine.b64.length <= IS.LIMIT && fine.b64.length > IS.LIMIT - 8, fine.b64.length);
+  console.log('\n' + passed + ' passed, ' + failed + ' failed');
+  process.exit(failed ? 1 : 0);
+})();

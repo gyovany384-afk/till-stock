@@ -45,7 +45,7 @@ function boot({ signedIn = true, staff = true, status = [], sendReply = null, sh
       // The real file is loaded by a script tag a test page does not fetch; the shrinking is
       // replaced because a canvas is the one thing jsdom does not have.
       w.InvoiceSend = Object.assign({}, REAL, {
-        shrink: () => (shrinkFails ? Promise.reject(new Error('That picture could not be opened.'))
+        prepare: () => (shrinkFails ? Promise.reject(new Error('That picture could not be opened.'))
           : Promise.resolve({ b64: 'QUJD', name: 'invoice-20261104-151500.jpg', preview: 'data:image/jpeg;base64,QUJD' })),
       });
       w.fetch = (url, init = {}) => {
@@ -82,8 +82,12 @@ const shown = (w, id) => !w.document.getElementById(id).hidden;
     ok('every request is made as a signed-in caller and names the schema',
       calls.filter((c) => /\/rpc\//.test(c.url)).every((c) => /^Bearer /.test(c.headers.Authorization || '') && c.headers['Content-Profile'] === 'till_stock' && c.headers['Accept-Profile'] === 'till_stock'));
     ok('what became of a sent picture is shown', /invoice-1\.jpg/.test(visible(w)) && /Read on the desktop — 12 lines, 2 to check/.test(visible(w)), visible(w));
-    ok('there is a Take photo and a Choose from phone button', /Take photo/.test(visible(w)) && /Choose from phone/.test(visible(w)));
+    ok('there is a Take photo button and a Choose photo or PDF button', /Take photo/.test(visible(w)) && /Choose photo or PDF/.test(visible(w)));
     ok('the camera button asks for the back camera', w.document.getElementById('camInput').getAttribute('capture') === 'environment');
+    const accept = w.document.getElementById('fileInput').getAttribute('accept') || '';
+    ok('the file picker offers PDFs as well as pictures, so a saved invoice is not greyed out', /image\/\*/.test(accept) && /application\/pdf/.test(accept) && /\.pdf/.test(accept), accept);
+    ok('and it lets several be chosen', w.document.getElementById('fileInput').hasAttribute('multiple'));
+    ok('the button says photo or PDF', /Choose photo or PDF/.test(visible(w)), visible(w));
     w.close();
   }
 
