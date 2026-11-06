@@ -155,22 +155,34 @@
       method: 'POST', headers: { 'apikey': ANON, 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: session.refresh_token })
     }).then(function(res){
-      if (!res.ok){ clearSession(); return false; }
+      if (!res.ok){
+        // ONLY A REAL "NO" SIGNS THEM OUT (6 Nov 2026). The server answering 400, 401
+        // or 403 means the saved sign-in is dead. A busy or broken server (500s, 429)
+        // says nothing about the sign-in, so it stays and the page says it could not
+        // check, the same as a dropped connection.
+        if (res.status === 400 || res.status === 401 || res.status === 403){
+          // The sign-in form goes up HERE: clearing the session makes the read that was
+          // waiting on this look stale, so it stops quietly, and without this the person
+          // is left looking at "Loading…" with no way in.
+          clearSession(); showLogin('Your session expired — sign in again.');
+        }
+        return false;
+      }
       return res.json().then(function(d){ saveSession(d); return true; });
     }).catch(function(){ return false; });
   }
   // One request to the database. Both profile headers go on it, or a call looks
   // in the wrong schema and answers with nothing. A 401 gets one refresh, and the
   // retry carries the same headers.
-  function call(method, path, extra, retried){
+  function call(method, path, extra, retried, body){
     var headers = { 'apikey': ANON, 'Content-Profile': SCHEMA, 'Accept-Profile': SCHEMA };
     if (method === 'POST') headers['Content-Type'] = 'application/json';
     if (session && session.access_token) headers['Authorization'] = 'Bearer ' + session.access_token;
     if (extra) for (var k in extra) if (extra.hasOwnProperty(k)) headers[k] = extra[k];
-    return fetch(SUPA_URL + path, { method: method, headers: headers, body: method === 'POST' ? '{}' : undefined }).then(function(res){
+    return fetch(SUPA_URL + path, { method: method, headers: headers, body: method === 'POST' ? (body || '{}') : undefined }).then(function(res){
       if (res.status === 401 && !retried && session && session.refresh_token){
         return refresh().then(function(ok){
-          if (ok) return call(method, path, extra, true);
+          if (ok) return call(method, path, extra, true, body);
           // A refresh that failed on the NETWORK leaves the session in place: that is
           // a dropped connection, not a sign-out. Say so instead of returning the 401.
           if (session) throw new Error('offline');
@@ -294,9 +306,32 @@
       showLogin((err && err.message) || 'Couldn’t sign in. Check your connection.');
     });
   });
-  $('signOutBtn').addEventListener('click', function(){ clearSession(); products = []; $('q').value = ''; showLogin(''); });
+  $('signOutBtn').addEventListener('click', function(){ clearSession(); stopSearchTimer(); searchSent = ''; products = []; $('q').value = ''; showLogin(''); });
   $('refreshBtn').addEventListener('click', function(){ if (session) load(); });
-  $('q').addEventListener('input', draw);
+  // THE SEARCH LOG — 6 Nov 2026, the owner's ask: see what the look-only phone is
+  // searching. Same rule as the staff phone and the counter: a search that sits
+  // still for five seconds is sent to till_stock.log_search, once, and only the
+  // words typed (nothing about the result). The database files it as the viewer
+  // phone whatever is sent here, and lets a viewer ADD a line and nothing more.
+  // A failure is dropped without a word: looking a tire up must work the same with
+  // the log broken.
+  var SEARCH_WAIT_MS = 5000, searchTimer = null, searchSent = '';
+  function cleanSearch(v){ return String(v == null ? '' : v).trim().replace(/\s+/g, ' ').slice(0, 80); }
+  function stopSearchTimer(){ if (searchTimer !== null){ clearTimeout(searchTimer); searchTimer = null; } }
+  function searchTyped(v){
+    stopSearchTimer();
+    var text = cleanSearch(v), same = text.toLowerCase();
+    if (!text) searchSent = '';
+    if (text.length < 2 || same === searchSent) return;
+    searchTimer = setTimeout(function(){
+      searchTimer = null;
+      // Changed or signed out while it waited: this is not that search.
+      if (!session || cleanSearch($('q').value).toLowerCase() !== same) return;
+      searchSent = same;
+      try { call('POST', '/rest/v1/rpc/log_search', null, false, JSON.stringify({ p_screen: 'viewer', p_query: text })).catch(function(){}); } catch(e){}
+    }, SEARCH_WAIT_MS);
+  }
+  $('q').addEventListener('input', function(){ draw(); searchTyped(this.value); });
   $('sortBtn').addEventListener('click', function(){
     sortMode = SORTS[(SORTS.indexOf(sortMode) + 1) % SORTS.length];
     try { localStorage.setItem(SORT_KEY, sortMode); } catch(e){}

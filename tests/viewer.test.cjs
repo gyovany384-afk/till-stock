@@ -41,7 +41,7 @@ const reply = (body, status = 200) => Promise.resolve({
 // A viewer row as the DATABASE sends it: eight columns, cents for money.
 const vrow = (o = {}) => ({ id: 'p1', product_code: 'TR-2055516', size: '205/55R16', brand: 'Marchetti Primato 4', type: 'Car', qty: 10, price_cents: 12900, location: 'Rack A2', ...o });
 
-function boot({ signedIn = true, viewer = true, rows = [vrow()], rpcStatus = {}, refreshFails = false } = {}) {
+function boot({ signedIn = true, viewer = true, rows = [vrow()], rpcStatus = {}, refreshFails = false, refreshStatus = 0, logStatus = 200 } = {}) {
   const calls = [];
   const dom = new JSDOM(HTML, {
     runScripts: 'dangerously', url: 'https://example.test/till-stock/viewer.html',
@@ -51,6 +51,8 @@ function boot({ signedIn = true, viewer = true, rows = [vrow()], rpcStatus = {},
         const u = String(url);
         calls.push({ url: u, method: init.method || 'GET', headers: init.headers || {}, body: init.body });
         if (u.indexOf('refresh_token') !== -1 && refreshFails) return Promise.reject(new Error('network'));
+        if (u.indexOf('refresh_token') !== -1 && refreshStatus) return reply({ error: 'x' }, refreshStatus);
+        if (u.indexOf('/rpc/log_search') !== -1) return reply({}, logStatus);
         if (u.indexOf('/auth/v1/token') !== -1) return reply({ access_token: 'a', refresh_token: 'r2', expires_in: 3600, user: { email: 'v@x.test' } });
         if (u.indexOf('/rpc/is_viewer') !== -1) return rpcStatus.is_viewer ? reply({}, rpcStatus.is_viewer) : reply(viewer);
         if (u.indexOf('/rpc/viewer_products') !== -1) {
@@ -168,6 +170,73 @@ const text = (w, sel) => Array.from(w.document.querySelectorAll(sel)).map((e) =>
     ok('a brand written as markup is shown as text', !w.document.querySelector('.row img') && /<img/.test(w.document.querySelector('.brandline').textContent));
     w.close();
   }
+  {
+    // ONLY A REAL "NO" SIGNS THEM OUT (6 Nov 2026). The server refusing the saved
+    // sign-in (400/401/403) is the end of it; a server that is merely having a bad
+    // moment (500, 429) must not throw a viewer to the sign-in screen.
+    for (const status of [400, 401, 403]) {
+      const { w } = boot({ rpcStatus: { is_viewer: 401 }, refreshStatus: status });
+      await wait(80);
+      ok('a refresh the server refuses (' + status + ') signs them out',
+        !w.document.getElementById('loginScreen').hidden && w.localStorage.getItem('till_stock_viewer_session_v1') === null, [w.document.getElementById('loginScreen').hidden, w.localStorage.getItem('till_stock_viewer_session_v1')]);
+      w.close();
+    }
+    for (const status of [429, 500, 503]) {
+      const { w } = boot({ rpcStatus: { is_viewer: 401 }, refreshStatus: status });
+      await wait(80);
+      ok('a refresh that fails on a busy server (' + status + ') keeps the session and says so',
+        !w.document.getElementById('appScreen').hidden && /Couldn.t check your access/.test(visible(w))
+        && w.localStorage.getItem('till_stock_viewer_session_v1') !== null, visible(w));
+      w.close();
+    }
+  }
+  {
+    // THE SEARCH LOG, 6 Nov 2026: five still seconds, sent once, words only.
+    const logged = (calls) => calls.filter((c) => c.url.indexOf('/rpc/log_search') !== -1);
+    const type = (w, v) => { const q = w.document.getElementById('q'); q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); };
+    const { w, calls } = boot({ rows: [vrow()] });
+    await wait(80);
+    type(w, '2055');
+    await wait(3500);
+    ok('nothing is sent before five seconds', logged(calls).length === 0);
+    type(w, '2055516');
+    await wait(3500);
+    ok('each change starts the wait again', logged(calls).length === 0);
+    await wait(1800);
+    const sent = logged(calls);
+    const body = sent[0] ? JSON.parse(sent[0].body) : null;
+    ok('the finished search is sent once, as a viewer, words only',
+      sent.length === 1 && body.p_screen === 'viewer' && body.p_query === '2055516' && Object.keys(body).sort().join() === 'p_query,p_screen', body);
+    ok('it is sent as the signed-in viewer', sent[0] && /^Bearer /.test(sent[0].headers.Authorization || '') && sent[0].headers['Content-Profile'] === 'till_stock', sent[0] && sent[0].headers);
+    type(w, '2055516 ');
+    await wait(5200);
+    ok('the same search again is not sent again', logged(calls).length === 1);
+    type(w, '');
+    type(w, '2055516');
+    await wait(5200);
+    ok('after clearing the box it counts as a new search', logged(calls).length === 2);
+    type(w, 'x');
+    await wait(5200);
+    ok('a single letter is not sent', logged(calls).length === 2);
+    type(w, 'moved on');
+    await wait(100);
+    w.document.getElementById('signOutBtn').click();
+    await wait(5200);
+    ok('signing out cancels a search still waiting', logged(calls).length === 2);
+    w.close();
+  }
+  {
+    // A log that is broken or refused must not touch the search itself.
+    const type = (w, v) => { const q = w.document.getElementById('q'); q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); };
+    const { w, calls } = boot({ rows: [vrow()], logStatus: 403 });
+    await wait(80);
+    type(w, '205');
+    await wait(5300);
+    ok('a refused log line changes nothing on screen', calls.some((c) => c.url.indexOf('/rpc/log_search') !== -1)
+      && !w.document.getElementById('appScreen').hidden && w.document.querySelectorAll('.row').length === 1, visible(w));
+    w.close();
+  }
+
 
   console.log('\n' + passed + ' passed, ' + failed + ' failed\n');
   process.exit(failed ? 1 : 0);
