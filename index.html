@@ -89,6 +89,10 @@
   .topbar{ position:sticky; top:0; z-index:10; background:var(--surface); border-bottom:1px solid var(--line);
     padding:calc(10px + var(--safe-top)) 14px 10px; }
   .toprow{ display:flex; align-items:center; gap:10px; }
+  /* The off-computer backup warning, 9 Nov 2026. Amber, not red: the stock book is safe, this is about the spare copy. */
+  .backup-strip{ margin:8px -14px -10px; padding:7px 14px; background:#fdf4e7; color:#b45309; border-top:1px solid #f4d9a6;
+    font-size:12.5px; font-weight:600; line-height:1.35; }
+  .backup-strip[hidden]{ display:none; }
   .toprow .title{ font-size:17px; font-weight:700; letter-spacing:-.2px; }
   .toprow .spacer{ flex:1; }
   .iconbtn{ width:38px; height:38px; border-radius:10px; border:1px solid var(--line); background:var(--surface-2);
@@ -1114,6 +1118,10 @@
       <button type="button" class="sortbtn" id="sortBtn" aria-label="Change how the stock is sorted"></button>
       <span class="fresh" id="freshText"></span>
     </div>
+    <!-- 9 Nov 2026: the off-computer backup warning, the phone's half of "tell me if the backup stops".
+         Empty and hidden on an ordinary day. It sits INSIDE the sticky bar so it stays on screen, and below
+         the title row so the phone's top safe-area is not under it. -->
+    <div class="backup-strip" id="backupStrip" role="status" hidden></div>
   </div>
   <div class="list" id="list"></div>
   <div class="list" id="salesList" hidden></div>
@@ -1528,6 +1536,9 @@
         // What the phone sent and the counter has not finished, read beside
         // the book it is waiting to join.
         loadPending();
+        // The off-computer backup warning — only here, on the path that has just proved this account is
+        // staff, so an account that is not never asks for a setting that is not theirs to see.
+        checkBackup();
         return true;
       });
     }).catch(function(){
@@ -4538,6 +4549,43 @@
     if (msg){ var m = $('loginMsg'); m.textContent = msg; m.className = 'msg err'; }
   }
   function showApp(){ only('app'); }
+
+  // THE OFF-COMPUTER BACKUP WARNING — 9 Nov 2026, his ask: "24 hours and all 3, better safe than sorry".
+  // The counter computer sends a copy of the book to a separate backup database about once a day and writes
+  // the moment the newest copy landed into the shop database (settings row `offsite_last_copy`). This reads
+  // that one row and says so, on the phone, if it is 24 hours old or more — which is the case that matters
+  // most: the counter has stopped, and nobody is standing at it to see its own warning.
+  //
+  // A SETTING THAT IS NOT THERE SAYS NOTHING (the counter has not published one yet), and A READ THAT FAILS
+  // LEAVES THE STRIP AS IT WAS: no signal in the walk-in must not clear a warning that was true a minute ago.
+  // The phone's own clock is compared with the vault's own timestamp; a phone clock a few minutes out only
+  // blurs the last few minutes. Nothing here can write, and nothing here shows a number except hours.
+  var BACKUP_WARN_H = 24;
+  var backupGen = 0;
+  function backupWords(takenMs, nowMs){
+    var h = Math.floor((nowMs - takenMs) / 3600000);
+    if (h < BACKUP_WARN_H) return '';
+    return 'The last off-computer backup was ' + (h >= 48 ? Math.floor(h / 24) + ' days' : h + ' hours') + ' ago. Check the counter computer.';
+  }
+  function checkBackup(){
+    var strip = $('backupStrip');
+    if (!strip || !session) return;
+    var mine = sessionGen, gen = ++backupGen;
+    authedGet('/rest/v1/settings?select=value&key=eq.offsite_last_copy', { 'Accept-Profile': SCHEMA })
+      .then(function(res){ return res.ok ? res.json() : null; })
+      .then(function(rows){
+        if (sessionGen !== mine || gen !== backupGen || !Array.isArray(rows)) return;
+        var v = rows[0] && rows[0].value;
+        // Safari will not read more than three decimal places of a second; the database writes six.
+        var t = v ? Date.parse(String(v).replace(/(\.\d{3})\d+/, '$1')) : NaN;
+        var words = isNaN(t) ? '' : backupWords(t, Date.now());
+        strip.textContent = words;
+        strip.hidden = !words;
+      })
+      .catch(function(){ /* a failed look changes nothing */ });
+  }
+  // Every ten minutes while the page is open, and whenever it comes back to the front.
+  setInterval(checkBackup, 10 * 60 * 1000);
   function showLoading(){
     only('app');
     if (!products.length) $('list').innerHTML = '<div class="center"><div class="spin"></div>Loading stock…</div>';
@@ -5053,6 +5101,8 @@
     // THE STOPWATCH'S BADGE counts what is running, on every screen, so it is
     // read again whenever the app comes back to the front.
     loadTime(true);
+    // The off-computer backup warning is looked at again too: it matters most when the app has been in a pocket.
+    checkBackup();
     // WHICHEVER LIST IS IN FRONT, and only if it has been read once: the sales
     // tab opened and never read is the loadSales in showTab's business, and two
     // reads racing on one tap is how a stale answer wins.
