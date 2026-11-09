@@ -1007,9 +1007,48 @@
   .ttbad{ font-size:13px; font-weight:700; color:var(--danger); margin-top:10px; }
   .ttask{ font-size:15px; line-height:1.55; color:var(--muted); margin-top:10px; }
   .form .go.stop{ background:var(--danger); }
+
+  /* ---------- Opening screen (10 Nov 2026) ----------
+     The phone's version of the counter's "Logo reveal" loading screen, which he approved on 9 Nov:
+     the blue screen, the T tile popping in, the title rising in letter by letter, then "Getting your
+     stock ready" with its three dots on the same line. It is plain HTML at the top of the page so it
+     is on screen the instant the page opens, before any script has run. */
+  .splash{ position:fixed; inset:0; z-index:1000; overflow:hidden; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:26px; box-sizing:border-box; text-align:center;
+    padding:calc(24px + var(--safe-top)) 24px calc(24px + var(--safe-bottom)); color:#fff;
+    background:radial-gradient(circle at 50% 42%, #3b82f6 0%, #2563eb 36%, #1e40af 100%);
+    transition:opacity .7s ease; }
+  .splash.leaving{ opacity:0; pointer-events:none; }
+  .splash-tile{ width:96px; height:96px; border-radius:28px; background:#fff; color:#2563eb; display:flex;
+    align-items:center; justify-content:center; font-size:56px; font-weight:800; opacity:0;
+    box-shadow:0 24px 60px -18px rgba(15,23,42,.55);
+    animation:ts-pop .7s cubic-bezier(.2,.8,.2,1) .15s forwards, ts-glow 2.2s ease-in-out 1s infinite; }
+  .splash-word{ display:flex; align-items:baseline; font-size:clamp(40px, 13vw, 56px); font-weight:800;
+    letter-spacing:-.025em; line-height:1; }
+  .splash-letter{ display:inline-block; opacity:0; animation:ts-rise .6s cubic-bezier(.2,.8,.2,1) forwards; }
+  .splash-cap{ font-size:15px; font-weight:600; line-height:1.4; color:rgba(255,255,255,.9); opacity:0;
+    animation:ts-fade .6s ease 1.5s forwards; }
+  .splash-dots{ display:inline-block; white-space:nowrap; margin-left:3px; }
+  .splash-dots i{ display:inline-block; width:4px; height:4px; margin-left:3px; border-radius:50%; background:#fff;
+    animation:ts-dot 1.2s ease-in-out infinite; }
+  @keyframes ts-pop{ 0%{ opacity:0; transform:scale(.55); } 60%{ opacity:1; transform:scale(1.08); } 100%{ opacity:1; transform:scale(1); } }
+  @keyframes ts-rise{ from{ opacity:0; transform:translateY(22px); } to{ opacity:1; transform:translateY(0); } }
+  @keyframes ts-glow{ 0%,100%{ box-shadow:0 0 0 0 rgba(255,255,255,.35), 0 24px 60px -18px rgba(15,23,42,.55); } 50%{ box-shadow:0 0 0 26px rgba(255,255,255,0), 0 24px 60px -18px rgba(15,23,42,.55); } }
+  @keyframes ts-dot{ 0%,80%,100%{ opacity:.3; transform:translateY(0); } 40%{ opacity:1; transform:translateY(-5px); } }
+  @keyframes ts-fade{ from{ opacity:0; } to{ opacity:1; } }
+  @media (prefers-reduced-motion: reduce){
+    .splash-tile, .splash-letter, .splash-cap, .splash-dots i{ animation-duration:.01ms !important; animation-delay:0s !important; animation-iteration-count:1 !important; }
+  }
 </style>
 </head>
 <body>
+
+<!-- ============ OPENING SCREEN ============ -->
+<div class="splash" id="splash" role="status" aria-live="polite" aria-label="Till Stock — Getting your stock ready">
+  <div class="splash-tile" aria-hidden="true">T</div>
+  <div class="splash-word" aria-hidden="true"><span class="splash-letter" style="animation-delay:0.75s">T</span><span class="splash-letter" style="animation-delay:0.81s">i</span><span class="splash-letter" style="animation-delay:0.87s">l</span><span class="splash-letter" style="animation-delay:0.93s">l</span><span class="splash-letter" style="animation-delay:0.99s">&nbsp;</span><span class="splash-letter" style="animation-delay:1.05s">S</span><span class="splash-letter" style="animation-delay:1.11s">t</span><span class="splash-letter" style="animation-delay:1.17s">o</span><span class="splash-letter" style="animation-delay:1.23s">c</span><span class="splash-letter" style="animation-delay:1.29s">k</span></div>
+  <div class="splash-cap"><span>Getting your stock ready</span><span class="splash-dots" aria-hidden="true"><i style="animation-delay:1.6s"></i><i style="animation-delay:1.8s"></i><i style="animation-delay:2s"></i></span></div>
+</div>
 
 <!-- ============ LOGIN ============ -->
 <div class="login" id="login">
@@ -5184,12 +5223,38 @@
   // THE TIMERS' READ WAITS FOR THE FIRST ANSWER of the stock read, so a stale token
   // is refreshed by one request and not five at once (a refresh token refused the
   // second time it is used would sign the phone out).
+  //
+  // THE OPENING SCREEN (10 Nov 2026, his ask: the counter's loading-screen change, for the phone). It
+  // stays up until BOTH five seconds have passed since the page opened AND the stock is on screen, then
+  // fades over the app already drawn behind it. It is never held over anything a person must act on:
+  // the sign-in form, "not on the staff list", a read that did not work — each is let through at once
+  // (the stock list is empty in all of those). And it can never trap the page: whatever happens, it is
+  // gone after SPLASH_MAX_MS. SPLASH_MIN_MS is the one number to change if five seconds is too long.
+  // (`__splashMinMs` / `__splashMaxMs` are for the tests only, like `__stripAlways`: a test cannot wait five seconds each time.)
+  var SPLASH_MIN_MS = typeof window.__splashMinMs === 'number' ? window.__splashMinMs : 5000;
+  var SPLASH_MAX_MS = typeof window.__splashMaxMs === 'number' ? window.__splashMaxMs : 20000;
+  var splashAt = Date.now();
+  function dropSplash(at_once){
+    var s = $('splash');
+    if (!s) return;
+    var gone = function(){ if (s.parentNode) s.parentNode.removeChild(s); };
+    if (at_once){ gone(); return; }
+    s.classList.add('leaving');
+    setTimeout(gone, 800);
+  }
+  setTimeout(function(){ dropSplash(false); }, SPLASH_MAX_MS);
   if (session && (session.access_token || session.refresh_token)){
     var firstRead = loadStock();
     var thenTime = function(){ loadTime(true); };
     if (firstRead && firstRead.then) firstRead.then(thenTime, thenTime); else thenTime();
+    var answered = function(){
+      var shown = products.length > 0;
+      var wait = shown ? Math.max(0, SPLASH_MIN_MS - (Date.now() - splashAt)) : 0;
+      setTimeout(function(){ dropSplash(!shown); }, wait);
+    };
+    if (firstRead && firstRead.then) firstRead.then(answered, answered); else answered();
   }
-  else showLogin();
+  else { showLogin(); dropSplash(true); }
 })();
 </script>
 </body>
