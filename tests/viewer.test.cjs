@@ -41,11 +41,12 @@ const reply = (body, status = 200) => Promise.resolve({
 // A viewer row as the DATABASE sends it: eight columns, cents for money.
 const vrow = (o = {}) => ({ id: 'p1', product_code: 'TR-2055516', size: '205/55R16', brand: 'Marchetti Primato 4', type: 'Car', qty: 10, price_cents: 12900, location: 'Rack A2', ...o });
 
-function boot({ signedIn = true, viewer = true, rows = [vrow()], rpcStatus = {}, refreshFails = false, refreshStatus = 0, logStatus = 200 } = {}) {
+function boot({ signedIn = true, viewer = true, rows = [vrow()], rpcStatus = {}, refreshFails = false, refreshStatus = 0, logStatus = 200, before = null, hang = false } = {}) {
   const calls = [];
   const dom = new JSDOM(HTML, {
     runScripts: 'dangerously', url: 'https://example.test/till-stock/viewer.html',
     beforeParse(w) {
+      if (before) before(w);
       if (signedIn) w.localStorage.setItem('till_stock_viewer_session_v1', JSON.stringify({ access_token: 't', refresh_token: 'r', expires_at: Date.now() + 3600000, email: 'v@x.test' }));
       w.fetch = (url, init = {}) => {
         const u = String(url);
@@ -55,6 +56,7 @@ function boot({ signedIn = true, viewer = true, rows = [vrow()], rpcStatus = {},
         if (u.indexOf('/rpc/log_search') !== -1) return reply({}, logStatus);
         if (u.indexOf('/auth/v1/token') !== -1) return reply({ access_token: 'a', refresh_token: 'r2', expires_in: 3600, user: { email: 'v@x.test' } });
         if (u.indexOf('/rpc/is_viewer') !== -1) return rpcStatus.is_viewer ? reply({}, rpcStatus.is_viewer) : reply(viewer);
+        if (u.indexOf('/rpc/viewer_products') !== -1 && hang) return new Promise(() => {});
         if (u.indexOf('/rpc/viewer_products') !== -1) {
           const m = String((init.headers || {}).Range || '').match(/^(\d+)-(\d+)$/);
           const from = m ? Number(m[1]) : 0, to = m ? Number(m[2]) : 999;
@@ -237,6 +239,56 @@ const text = (w, sel) => Array.from(w.document.querySelectorAll(sel)).map((e) =>
     w.close();
   }
 
+
+  // THE OPENING SCREEN — 10 Nov 2026, his ask: "do it for the view only phones as well". The same blue screen as the
+  // staff page: held until BOTH 2.5 seconds have passed AND the stock is on screen, then it fades; never held
+  // over the sign-in form, "can't look at stock yet" or a failed read; gone after a backstop whatever the network does.
+  {
+    const splash = (w) => w.document.getElementById('splash');
+    const fading = (w) => !!splash(w) && splash(w).classList.contains('leaving');
+    {
+      const { w } = boot({ before: (win) => { win.__splashMinMs = 0; } });
+      const first = Array.from(w.document.body.children).find((e) => e.tagName === 'DIV');
+      ok('opening screen: it is the first thing in the page, and says what is happening', first && first.id === 'splash' && /Getting your stock ready/.test(first.textContent), first && first.id);
+      w.close();
+    }
+    {
+      const { w } = boot();
+      await wait(1200);
+      ok('opening screen: 1.2 s in it is still up, not fading, with the list drawn behind it', !!splash(w) && !fading(w) && w.document.querySelectorAll('.row').length === 1);
+      await wait(800);
+      ok('opening screen: 2.0 s in it is STILL up — the stock came in a blink and 2.5 s are not over', !!splash(w) && !fading(w));
+      await wait(1000);
+      ok('opening screen: 3.0 s in it is fading, not snapped off', !!splash(w) && fading(w));
+      await wait(1000);
+      ok('opening screen: 4.0 s in it is gone', !splash(w));
+      w.close();
+    }
+    {
+      const { w } = boot({ signedIn: false });
+      await wait(60);
+      ok('opening screen: signed out, it is gone at once and the sign-in form is showing', !splash(w) && !w.document.getElementById('loginScreen').hidden);
+      w.close();
+    }
+    {
+      const { w } = boot({ viewer: false });
+      await wait(400);
+      ok('opening screen: not on the viewers list, it is gone at once and the words can be read', !splash(w) && /can.t look at stock yet/.test(visible(w)), visible(w).slice(0, 120));
+      w.close();
+    }
+    {
+      const { w } = boot({ rpcStatus: { is_viewer: 500 } });
+      await wait(400);
+      ok('opening screen: a failed access check is not held over for 2.5 s', !splash(w));
+      w.close();
+    }
+    {
+      const { w } = boot({ hang: true, before: (win) => { win.__splashMinMs = 100; win.__splashMaxMs = 500; } });
+      await wait(1500);
+      ok('opening screen: a read that never answers cannot keep it up for ever', !splash(w));
+      w.close();
+    }
+  }
 
   console.log('\n' + passed + ' passed, ' + failed + ' failed\n');
   process.exit(failed ? 1 : 0);
