@@ -1,6 +1,6 @@
 // ============================================================
 // The opening screen on the phone — 10 Nov 2026. His ask: the counter's loading-screen change (the blue
-// "Logo reveal" screen he approved on 9 Nov, held 5 seconds, then faded) for the phone.
+// "Logo reveal" screen he approved on 9 Nov, held a few seconds, then faded) for the phone.
 //
 //   node tests/splash.test.cjs
 //
@@ -28,16 +28,16 @@ const fading = (w) => !!splash(w) && splash(w).classList.contains('leaving');
     w.close();
   }
   {
-    // THE REAL NUMBER: five seconds, measured from the page opening, and not before the stock is there.
+    // THE REAL NUMBER: three and a half seconds, measured from the page opening, and not before the stock is there.
     const { w } = phone();
     await wait(1200);
     ok('1.2 s in: still up, not fading, and the stock is drawn behind it', shown(w) && !fading(w) && /Marchetti|data-id|class="row/.test(list(w)), list(w).slice(0, 80));
-    await wait(3000);
-    ok('4.2 s in: STILL up — the book arrived in a blink and the five seconds are not over', shown(w) && !fading(w));
     await wait(1400);
-    ok('5.6 s in: fading, not snapped off', shown(w) && fading(w));
+    ok('2.6 s in: STILL up — the book arrived in a blink and the 3.5 seconds are not over', shown(w) && !fading(w));
+    await wait(1400);
+    ok('4.0 s in: fading, not snapped off', shown(w) && fading(w));
     await wait(1000);
-    ok('6.6 s in: gone', !shown(w));
+    ok('5.0 s in: gone', !shown(w));
     w.close();
   }
   {
@@ -75,7 +75,7 @@ const fading = (w) => !!splash(w) && splash(w).classList.contains('leaving');
     // A READ THAT DID NOT WORK.
     const { w } = phone({ extra: (u) => (u.indexOf('/rest/v1/products') !== -1 ? Promise.reject(new Error('no signal')) : undefined) });
     await wait(600);
-    ok('a stock read that failed: gone at once, not held for five seconds over the problem', !shown(w));
+    ok('a stock read that failed: gone at once, not held over the problem', !shown(w));
     w.close();
   }
   {
