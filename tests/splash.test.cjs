@@ -28,16 +28,16 @@ const fading = (w) => !!splash(w) && splash(w).classList.contains('leaving');
     w.close();
   }
   {
-    // THE REAL NUMBER: three and a half seconds, measured from the page opening, and not before the stock is there.
+    // THE REAL NUMBER: two and a half seconds, measured from the page opening, and not before the stock is there.
     const { w } = phone();
     await wait(1200);
     ok('1.2 s in: still up, not fading, and the stock is drawn behind it', shown(w) && !fading(w) && /Marchetti|data-id|class="row/.test(list(w)), list(w).slice(0, 80));
-    await wait(1400);
-    ok('2.6 s in: STILL up — the book arrived in a blink and the 3.5 seconds are not over', shown(w) && !fading(w));
-    await wait(1400);
-    ok('4.0 s in: fading, not snapped off', shown(w) && fading(w));
+    await wait(800);
+    ok('2.0 s in: STILL up — the book arrived in a blink and the 2.5 seconds are not over', shown(w) && !fading(w));
     await wait(1000);
-    ok('5.0 s in: gone', !shown(w));
+    ok('3.0 s in: fading, not snapped off', shown(w) && fading(w));
+    await wait(1000);
+    ok('4.0 s in: gone', !shown(w));
     w.close();
   }
   {

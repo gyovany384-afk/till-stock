@@ -5225,13 +5225,13 @@
   // second time it is used would sign the phone out).
   //
   // THE OPENING SCREEN (10 Nov 2026, his ask: the counter's loading-screen change, for the phone). It
-  // stays up until BOTH three and a half seconds have passed since the page opened AND the stock is on screen, then
+  // stays up until BOTH two and a half seconds have passed since the page opened AND the stock is on screen, then
   // fades over the app already drawn behind it. It is never held over anything a person must act on:
   // the sign-in form, "not on the staff list", a read that did not work — each is let through at once
   // (the stock list is empty in all of those). And it can never trap the page: whatever happens, it is
-  // gone after SPLASH_MAX_MS. SPLASH_MIN_MS is the one number to change (5 s on 10 Nov, cut to 3.5 s the same day on his word; a slow book still keeps it up until the stock arrives).
+  // gone after SPLASH_MAX_MS. SPLASH_MIN_MS is the one number to change (5 s on 10 Nov, cut to 3.5 s and then 2.5 s the same day on his word; a slow book still keeps it up until the stock arrives).
   // (`__splashMinMs` / `__splashMaxMs` are for the tests only, like `__stripAlways`: a test cannot wait the full time each time.)
-  var SPLASH_MIN_MS = typeof window.__splashMinMs === 'number' ? window.__splashMinMs : 3500;
+  var SPLASH_MIN_MS = typeof window.__splashMinMs === 'number' ? window.__splashMinMs : 2500;
   var SPLASH_MAX_MS = typeof window.__splashMaxMs === 'number' ? window.__splashMaxMs : 20000;
   var splashAt = Date.now();
   function dropSplash(at_once){
