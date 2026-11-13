@@ -319,7 +319,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 // refresh button was replaced by it): touch down at the top of whichever list is
 // in front, drag down past the line, let go.
 const pull = async (w, dist = 120) => {
-  const ids = ['list', 'salesList', 'notesList', 'healthList', 'timeList'];
+  const ids = ['list', 'salesList', 'notesList', 'healthList'];
   const el = ids.map((id) => w.document.getElementById(id)).find((x) => x && !x.hidden && x.style.display !== 'none');
   const fire = (type, y) => {
     const ev = new w.Event(type, { bubbles: true, cancelable: true });

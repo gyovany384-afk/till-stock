@@ -28,7 +28,8 @@ const two = () => [row({ id: 'p1', qty: 6 }), row({ id: 'p2', size: '195/65R15',
     const { w, calls } = phone({ rows: two() });
     await wait(80);
     ok('the header has no refresh button any more', !w.document.getElementById('refreshBtn'));
-    ok('and still has the stopwatch and sign out', Boolean($(w, '#timerBtn')) && Boolean($(w, '#signOutBtn')));
+    ok('and still has sign out, and the stopwatch is gone (timers were removed 13 Nov 2026)', !$(w, '#timerBtn') && Boolean($(w, '#signOutBtn')));
+    ok('and the page never asks for the timers, at boot or after', !calls.some((c) => /tech_/.test(c.url)), calls.map((c) => c.url).filter((u) => /tech_/.test(u)).join());
 
     let n = stockCalls(calls).length;
     await pull(w, 120);
