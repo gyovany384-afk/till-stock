@@ -1059,8 +1059,12 @@
       <button class="tab" type="button" id="tabSales" role="tab" aria-selected="false">Sales</button>
       <!-- 5 Oct 2026: the counter's notes, read and written here too. -->
       <button class="tab" type="button" id="tabNotes" role="tab" aria-selected="false">Notes</button>
-      <!-- 21 Oct 2026: Stock Health, the desk's, to look at only. -->
-      <button class="tab" type="button" id="tabHealth" role="tab" aria-selected="false">Health</button>
+      <!-- 21 Oct 2026: Stock Health, the desk's, to look at only.
+           HIDDEN 13 Nov 2026, his word, until it follows the desk's new rule: the desk's Stock Health now runs on ONE target per product with
+           the star as a watch list, and this tab still draws the old tier rules, so the two would disagree. The tab, its code and its read stay
+           (the Stock tab's tire page still uses the same read for profit, supplier and movements); only the way in is closed. To bring it
+           back: take `hidden` off this button and the guard at the top of showTab. -->
+      <button class="tab" type="button" id="tabHealth" role="tab" aria-selected="false" hidden>Health</button>
     </div>
     <!-- Sales only. Hidden rather than absent, so the header does not jump. -->
     <div class="segrow" id="rangeRow" hidden>
@@ -4055,6 +4059,8 @@
   // must never be able to draw itself over the sign-in screen.
   function showTab(next){
     if (next === tab) return;
+    // THE HEALTH TAB IS CLOSED (13 Nov 2026, see its button): nothing opens it, a stray tap included. `window.__healthTab` is the tests' way in.
+    if (next === TAB_HEALTH && window.__healthTab !== true) return;
     // THE SEARCH BOX BELONGS TO THE SCREEN IT WAS TYPED ON. One box and three
     // lists, so carrying "205" across to the sales would hide most of the day
     // with nothing on screen saying that was why.

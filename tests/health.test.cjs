@@ -45,7 +45,8 @@ function boot(over = {}) {
   const r = phone({
     rows: PRODUCTS.map((p) => ({ ...p })),
     sales: SALES,
-    before: (win) => { if (!over.noRules) win.eval(RULES); },
+    // The Health tab is hidden on the live page (13 Nov 2026); these tests open it through the window flag the page honours, except the one that proves it is shut.
+    before: (win) => { if (!over.hiddenTab) win.__healthTab = true; if (!over.noRules) win.eval(RULES); },
     extra: (u, method, init) => {
       if (u.indexOf('/rest/v1/rpc/stock_history') !== -1) {
         histAsked.push(JSON.parse(init.body));
@@ -67,6 +68,20 @@ const tap = (w, sel) => { const el = $(w, sel); if (el) el.click(); return Boole
 
 (async function run() {
   console.log('\nStock Health on the phone\n');
+
+  {
+    // HIDDEN until it follows the desk's new rule (13 Nov 2026): the tab is not drawn, a tap on it opens nothing and reads nothing.
+    const { w, calls } = boot({ hiddenTab: true });
+    await wait(80);
+    const tab = $(w, '#tabHealth');
+    ok('the Health tab is hidden', Boolean(tab) && tab.hidden === true);
+    const before = calls.length;
+    tab.click();
+    await wait(120);
+    ok('tapping it anyway opens nothing: the Stock tab is still the one on screen', $(w, '#tabStock').getAttribute('aria-selected') === 'true' && $(w, '#tabHealth').getAttribute('aria-selected') === 'false');
+    ok('and the Health list stays hidden', $(w, '#healthList').hidden === true);
+    ok('and it read nothing for it', calls.slice(before).every((c) => !/delivery_returns/.test(JSON.stringify(c))));
+  }
 
   {
     const { w, calls, histAsked } = boot();
