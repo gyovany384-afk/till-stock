@@ -383,6 +383,12 @@
   .rc-pick{ border:1px solid var(--accent); border-radius:12px; background:var(--surface); overflow:hidden; }
   .rc-pick .head{ display:flex; align-items:center; padding:8px 8px 8px 12px; border-bottom:1px solid var(--line); }
   .rc-pick .head button{ margin-left:auto; border:none; background:none; color:var(--muted); font-family:inherit; font-size:14px; font-weight:600; padding:8px; }
+  .rc-pick .head button + button{ margin-left:4px; }
+  .rc-pick .head button.done{ color:var(--accent); font-weight:800; }
+  .rc-pick .head button.done:disabled{ color:var(--faint); }
+  .rc-box{ width:22px; height:22px; flex-shrink:0; border:1.5px solid var(--line-strong); border-radius:6px; display:inline-flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:800; color:#fff; }
+  .rc-opt.cur .rc-box{ background:var(--accent); border-color:var(--accent); }
   .rc-list{ max-height:260px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
   .rc-opt{ display:flex; align-items:center; gap:10px; width:100%; min-height:48px; border:none; border-bottom:1px solid var(--line);
     background:var(--surface); color:var(--ink); padding:8px 12px; font-family:inherit; text-align:left; }
@@ -1955,13 +1961,13 @@
   var MAX_COUNT = 9999;
   // The recount panel's own buttons, by name: a prefix would also catch the
   // sale panel's confirm and the sheet's close (the Fable audit of 6083228).
-  var COUNT_ACTS = { cminus: true, cplus: true, csave: true, rackopen: true, rackclose: true, rackpick: true };
+  var COUNT_ACTS = { cminus: true, cplus: true, csave: true, rackopen: true, rackclose: true, rackpick: true, rackdone: true };
 
   // A RECOUNT PANEL'S STATE for a tire, as a tap on the left half opens it.
   function newCount(p){
     var book = Number(p.qty) || 0;
     return { id: p.id, seen: book, qty: Math.max(0, book), busy: false, blank: false, name: tireName(p),
-      rackSeen: String(p.location || ''), rackTo: null, picking: false };
+      rackSeen: String(p.location || ''), rackTo: null, picking: false, ticks: [] };
   }
   // THE RECOUNT PANEL'S BUTTONS, one place for the list and for the quick
   // details sheet that holds the same panel.
@@ -1971,15 +1977,45 @@
     if (cwhat === 'cminus' && count.qty > 0){ count.qty -= 1; count.blank = false; renderList(); }
     if (cwhat === 'cplus' && count.qty < MAX_COUNT){ count.qty += 1; count.blank = false; renderList(); }
     if (cwhat === 'csave') saveCount();
-    if (cwhat === 'rackopen'){ count.picking = true; renderList(); }
-    if (cwhat === 'rackclose'){ count.picking = false; renderList(); }
+    // MANY RACKS, 18 Nov 2026 (his ask: "multi select rack location"): the
+    // list now ticks and unticks, starting from the racks the tire is on (or
+    // the ones already picked, if he opens it again before Save), and Done
+    // turns the ticks into the one location string. Cancel drops them.
+    if (cwhat === 'rackopen'){
+      // (A rack written twice in one location is one row in the list: one tick.)
+      count.ticks = racksOf(count.rackTo !== null ? count.rackTo : count.rackSeen)
+        .filter(function(n, i, all){ return all.indexOf(n) === i; });
+      count.picking = true; renderList();
+    }
+    if (cwhat === 'rackclose'){ count.picking = false; count.ticks = []; renderList(); }
     if (cwhat === 'rackpick'){
-      var to = act.getAttribute('data-rack') || '';
-      // The rack it is on already, and nothing else: no move.
-      count.rackTo = to === count.rackSeen ? null : to;
-      count.picking = false;
+      var tapped = act.getAttribute('data-rack') || '';
+      var at = count.ticks.indexOf(tapped);
+      if (at === -1) count.ticks.push(tapped); else count.ticks.splice(at, 1);
+      // A REDRAW WOULD THROW THE LIST BACK TO THE TOP, mid-scroll, on every tick.
+      var box = $('rcList'), keep = box ? box.scrollTop : 0;
+      renderList();
+      box = $('rcList');
+      if (box) box.scrollTop = keep;
+    }
+    if (cwhat === 'rackdone'){
+      if (!count.ticks.length) return;
+      count.rackTo = rackJoin(count.ticks, count.rackSeen);
+      count.picking = false; count.ticks = [];
       renderList();
     }
+  }
+  // The location the ticks make, or null for no change. The same racks as it
+  // is on already, in whatever order or spacing, is NO move: writing it back
+  // joined the counter's way would look like a change that is not one. The
+  // racks it keeps stay where they were in the string; new ones go on the end.
+  function rackJoin(ticks, seen){
+    var was = racksOf(seen);
+    var same = ticks.length === was.length && ticks.every(function(n){ return was.indexOf(n) !== -1; });
+    if (same) return null;
+    var kept = was.filter(function(n){ return ticks.indexOf(n) !== -1; });
+    var added = ticks.filter(function(n){ return was.indexOf(n) === -1; });
+    return kept.concat(added).join(', ');
   }
   // A TIRE PRESSED WHILE SOMETHING IS IN THE AIR (a tap or a long press): true
   // when it must be turned away, with the reason SAID on the tire pressed.
@@ -2058,15 +2094,18 @@
     var mv = rackMove(c);
     var html = '<div class="rc-rack">';
     if (c.picking && !busy){
-      var on = racksOf(now);
-      html += '<div class="rc-pick"><div class="head"><span class="k">Move to</span>'
-        + '<button type="button" data-act="rackclose">Cancel</button></div><div class="rc-list" id="rcList">';
+      var on = c.ticks;
+      html += '<div class="rc-pick"><div class="head"><span class="k">Pick racks</span>'
+        + '<button type="button" data-act="rackclose">Cancel</button>'
+        + '<button type="button" class="done" data-act="rackdone"' + (on.length ? '' : ' disabled') + '>Done' + (on.length ? ' (' + on.length + ')' : '') + '</button></div>'
+        + '<div class="rc-list" id="rcList">';
       var list = rackList();
       list.forEach(function(r){
         var here = on.indexOf(r.name) !== -1;
-        html += '<button type="button" class="rc-opt' + (here ? ' cur' : '') + '" data-act="rackpick" data-rack="' + esc(r.name) + '">'
+        html += '<button type="button" class="rc-opt' + (here ? ' cur' : '') + '" data-act="rackpick" aria-pressed="' + here + '" data-rack="' + esc(r.name) + '">'
+          + '<span class="rc-box">' + (here ? '&#10003;' : '') + '</span>'
           + '<span class="rc-tag">' + esc(r.name) + '</span>'
-          + '<span class="n">' + (here ? 'on it now' : r.tires + (r.tires === 1 ? ' tire' : ' tires')) + '</span></button>';
+          + '<span class="n">' + (here ? 'picked' : r.tires + (r.tires === 1 ? ' tire' : ' tires')) + '</span></button>';
       });
       if (!list.length) html += '<div class="rc-opt">No racks on the book yet — give one at the counter.</div>';
       html += '</div></div>';
@@ -2082,7 +2121,10 @@
     var busy = count.busy, d = count.qty - count.seen;
     var words = d === 0 ? 'Same as the book (' + count.seen + ')'
       : 'Book ' + count.seen + ' → ' + count.qty + ' · ' + Math.abs(d) + (d < 0 ? ' fewer' : ' more');
-    var can = countChanged(count) || !!rackMove(count);
+    // NOT WHILE THE RACK LIST IS OPEN: Save only knows the racks Done turned into
+    // a pick, so Save pressed with ticks still showing would drop them and say
+    // "Count saved" (the review of 18 Nov). Done or Cancel first.
+    var can = !count.picking && (countChanged(count) || !!rackMove(count));
     return '<div class="sellpanel recount" data-sell="1">'
       + '<button type="button" class="sp-step" data-act="cminus" aria-label="One fewer"' + (busy || count.qty <= 0 ? ' disabled' : '') + '>&minus;</button>'
       + '<input class="rc-qty" id="rcQty" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" aria-label="How many are on the shelf" value="' + count.qty + '"' + (busy ? ' disabled' : '') + '>'
@@ -2107,7 +2149,7 @@
       s.textContent = d === 0 ? 'Same as the book (' + count.seen + ')'
         : 'Book ' + count.seen + ' → ' + count.qty + ' · ' + Math.abs(d) + (d < 0 ? ' fewer' : ' more');
     }
-    if (b) b.disabled = !(countChanged(count) || rackMove(count));
+    if (b) b.disabled = count.picking || !(countChanged(count) || rackMove(count));
   }
   // A tire whose count crosses nothing changes lists, the way the next read
   // would put it: the stock list holds what is on the shelf, the rest waits
@@ -2131,7 +2173,7 @@
   // the picture it was sent with are still what the panel holds.
   function c_sameSave(c){ return !!c.saveId && c.saveQty === c.qty && c.saveSeen === c.seen; }
   function saveCount(){
-    if (!count || count.busy) return;
+    if (!count || count.busy || count.picking) return;
     // THE RACK ALONE: no recount is sent, only the move.
     var move = rackMove(count);
     if (!countChanged(count)){

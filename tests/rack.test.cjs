@@ -14,11 +14,21 @@ const $ = (w, sel) => w.document.querySelector(sel);
 const $$ = (w, sel) => Array.from(w.document.querySelectorAll(sel));
 const tap = async (w, sel) => { const el = $(w, sel); if (el) el.click(); await wait(20); return Boolean(el); };
 const said = (w) => (($(w, '.salemsg') || {}).textContent || '').trim();
-const pick = async (w, name) => {
+// One tap on a rack in the list: ticks it, or unticks it.
+const toggle = async (w, name) => {
   const b = $$(w, '[data-act="rackpick"]').find((x) => x.getAttribute('data-rack') === name);
   if (b) b.click();
   await wait(20);
   return Boolean(b);
+};
+const ticked = (w) => $$(w, '.rc-opt.cur').map((x) => x.getAttribute('data-rack'));
+const done = (w) => tap(w, '[data-act="rackdone"]');
+// "Put it on this rack and no other" — the old single pick, now spelled out as
+// untick everything else, tick this one, Done.
+const pick = async (w, name) => {
+  for (const n of ticked(w)) if (n !== name) await toggle(w, n);
+  if (!ticked(w).includes(name)) await toggle(w, name);
+  await done(w);
 };
 const rows = () => [
   row({ id: 'p1', qty: 6, location: 'RACK 3' }),
@@ -42,13 +52,112 @@ const rows = () => [
     ok('the list is numbered racks first, in number order, then A to Z',
       JSON.stringify(names) === JSON.stringify(['RACK 1', 'RACK 3', 'RACK 10', 'Back storage', 'BAR 2', 'SHOP']), JSON.stringify(names));
     ok('there is no search box in it', !$(w, '.rc-pick input'));
-    ok('the rack it is on says so', /on it now/.test($$(w, '.rc-opt.cur').map((x) => x.textContent).join()));
+    ok('the rack it is on starts ticked and says so', JSON.stringify(ticked(w)) === '["RACK 3"]' && /picked/.test($$(w, '.rc-opt.cur').map((x) => x.textContent).join()));
     ok('the others say the tires on the shelf there', /4 tires/.test($$(w, '.rc-opt').find((x) => /SHOP/.test(x.textContent)).textContent));
-    await pick(w, 'RACK 3');
-    ok('tapping the rack it is on changes nothing', !$(w, '.rc-move') && $(w, '[data-act="csave"]').disabled === true);
+    await toggle(w, 'RACK 3');
+    ok('unticking the last rack turns Done off (a tire is never left on no rack)', $(w, '[data-act="rackdone"]').disabled === true && ticked(w).length === 0);
+    await done(w);
+    ok('and pressing it anyway closes nothing', Boolean($(w, '.rc-pick')));
+    await toggle(w, 'RACK 3');
+    await done(w);
+    ok('Done on the same rack changes nothing', !$(w, '.rc-pick') && !$(w, '.rc-move') && $(w, '[data-act="csave"]').disabled === true);
     await tap(w, '[data-act="rackopen"]');
     await tap(w, '[data-act="rackclose"]');
     ok('Cancel closes the list', !$(w, '.rc-pick'));
+    w.close();
+  }
+
+  // ---- several racks at once (18 Nov 2026) ------------------------------------
+  {
+    const { w, moves } = phone({ rows: rows() });
+    await wait(60);
+    await tap(w, '.row[data-id="p1"] .main');
+    await tap(w, '[data-act="rackopen"]');
+    await toggle(w, 'SHOP');
+    await toggle(w, 'RACK 1');
+    ok('every tap ticks one more, the old one stays', JSON.stringify(ticked(w)) === JSON.stringify(['RACK 1', 'RACK 3', 'SHOP']) && /Done \(3\)/.test($(w, '[data-act="rackdone"]').textContent), JSON.stringify(ticked(w)));
+    ok('a ticked rack says so for a screen reader', $$(w, '[data-act="rackpick"]').every((b) => (b.getAttribute('aria-pressed') === 'true') === ticked(w).includes(b.getAttribute('data-rack'))));
+    await done(w);
+    ok('it says what will change: the old rack kept, the new ones added after it',
+      /Moves from\s*RACK 3\s*to RACK 3, SHOP, RACK 1/.test(($(w, '.rc-move') || {}).textContent || ''), ($(w, '.rc-move') || {}).textContent);
+    await tap(w, '[data-act="rackopen"]');
+    ok('opening it again starts from what was picked, not what it was', JSON.stringify(ticked(w)) === JSON.stringify(['RACK 1', 'RACK 3', 'SHOP']), JSON.stringify(ticked(w)));
+    await tap(w, '[data-act="rackclose"]');
+    ok('Cancel keeps the earlier pick', /RACK 3, SHOP, RACK 1/.test(($(w, '.rc-move') || {}).textContent || ''));
+    await tap(w, '[data-act="csave"]'); await wait(40);
+    ok('ONE guarded write over the rack it opened on', moves.length === 1 && moves[0].url.indexOf('location=eq.' + encodeURIComponent('RACK 3')) !== -1, moves[0] && moves[0].url);
+    ok('setting all the racks, joined the way the counter joins them', moves[0].body.location === 'RACK 3, SHOP, RACK 1', JSON.stringify(moves[0].body));
+    ok('the card shows all of them', /RACK 3, SHOP, RACK 1/.test($(w, '.row[data-id="p1"] .sub').textContent), $(w, '.row[data-id="p1"] .sub').textContent);
+    w.close();
+  }
+  {
+    const { w, moves } = phone({ rows: rows() });
+    await wait(60);
+    await tap(w, '.row[data-id="p2"] .main');
+    await tap(w, '[data-act="rackopen"]');
+    await toggle(w, 'SHOP'); await toggle(w, 'SHOP');
+    await done(w);
+    ok('ticking and unticking back to the same racks is no move', !$(w, '.rc-move') && $(w, '[data-act="csave"]').disabled === true);
+    await tap(w, '[data-act="rackopen"]');
+    await toggle(w, 'SHOP');
+    await done(w);
+    await tap(w, '[data-act="csave"]'); await wait(40);
+    ok('dropping one of two racks keeps the other', moves.length === 1 && moves[0].body.location === 'RACK 10'
+      && moves[0].url.indexOf('location=eq.' + encodeURIComponent('SHOP, RACK 10')) !== -1, moves[0] && JSON.stringify(moves[0].body));
+    w.close();
+  }
+  {
+    const { w } = phone({ rows: rows() });
+    await wait(60);
+    await tap(w, '.row[data-id="p1"] .main');
+    await tap(w, '[data-act="rackopen"]');
+    $(w, '#rcList').scrollTop = 96;
+    await toggle(w, 'SHOP');
+    ok('ticking one does not throw the list back to the top', $(w, '#rcList').scrollTop === 96, String($(w, '#rcList').scrollTop));
+    await tap(w, '[data-act="rackclose"]');
+    await tap(w, '[data-act="rackopen"]');
+    ok('Cancel drops the ticks', JSON.stringify(ticked(w)) === '["RACK 3"]' && !$(w, '.rc-move'));
+    w.close();
+  }
+  {
+    // The review of 18 Nov: Save with the list still open dropped the ticks and said "Count saved".
+    const { w, moves, recounts } = phone({ rows: rows() });
+    await wait(60);
+    await tap(w, '.row[data-id="p1"] .main');
+    await tap(w, '[data-act="cminus"]');
+    ok('with the count changed, Save is on', $(w, '[data-act="csave"]').disabled === false);
+    await tap(w, '[data-act="rackopen"]');
+    await toggle(w, 'SHOP');
+    ok('with the rack list open, Save is off', $(w, '[data-act="csave"]').disabled === true);
+    await tap(w, '[data-act="csave"]'); await wait(40);
+    ok('and pressing it sends nothing', recounts.length === 0 && moves.length === 0 && Boolean($(w, '.rc-pick')));
+    await done(w);
+    ok('Done turns Save back on, with the rack in it', $(w, '[data-act="csave"]').disabled === false && /RACK 3, SHOP/.test(($(w, '.rc-move') || {}).textContent || ''));
+    await tap(w, '[data-act="csave"]'); await wait(60);
+    ok('and one Save then sends the count and the rack', recounts.length === 1 && moves.length === 1 && moves[0].body.location === 'RACK 3, SHOP');
+    w.close();
+  }
+  {
+    // A rack written twice is one row and one tick.
+    const rs = rows(); rs.push(row({ id: 'p8', size: '265/70R17', qty: 2, location: 'RACK 3, RACK 3' }));
+    const { w } = phone({ rows: rs });
+    await wait(60);
+    await tap(w, '.row[data-id="p8"] .main');
+    await tap(w, '[data-act="rackopen"]');
+    ok('one tick for a rack written twice', /Done \(1\)/.test($(w, '[data-act="rackdone"]').textContent));
+    await toggle(w, 'RACK 3');
+    ok('and one tap unticks it', ticked(w).length === 0);
+    w.close();
+  }
+  {
+    // The same racks written without the space, or in another order, are the same racks.
+    const rs = rows(); rs.push(row({ id: 'p7', size: '255/55R18', qty: 3, location: 'SHOP,RACK 10' }));
+    const { w, moves } = phone({ rows: rs });
+    await wait(60);
+    await tap(w, '.row[data-id="p7"] .main');
+    await tap(w, '[data-act="rackopen"]');
+    await done(w);
+    ok('a location the counter wrote without a space is not "changed" by opening and closing the list', !$(w, '.rc-move') && moves.length === 0);
     w.close();
   }
 
