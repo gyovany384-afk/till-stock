@@ -448,8 +448,8 @@
     background:var(--surface); color:var(--muted); font-size:12px; font-weight:800; letter-spacing:.04em; }
   .search:not(.has) .kbtn{ right:8px; }
   .search .kbtn:active{ background:var(--line); }
-  /* Quick sale | Add to stock, under a search. */
-  .phoneadd{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  /* Add to stock, under a search. (Quick sale beside it came off 23 Nov 2026, his word, with the counter's box that took its sales.) */
+  .phoneadd{ display:grid; grid-template-columns:1fr; gap:8px; }
   .phoneadd button{ min-height:48px; border-radius:12px; font-family:inherit; font-size:14.5px; font-weight:700;
     border:1.5px solid var(--accent); background:var(--surface); color:var(--accent); padding:10px; }
   .phoneadd button.add{ border-color:var(--good); color:var(--good); }
@@ -3076,10 +3076,11 @@
     return html + '<div class="dayhead"><div class="rule"></div></div>';
   }
   function phoneAddButtons(){
+    // NO QUICK SALE since 23 Nov 2026 (his pick): the counter's Sales log box that took its sales came off, so a sale sent from here would
+    // land where nobody sees it. Selling a tire that IS in the book is unchanged.
     return '<div class="phoneadd">'
-      + '<button type="button" data-act="quick">+ Quick sale</button>'
       + '<button type="button" class="add" data-act="addstock">+ Add to stock</button>'
-      + '</div><div class="phoneaddnote">Not in the book? <b>Quick sale</b> when you’re selling it now, <b>Add to stock</b> when you find it while counting. The counter finishes both.</div>';
+      + '</div><div class="phoneaddnote">Not in the book? <b>Add to stock</b> when you find it while counting. The counter finishes it.</div>';
   }
   function phoneSaidHtml(){ return phoneSaid ? saidHtml(phoneSaid) : ''; }
 
@@ -4670,9 +4671,7 @@
     if (act && act.getAttribute('data-act') === 'without'){
       withOut = true; renderList(); return;
     }
-    if (act && (act.getAttribute('data-act') === 'quick' || act.getAttribute('data-act') === 'addstock')){
-      openForm(act.getAttribute('data-act') === 'quick' ? 'sale' : 'add'); return;
-    }
+    if (act && act.getAttribute('data-act') === 'addstock'){ openForm('add'); return; }
     // A tire the phone added and the counter has not finished: nothing to open.
     if (e.target.closest && e.target.closest('[data-pend]')) return;
     if (act && count && COUNT_ACTS[act.getAttribute('data-act')]){

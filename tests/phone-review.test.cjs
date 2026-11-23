@@ -112,48 +112,31 @@ function room(over = {}) {
     ok('2454518 finds 245/45/18', /245\/45\/18/.test(list(w)) && !/205\/55R16/.test(list(w)));
   }
 
-  // ---- the two buttons -----------------------------------------------------
+  // ---- the button: Add to stock only (Quick sale came off 23 Nov 2026, his pick, with the counter's box that took its sales) ----
   {
     const r = room();
     const { w } = phone({ extra: r.extra });
     await wait(60);
-    ok('no Quick sale before anything is searched', !$(w, '[data-act="quick"]'));
+    ok('no Add to stock before anything is searched', !$(w, '[data-act="addstock"]'));
     await search(w, '2454518');
-    ok('a search with nothing in stock offers Quick sale and Add to stock',
-      Boolean($(w, '[data-act="quick"]')) && Boolean($(w, '[data-act="addstock"]')));
+    ok('a search with nothing in stock offers Add to stock, and NO Quick sale',
+      Boolean($(w, '[data-act="addstock"]')) && !$(w, '[data-act="quick"]') && !/Quick sale/.test(list(w)), list(w).slice(0, 300));
     await search(w, '205');
-    ok('and so does a search that finds tires, under them', Boolean($(w, '[data-act="quick"]')) && /205\/55R16/.test(list(w)));
+    ok('and so does a search that finds tires, under them', Boolean($(w, '[data-act="addstock"]')) && !$(w, '[data-act="quick"]') && /205\/55R16/.test(list(w)));
+    ok('nothing was sent', r.sent.length === 0);
   }
 
-  // ---- a quick sale --------------------------------------------------------
+  // ---- add to stock from a number typed on the pad --------------------------
   {
     const r = room();
     const { w } = phone({ extra: r.extra });
     await wait(60);
     await search(w, '2454518');
-    await tap(w, '[data-act="quick"]');
-    ok('Quick sale opens a form in the sheet', sheetOpen(w) && /Quick sale/.test(sheet(w)));
+    await tap(w, '[data-act="addstock"]');
+    ok('Add to stock opens a form in the sheet', sheetOpen(w) && /Add to stock/.test(sheet(w)));
     ok('the size typed in the search is already in it', $(w, '#fSize').value === '2454518');
     ok('and it says what it will be stored as', /245\/45\/18/.test($(w, '#fSee').textContent), $(w, '#fSee').textContent);
     ok('the size box starts on the number pad', $(w, '#fSize').getAttribute('inputmode') === 'numeric');
-    await tap(w, '[data-act="fsend"]');
-    ok('nothing is sent without a brand', r.sent.length === 0 && /brand and model/.test(sheet(w)));
-    await type(w, 'fName', 'Ironman iMove Gen3');
-    await type(w, 'fPrice', '12');
-    await tap(w, '[data-act="fplus"]');
-    await type(w, 'fPrice', 'abc');
-    await tap(w, '[data-act="fsend"]');
-    ok('nothing is sent with a price that is not one', r.sent.length === 0 && /price each/.test(sheet(w)));
-    await type(w, 'fPrice', '$129.95');
-    await tap(w, '[data-act="fsend"]');
-    await wait(40);
-    const b = r.sent[0] || {};
-    ok('one call to phone_pending_add', r.sent.length === 1);
-    ok('a phone-made number', /^p[a-z]{4}\d+$/.test(b.p_id), b.p_id);
-    ok('the size in the book\'s spelling, the brand, how many', b.p_size === '245/45/18' && b.p_name === 'Ironman iMove Gen3' && b.p_qty === 2, b);
-    ok('the price in cents, by string: $129.95 is 12995', b.p_price_cents === 12995, b.p_price_cents);
-    ok('a sale carries the phone\'s day and clock', /^\d{4}-\d\d-\d\d$/.test(b.p_date) && /^\d\d:\d\d$/.test(b.p_when), b);
-    ok('the sheet closes and the list says what happened', !sheetOpen(w) && /Quick sale logged/.test(list(w)) && /counter reviews it/.test(list(w)), list(w).slice(0, 400));
   }
 
   // ---- no clear answer: Try again sends the SAME number --------------------
@@ -163,9 +146,8 @@ function room(over = {}) {
     const { w } = phone({ extra: r.extra });
     await wait(60);
     await search(w, '2454518');
-    await tap(w, '[data-act="quick"]');
+    await tap(w, '[data-act="addstock"]');
     await type(w, 'fName', 'Ironman');
-    await type(w, 'fPrice', '100');
     await tap(w, '[data-act="fsend"]');
     await wait(40);
     ok('a lost answer says it may have gone through, and offers Try again', /may have gone through/.test(sheet(w)) && /Try again/.test(sheet(w)));
