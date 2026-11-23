@@ -976,6 +976,48 @@
   @media (prefers-reduced-motion: reduce){
     .splash-tile, .splash-letter, .splash-cap, .splash-dots i{ animation-duration:.01ms !important; animation-delay:0s !important; animation-iteration-count:1 !important; }
   }
+  /* ---------- Stock Health, attention only — 22 Nov 2026 ----------
+     His ask: only the cards that need attention, each split like the Stock card (left half Find replacement, right half Acknowledge), a Confirm
+     button on each. The colours are the desk's: red out, yellow short, blue acknowledged. */
+  .hhead{ padding:2px 2px 4px; display:flex; flex-direction:column; gap:8px; }
+  .hcounts{ display:flex; gap:8px; flex-wrap:wrap; }
+  .hpill{ display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 11px; border-radius:999px; font-size:13px; font-weight:800;
+    background:var(--surface); border:1px solid var(--line); }
+  .hpill i{ width:8px; height:8px; border-radius:50%; background:var(--danger); }
+  .hpill.short i{ background:var(--warn); }
+  .hsub{ color:var(--muted); font-size:12.5px; }
+  .hsaid{ padding:10px 12px; border-radius:12px; background:var(--good-bg); color:var(--good); font-size:13px; font-weight:700; }
+  .hsaid.bad{ background:var(--danger-bg); color:var(--danger); }
+  .row.split.hc.hc-out{ background:color-mix(in srgb, var(--danger) 9%, var(--surface)); border-color:color-mix(in srgb, var(--danger) 32%, transparent); }
+  .row.split.hc.hc-short{ background:color-mix(in srgb, var(--warn) 11%, var(--surface)); border-color:color-mix(in srgb, var(--warn) 34%, transparent); }
+  .row.split.hc.hc-ack{ background:color-mix(in srgb, var(--accent) 10%, var(--surface)); border-color:color-mix(in srgb, var(--accent) 34%, transparent); }
+  .row.split.hc .main.on, .row.split.hc .main:active{ background:color-mix(in srgb, var(--accent) 12%, transparent); }
+  .row.split.hc .main.on .hint{ color:var(--accent); }
+  .hc .htype{ display:inline-block; align-self:flex-start; margin-top:4px; font-size:11px; font-weight:700; padding:2px 7px; border-radius:5px; background:var(--surface-2); }
+  .hc .hstar{ color:#d97706; font-size:16px; line-height:1; }
+  .hc .hcount{ display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; white-space:nowrap; margin-top:2px; }
+  .hc .hcount i{ width:8px; height:8px; border-radius:50%; background:var(--danger); }
+  .hc.hc-short .hcount i{ background:var(--warn); }
+  .hc.hc-ack .hcount i{ background:var(--accent); }
+  .hpanel{ display:flex; flex-direction:column; gap:10px; padding:12px; border-radius:13px; border:1px solid var(--line-strong); background:var(--surface); margin-top:-4px; }
+  .hpanel.hc-out{ border-color:var(--danger); background:color-mix(in srgb, var(--danger) 7%, var(--surface)); }
+  .hpanel.hc-short{ border-color:var(--warn); background:color-mix(in srgb, var(--warn) 9%, var(--surface)); }
+  .hpanel.hc-ack{ border-color:var(--accent); background:color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+  .hp-title{ font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:var(--faint); }
+  .hp-says{ font-size:14px; font-weight:700; line-height:1.35; }
+  .hp-small{ font-size:12.5px; color:var(--muted); font-weight:500; line-height:1.4; }
+  .hp-opts{ display:flex; flex-direction:column; gap:6px; }
+  .hopt{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 10px; text-align:left; border:1px solid var(--line-strong); background:var(--surface);
+    border-radius:12px; padding:9px 12px; min-height:52px; font:inherit; color:inherit; cursor:pointer; }
+  .hopt[aria-pressed="true"]{ border-color:var(--good); box-shadow:0 0 0 2px var(--good); }
+  .hopt b{ font-size:13.5px; text-transform:uppercase; }
+  .hopt span{ color:var(--muted); font-size:12px; }
+  .hopt .r{ text-align:right; }
+  .hp-two{ display:grid; grid-template-columns:1fr 1.6fr; gap:8px; }
+  .hp-two button{ height:50px; border-radius:12px; border:1px solid var(--line-strong); background:var(--surface); font:inherit; font-size:15px; font-weight:800; color:var(--ink); cursor:pointer; }
+  .hp-two button.go{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .hp-two button:disabled{ opacity:.4; cursor:default; }
+  .hp-err{ font-size:13px; font-weight:700; color:var(--danger); }
 </style>
 </head>
 <body>
@@ -1065,12 +1107,10 @@
       <button class="tab" type="button" id="tabSales" role="tab" aria-selected="false">Sales</button>
       <!-- 5 Oct 2026: the counter's notes, read and written here too. -->
       <button class="tab" type="button" id="tabNotes" role="tab" aria-selected="false">Notes</button>
-      <!-- 21 Oct 2026: Stock Health, the desk's, to look at only.
-           HIDDEN 13 Nov 2026, his word, until it follows the desk's new rule: the desk's Stock Health now runs on ONE target per product with
-           the star as a watch list, and this tab still draws the old tier rules, so the two would disagree. The tab, its code and its read stay
-           (the Stock tab's tire page still uses the same read for profit, supplier and movements); only the way in is closed. To bring it
-           back: take `hidden` off this button and the guard at the top of showTab. -->
-      <button class="tab" type="button" id="tabHealth" role="tab" aria-selected="false" hidden>Health</button>
+      <!-- 21 Oct 2026: Stock Health. HIDDEN 13 Nov 2026 (its tier rules no longer matched the desk's one-target-per-product page); OPEN AGAIN
+           22 Nov 2026, his word ("build it and open the tab"), now showing only the cards that need attention, drawn from attention.js. The old
+           tier lists and tire page code stay (the Stock tab's quick details still use that read). -->
+      <button class="tab" type="button" id="tabHealth" role="tab" aria-selected="false">Health</button>
     </div>
     <!-- Sales only. Hidden rather than absent, so the header does not jump. -->
     <div class="segrow" id="rangeRow" hidden>
@@ -1150,6 +1190,8 @@
      scripts/build-phone-health.mjs in the desktop repo. Loaded first so the
      page below finds TillHealth; if it fails to load, only the Health tab says so. -->
 <script src="health.js?v=b7b0d305fe"></script>
+<!-- 22 Nov 2026: Stock Health's attention-only view, the desk's own functions packed by scripts/build-phone-attention.mjs. -->
+<script src="attention.js?v=4350a30281"></script>
 <script>
 (function(){
   // ---- Supabase: the STOCK ROOM computer's own project ----
@@ -2363,7 +2405,7 @@
     // two reads at two different moments, and one line saying "checked just
     // now" over the other one's read is a claim about a read that never
     // happened.
-    var at = tab === TAB_SALES ? salesAt : tab === TAB_HEALTH ? healthAt : checkedAt;
+    var at = tab === TAB_SALES ? salesAt : tab === TAB_HEALTH ? attAt : checkedAt;
     if (!at){ $('freshText').textContent = ''; return; }
     var d = new Date(at), now = new Date();
     var mins = Math.round((now - d)/60000);
@@ -3399,11 +3441,10 @@
   }
 
   function loadHealth(){
-    if (!TH){ if (tab === TAB_HEALTH) renderHealth(); return Promise.resolve(null); }
+    if (!TH) return Promise.resolve(null);
     var mine = sessionGen, gen = ++healthGen;
     var stale = function(){ return sessionGen !== mine || !session || gen !== healthGen; };
     healthLoading = true; healthErr = null;
-    if (tab === TAB_HEALTH) renderHealth();
     return Promise.all(HEALTH_READS.map(function(r){
       var p = readAll(r[1]);
       // RETURNS ARE OPTIONAL, as on the desk: a database without the table
@@ -3420,16 +3461,13 @@
       if (!health.tabs.some(function(t){ return t.key === hView.type; })) hView.type = health.tabs[0] ? health.tabs[0].key : '';
       // A tire taken off the book since the page was opened closes it.
       if (hPage && !health.book.products.some(function(p){ return p.id === hPage.id; })){ hPage = null; rewindLayers(); }
-      // A SEARCH TYPED WHILE IT LOADED is kept for the list in front (the Opus audit).
-      if (tab === TAB_HEALTH){ var typed = currentList(); if (typed) hQ[typed.id] = $('q').value; }
-      if (tab === TAB_HEALTH){ renderHealthBar(); renderHealth(); renderFresh(); }
+      // The Health tab now shows the attention cards (loadAttention draws them); this old read only feeds the product page and the quick-details sheet, so it never draws the old tier view.
       renderPage();
       renderQd();
       return true;
     }).catch(function(){
       if (stale()) return null;
       healthLoading = false; healthErr = true;
-      if (tab === TAB_HEALTH) renderHealth();
       renderQd();
       return null;
     });
@@ -3954,6 +3992,7 @@
     qd = null; qdGen += 1; lpCancel(); renderQd();
     rewindLayers();
     $('healthList').innerHTML = ''; $('healthBar').innerHTML = '';
+    resetAttention();
     renderPage();
   }
 
@@ -4095,14 +4134,278 @@
     if (!products.length) $('list').innerHTML = '<div class="center"><div class="spin"></div>Loading stock…</div>';
   }
 
+  // ---------- Stock Health, attention only — 22 Nov 2026 ----------
+  //
+  // His ask: "for phone let's add the stock health but only the cards of what needs attention show up", each card split like the Stock card (left half
+  // Find replacement, right half Acknowledge), a Confirm button on each, and "build it and open the tab".
+  //
+  // THE RULES ARE NOT HERE. attention.js (loaded before this script) is the desk's own functions packed for the phone
+  // (scripts/build-phone-attention.mjs in the desktop repo): which products need attention, their colours, the order, which are acknowledged, the other
+  // products of a size, and the rows to write. This page reads, draws, and writes ONLY AFTER A CONFIRM.
+  //
+  // TWO READS, products and settings (the old Health read of the whole book is not needed: a card is a count against a target). Two kinds of write,
+  // both the staff login's own, as the desk's: a SETTINGS ROW (`health_pin:ack#<id>`, Acknowledged; and the pin rows a replacement carries) and the
+  // product's star (`must_have`). Each write asks for what it wrote back and counts it: a database that matched nothing (a row hidden by row security)
+  // answers 200 with an empty list, and that is a failure, not a save.
+  var TA = window.TillAttention || null;
+  var att = null, attRows = null, attSettings = null, attAt = null, attLoading = false, attErr = false, attGen = 0;
+  var attUI = null;      // { id, side: 'find' | 'ack', pick, busy, err } — the half that is open
+  var attSaid = null;    // { text, bad } — what the last Confirm did, until the next press
+  var ATT_READS = [
+    ['products', '/rest/v1/products?select=*&order=id'],
+    ['settings', '/rest/v1/settings?select=key,value&order=key']
+  ];
+
+  // The two reads, as one answer: 'expired', or { products, settings } with the settings as a key → value map.
+  function readAtt(){
+    return Promise.all(ATT_READS.map(function(r){ return readAll(r[1]); })).then(function(got){
+      if (got.some(function(g){ return g === 'expired'; })) return 'expired';
+      var s = {};
+      got[1].forEach(function(x){ if (x && x.key) s[x.key] = x.value; });
+      return { products: got[0], settings: s };
+    });
+  }
+  function takeAtt(r){ attRows = { products: r.products }; attSettings = r.settings; att = TA.open(attRows, attSettings); attAt = Date.now(); attErr = false; }
+
+  function loadAttention(){
+    if (!TA){ if (tab === TAB_HEALTH) renderAttention(); return Promise.resolve(null); }
+    if (attUI && attUI.busy) return Promise.resolve(null); // a Confirm is in the air: do not read the book from under it
+    var mine = sessionGen, gen = ++attGen;
+    var stale = function(){ return sessionGen !== mine || !session || gen !== attGen; };
+    attLoading = true; attErr = false;
+    if (tab === TAB_HEALTH) renderAttention();
+    return readAtt().then(function(r){
+      if (stale()) return null;
+      if (r === 'expired'){ clearSession(); showLogin('Your session expired — sign in again.'); return null; }
+      takeAtt(r);
+      attLoading = false;
+      if (attUI && !att.cards.some(function(c){ return c.id === attUI.id; })) attUI = null;
+      if (tab === TAB_HEALTH){ renderAttention(); renderFresh(); }
+      return true;
+    }).catch(function(){
+      if (stale()) return null;
+      attLoading = false; attErr = true;
+      if (tab === TAB_HEALTH) renderAttention();
+      return null;
+    });
+  }
+
+  function attCard(id){
+    var l = att ? TA.list(att).cards : [];
+    for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i];
+    return null;
+  }
+
+  function renderAttention(){
+    var el = $('healthList');
+    if (!TA){ el.innerHTML = '<div class="empty">Stock Health could not load on this phone.<br>Reload the page to try again.</div>'; return; }
+    if (doorShut){ el.innerHTML = '<div class="empty">This account is not on the stock room’s staff list.<br>Ask for it to be added on the stock room computer.</div>'; return; }
+    if (!att){
+      el.innerHTML = attErr ? '<div class="center">Couldn’t load Stock Health. Check your connection and pull down to try again.</div>'
+        : '<div class="center"><div class="spin"></div>Loading Stock Health…</div>';
+      return;
+    }
+    var l = TA.list(att), c = l.counts;
+    var need = c.out + c.short;
+    var h = '<div class="hhead">'
+      + (need ? '<div class="hcounts"><span class="hpill"><i></i>' + c.out + ' out</span><span class="hpill short"><i></i>' + c.short + ' short</span></div>' : '')
+      + '<div class="hsub">' + (need ? need + ' of ' + c.products + ' starred products need attention.' : c.products + ' starred products.')
+      + (c.acked ? ' ' + c.acked + ' acknowledged.' : '') + '</div></div>';
+    if (attErr) h += '<div class="hsaid bad">Couldn’t refresh — this is the last read.</div>';
+    if (attSaid) h += '<div class="hsaid' + (attSaid.bad ? ' bad' : '') + '" role="status">' + esc(attSaid.text) + '</div>';
+    // STARRED ONLY (23 Nov 2026, his pick): the desk's Starred view. An unstarred product never shows here, empty or not.
+    if (!c.products) h += '<div class="empty">Nothing starred yet.<br>Star products on the stock room computer to watch them here.</div>';
+    else if (!need) h += '<div class="empty">Nothing needs attention.<br>Every starred product is at target, has no target, or has been acknowledged.</div>';
+    l.cards.forEach(function(card){
+      var onFind = attUI && attUI.id === card.id && attUI.side === 'find', onAck = attUI && attUI.id === card.id && attUI.side === 'ack';
+      var label = card.name + ' ' + card.size + ', ' + (card.state === 'out' ? 'out of stock' : 'short') + (card.acked ? ', acknowledged' : '');
+      h += '<div class="row split hc hc-' + card.shown + (onFind || onAck ? ' open' : '') + '" data-hid="' + esc(card.id) + '">'
+        + '<div class="main half' + (onFind ? ' on' : '') + '" data-hside="find" role="button" tabindex="0" aria-expanded="' + (onFind ? 'true' : 'false') + '" aria-label="Find a replacement for ' + esc(label) + '">'
+        + '<div class="name">' + esc(card.name) + '</div>'
+        + '<div class="brandline">' + esc([card.size, card.code].filter(Boolean).join(' · ')) + '</div>'
+        + (card.racks.length ? '<div class="sub">📍 ' + esc(card.racks.join(', ')) + '</div>' : '<div class="sub">No rack</div>')
+        + (card.type ? '<span class="htype">' + esc(card.type) + '</span>' : '')
+        + '<div class="hint">Find replacement</div></div>'
+        + '<div class="prices half' + (onAck ? ' on' : '') + '" data-hside="ack" role="button" tabindex="0" aria-expanded="' + (onAck ? 'true' : 'false') + '" aria-label="' + (card.acked ? 'Remove acknowledged for ' : 'Acknowledge ') + esc(label) + '">'
+        + '<div class="sell">' + esc(card.price) + '</div>'
+        + (card.starred ? '<div class="hstar" aria-label="Starred">★</div>' : '')
+        + '<div class="hcount"><i></i>' + card.qty + ' in stock · ' + esc(card.word) + '</div>'
+        + '<div class="hint">' + (card.acked ? 'Remove acknowledged' : 'Acknowledge') + '</div></div></div>';
+      if (onFind || onAck) h += attPanel(card, onFind ? 'find' : 'ack');
+    });
+    el.innerHTML = h;
+  }
+
+  function attPanel(card, side){
+    var busy = !!(attUI && attUI.busy);
+    var says = '<div class="hp-says">' + esc(TA.says(att, card.id)) + '</div>';
+    var err = attUI && attUI.err ? '<div class="hp-err" role="alert">' + esc(attUI.err) + '</div>' : '';
+    if (side === 'ack'){
+      return '<div class="hpanel hc-' + card.shown + '" role="group" aria-label="Acknowledge ' + esc(card.name + ' ' + card.size) + '">'
+        + '<div class="hp-title">' + (card.acked ? 'Remove acknowledged' : 'Acknowledge') + '</div>' + says
+        + '<div class="hp-small">' + (card.acked
+          ? 'The card goes back to its colour and its place, and counts as needing attention again.'
+          : 'I already reordered this. The card turns blue and moves to the bottom of the list, and it stops counting as needing attention.') + '</div>'
+        + err
+        + '<div class="hp-two"><button type="button" data-hact="cancel"' + (busy ? ' disabled' : '') + '>Cancel</button>'
+        + '<button type="button" class="go" data-hact="confirm"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Saving…' : 'Confirm') + '</button></div></div>';
+    }
+    var opts = TA.options(att, card.id);
+    var pick = null;
+    opts.forEach(function(o){ if (attUI.pick === o.id) pick = o; });
+    var rows = opts.length ? opts.map(function(o){
+      return '<button type="button" class="hopt" data-hpick="' + esc(o.id) + '" aria-pressed="' + (attUI.pick === o.id ? 'true' : 'false') + '"' + (busy ? ' disabled' : '') + '>'
+        + '<b>' + esc(o.name) + '</b><span class="r">' + esc(o.price) + '</span>'
+        + '<span>' + esc([o.code, o.racks.join(', ')].filter(Boolean).join(' · ')) + '</span><span class="r">' + o.qty + ' in stock · ' + esc(o.word) + '</span></button>';
+    }).join('') : '<div class="hp-small">No other products in this size.</div>';
+    var carry = '';
+    if (pick){
+      var plan = TA.handOver(att, card.id, pick.id, Date.now());
+      carry = plan.carries.length ? 'Confirm moves the ' + plan.carries.join(' and the ') + ' from ' + card.name + ' to ' + pick.name + '.'
+        : 'Confirm picks ' + pick.name + '. Nothing to carry over: not starred or pinned.';
+    } else if (opts.length) carry = 'Tap the product that replaces it.';
+    return '<div class="hpanel hc-' + card.shown + '" role="group" aria-label="Find a replacement for ' + esc(card.name + ' ' + card.size) + '">'
+      + '<div class="hp-title">Find replacement · ' + esc(card.size) + '</div>' + says
+      + '<div class="hp-opts">' + rows + '</div>'
+      + (carry ? '<div class="hp-small">' + esc(carry) + '</div>' : '') + err
+      + '<div class="hp-two"><button type="button" data-hact="cancel"' + (busy ? ' disabled' : '') + '>Cancel</button>'
+      + '<button type="button" class="go" data-hact="confirm"' + (!pick || busy ? ' disabled' : '') + '>' + (busy ? 'Saving…' : 'Confirm') + '</button></div></div>';
+  }
+
+  // ONE WRITE, COUNTED. `want` is how many rows must come back. A 401 is retried once by authedSend; one that stays says the session is gone.
+  function attWrite(method, path, body, want, prefer){
+    return authedSend(method, path, body, { 'Prefer': prefer || 'return=representation' }).then(function(res){
+      if (res.status === 401){ clearSession(); showLogin('Your session expired — sign in again.'); return { ok: false, gone: true }; }
+      if (!res.ok) return res.text().then(function(t){ return { ok: false, why: 'The database refused it (' + res.status + ').' }; }, function(){ return { ok: false, why: 'The database refused it (' + res.status + ').' }; });
+      return res.json().then(function(rows){
+        if (!Array.isArray(rows) || rows.length !== want) return { ok: false, why: 'The database did not take it (it matched ' + (Array.isArray(rows) ? rows.length : 0) + ' of ' + want + ' rows).' };
+        return { ok: true };
+      }, function(){ return { ok: false, why: 'The database answered something this phone could not read.' }; });
+    // NO ANSWER IS NOT "NOTHING CHANGED" (Opus review, 23 Nov 2026): the write may have reached the database before the signal dropped.
+    }, function(){ return { ok: false, unsure: true, why: 'No connection, so this phone can’t tell if it went through. Pull down to check before you press Confirm again.' }; });
+  }
+  // An upsert on `key`: a row that is already there (the mark taken off, put on again) is UPDATED, not refused as a duplicate.
+  var attSettingsWrite = function(rows){ return attWrite('POST', '/rest/v1/settings?on_conflict=key', rows, rows.length, 'resolution=merge-duplicates,return=representation'); };
+  var attStarWrite = function(s){ return attWrite('PATCH', '/rest/v1/products?id=eq.' + encodeURIComponent(s.id), { must_have: s.must_have }, 1); };
+  // What the phone now holds, after a write that landed (the next read confirms it).
+  function attApply(rows, stars){
+    (rows || []).forEach(function(r){ attSettings[r.key] = r.value; });
+    (stars || []).forEach(function(s){ attRows.products.forEach(function(p){ if (p.id === s.id) p.must_have = s.must_have; }); });
+    att = TA.open(attRows, attSettings);
+  }
+  function attFail(w, text){
+    attUI.busy = false;
+    attUI.err = w.gone ? '' : (text && !w.unsure ? text + ' ' : '') + w.why;
+    // THE CARD MAY HAVE LEFT THE LIST (Opus review, 23 Nov 2026): the list is starred only, so a card whose star has moved is not drawn, and
+    // neither is its panel. The words then go above the list, where they are seen, instead of into a panel nobody can see.
+    if (attUI.err && !attCard(attUI.id)){ attSaid = { text: attUI.err, bad: true }; attUI = null; }
+    renderAttention();
+  }
+
+  function attConfirm(){
+    if (!attUI || attUI.busy || !att) return;
+    var card = attCard(attUI.id);
+    if (!card){ attUI = null; renderAttention(); return; }
+    if (attUI.side === 'ack'){
+      var rows = TA.ackRows(att, card.id, !card.acked, Date.now());
+      if (!rows.length){ attUI.err = 'There is nothing to acknowledge on this product.'; renderAttention(); return; }
+      attUI.busy = true; attUI.err = ''; attGen += 1; attLoading = false; renderAttention();
+      var mineA = sessionGen;
+      attSettingsWrite(rows).then(function(w){
+        if (sessionGen !== mineA || !attUI) return; // signed out meanwhile: the state was reset, touch nothing
+        if (!w.ok) return attFail(w);
+        attApply(rows, null);
+        attSaid = { text: card.name + ' ' + card.size + (card.acked ? ' is back on the list.' : ' acknowledged.') };
+        attUI = null; renderAttention();
+        loadAttention(); // the book read again, so the screen is what the database holds
+      });
+      return;
+    }
+    if (!attUI.pick) return;
+    var pickId = attUI.pick, mineB = sessionGen;
+    attUI.busy = true; attUI.err = ''; attGen += 1; attLoading = false; renderAttention();
+    // THE BOOK IS READ AGAIN BEFORE ANYTHING IS WRITTEN (Opus review, 23 Nov 2026). What to carry over is worked out from what the database holds
+    // NOW, not from a read that may be hours old: the desk may have moved the star or taken a pin off since, and an old read would put them back.
+    readAtt().then(function(r){
+      if (sessionGen !== mineB || !attUI) return;
+      if (r === 'expired'){ clearSession(); showLogin('Your session expired — sign in again.'); return; }
+      takeAtt(r);
+      return carryOver(card, pickId, mineB);
+    }, function(){
+      if (sessionGen !== mineB || !attUI) return;
+      attFail({ why: 'Couldn’t read the latest book first, so nothing was changed. Check your connection and try again.' });
+    }).catch(function(){
+      // Nothing above should throw; if something does, Confirm must not stay stuck on "Saving…" until a reload.
+      if (sessionGen !== mineB || !attUI || !attUI.busy) return;
+      attFail({ unsure: true, why: 'Something went wrong on this phone partway through. Pull down to see what the book holds now.' });
+    });
+  }
+
+  // Find replacement's writes, from the book just read (attConfirm above).
+  function carryOver(card, pickId, mineB){
+    var plan = TA.handOver(att, card.id, pickId, Date.now());
+    var next = null;
+    TA.options(att, card.id).forEach(function(o){ if (o.id === pickId) next = o; });
+    if (!next){ attUI.pick = null; return attFail({ why: 'That product is not in this size any more. Nothing was changed.' }); }
+    if (!plan.stars.length && !plan.settings.length){
+      attSaid = { text: next.name + ' ' + next.size + ' picked. Nothing to carry over: it is not starred or pinned any more.' };
+      attUI = null; renderAttention(); return;
+    }
+    // The new product is starred FIRST, then the old one lets go; then the pin rows. It stops at the first refusal and says what did land.
+    var done = [], step = function(i){
+      if (i < plan.stars.length){
+        return attStarWrite(plan.stars[i]).then(function(w){
+          if (sessionGen !== mineB || !attUI) return;
+          if (!w.ok){ attApply(null, done); return attFail(w, done.length ? 'The star reached ' + next.name + ' but the old one still has it too.' : 'The star was not moved.'); }
+          done.push(plan.stars[i]); return step(i + 1);
+        });
+      }
+      if (plan.settings.length){
+        return attSettingsWrite(plan.settings).then(function(w){
+          if (sessionGen !== mineB || !attUI) return;
+          if (!w.ok){ attApply(null, done); return attFail(w, done.length ? 'The star moved but the pin did not.' : 'The pin did not move.'); }
+          attApply(plan.settings, done); finish();
+        });
+      }
+      attApply(null, done); finish();
+    }, finish = function(){
+      attSaid = { text: 'The ' + plan.carries.join(' and the ') + ' moved from ' + card.name + ' to ' + next.name + ' ' + next.size + '.' };
+      attUI = null; renderAttention();
+      loadAttention(); // the book read again, so the screen is what the database holds
+    };
+    return step(0);
+  }
+
+  function attPress(e){
+    var t = e.target && e.target.closest ? e.target : null;
+    if (!t || !att) return;
+    var b;
+    if ((b = t.closest('[data-hact]'))){
+      if (b.getAttribute('data-hact') === 'cancel'){ if (attUI && !attUI.busy){ attUI = null; renderAttention(); } return; }
+      attConfirm(); return;
+    }
+    if ((b = t.closest('[data-hpick]'))){
+      if (attUI && !attUI.busy){ var id = b.getAttribute('data-hpick'); attUI.pick = attUI.pick === id ? null : id; attUI.err = ''; renderAttention(); }
+      return;
+    }
+    if ((b = t.closest('[data-hside]'))){
+      if (attUI && attUI.busy) return;
+      var row = b.closest('[data-hid]'); if (!row) return;
+      var id2 = row.getAttribute('data-hid'), side = b.getAttribute('data-hside');
+      attSaid = null;
+      // The same half again closes its panel; the other half, or another card, moves it.
+      attUI = attUI && attUI.id === id2 && attUI.side === side ? null : { id: id2, side: side, pick: null, busy: false, err: '' };
+      renderAttention();
+    }
+  }
+  function resetAttention(){ att = null; attRows = null; attSettings = null; attAt = null; attLoading = false; attErr = false; attGen += 1; attUI = null; attSaid = null; }
+
   // TWO LISTS UNDER ONE HEADER — 22 Sep 2026. `only()` above switches whole
   // PAGES, the sign-in and the app, and this switches the two lists inside the
   // app. They are deliberately not the same mechanism: a tab is not a page, and
   // must never be able to draw itself over the sign-in screen.
   function showTab(next){
     if (next === tab) return;
-    // THE HEALTH TAB IS CLOSED (13 Nov 2026, see its button): nothing opens it, a stray tap included. `window.__healthTab` is the tests' way in.
-    if (next === TAB_HEALTH && window.__healthTab !== true) return;
     // THE SEARCH BOX BELONGS TO THE SCREEN IT WAS TYPED ON. One box and three
     // lists, so carrying "205" across to the sales would hide most of the day
     // with nothing on screen saying that was why.
@@ -4128,7 +4431,9 @@
     $('salesList').hidden = !onSales;
     $('notesList').hidden = !onNotes;
     $('healthList').hidden = !onHealth;
-    $('healthBar').hidden = !onHealth;
+    // The old type chips and tier switch are gone from this tab, and so is the search: the list is only what needs attention.
+    $('healthBar').hidden = true;
+    $('searchWrap').hidden = onHealth;
     var box = $('q');
     var hNow = onHealth && health ? currentList() : null;
     box.value = onSales ? salesQuery : onNotes ? notesQuery : onHealth ? (hNow ? (hQ[hNow.id] || '') : '') : query;
@@ -4143,10 +4448,9 @@
     renderFresh();
     if (onStock){ renderList(); return; }
     if (onHealth){
-      renderHealthBar();
-      if (!health) box.placeholder = 'Find a size';
-      renderHealth();
-      if (!healthAt && !healthLoading) loadHealth();
+      renderAttention();
+      // READ EVERY TIME THE TAB OPENS (Opus review, 23 Nov 2026), not only the first: the cards show the last read until the new one lands.
+      if (!attLoading) loadAttention();
       return;
     }
     if (onNotes){
@@ -4220,7 +4524,7 @@
   function refreshNow(){
     if (!session) return;
     if (tab === TAB_SALES) loadSales(); else if (tab === TAB_NOTES) loadNotes();
-    else if (tab === TAB_HEALTH){ loadHealth(); if (hPage) loadHistory(); }
+    else if (tab === TAB_HEALTH){ loadAttention(); }
     else loadStock();
   }
   var PULL_AT = 80, PULL_LISTS = ['list', 'salesList', 'notesList', 'healthList'];
@@ -4508,6 +4812,11 @@
   $('tabSales').addEventListener('click', function(){ showTab(TAB_SALES); });
   $('tabNotes').addEventListener('click', function(){ showTab(TAB_NOTES); });
   $('tabHealth').addEventListener('click', function(){ showTab(TAB_HEALTH); });
+  $('healthList').addEventListener('click', attPress);
+  // The halves are role="button" divs (as the Stock card's are): Enter and Space press them.
+  $('healthList').addEventListener('keydown', function(e){
+    if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.hasAttribute && e.target.hasAttribute('data-hside')){ e.preventDefault(); attPress(e); }
+  });
   $('notesList').addEventListener('click', function(e){
     var act = e.target.closest ? e.target.closest('[data-act="newnote"]') : null;
     if (act){ openNote(null); return; }
@@ -4600,6 +4909,7 @@
     // reads racing on one tap is how a stale answer wins.
     if (tab === TAB_SALES){ if (salesAt) loadSales(); return; }
     if (tab === TAB_NOTES){ if (notesAt) loadNotes(); return; }
+    if (tab === TAB_HEALTH){ if (attAt) loadAttention(); return; } // 23 Nov 2026: the phone out of the pocket on Health reads it again too
     if (checkedAt) loadStock();
   });
 
