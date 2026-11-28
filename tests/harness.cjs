@@ -158,12 +158,14 @@ function phone(opts = {}) {
       if (opts.sale) return opts.sale(body, sales.length);
       const r = rows.find((x) => x.id === body.p_product_id);
       if (!r) return reply({ message: 'That tire is not on the book any more. Nothing was sold.' }, 400);
+      // unit_cents since 27 Nov 2026 (log_sale_at): the price sent, else the tire's own.
       const was = soldIds.get(body.p_id);
-      if (was) return reply({ id: body.p_id, already: true, product_id: r.id, qty_before: was.before, qty_left: r.qty });
+      if (was) return reply({ id: body.p_id, already: true, product_id: r.id, qty_before: was.before, qty_left: r.qty, unit_cents: was.unit });
       const before = r.qty;
+      const unit = body.p_price_cents === null || body.p_price_cents === undefined ? r.price_cents : body.p_price_cents;
       r.qty -= body.p_qty;
-      soldIds.set(body.p_id, { before });
-      return reply({ id: body.p_id, already: false, product_id: r.id, product: r.size + ' ' + r.brand, qty_before: before, qty_left: r.qty, believed: body.p_believed });
+      soldIds.set(body.p_id, { before, unit });
+      return reply({ id: body.p_id, already: false, product_id: r.id, product: r.size + ' ' + r.brand, qty_before: before, qty_left: r.qty, believed: body.p_believed, unit_cents: unit });
     }
 
     // A RECOUNT — 1 Oct 2026. `opts.recount(body, n)` answers it when given;

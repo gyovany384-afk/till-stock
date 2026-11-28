@@ -6,6 +6,11 @@
 // own price (no price box), sold by "Phone", and more than the shelf holds
 // allowed, as the counter allows it.
 //
+// 27 NOV 2026 A PRICE BOX CAME IN, his comment on the practice copy: under the
+// count, "numbers only prefilled to stock price", Confirm under it. What is in
+// it is what THAT sale goes out at, each; the phone sends it as p_price_cents to
+// till_stock.log_sale_at. Its tests are under "the price box" below.
+//
 // THIS PAGE WORKS OUT NO MONEY, so what is tested here is what it SENDS and
 // what it SAYS: one request to till_stock.log_sale with the right tire, count,
 // day, clock and a sale number in the counter's shape — and the same number
@@ -82,8 +87,11 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const pad = (n) => String(n).padStart(2, '0');
     const day = before.getFullYear() + '-' + pad(before.getMonth() + 1) + '-' + pad(before.getDate());
     ok('on the phone\'s own day and clock, as the counter writes them', b.p_date === day && /^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(b.p_when || ''), [b.p_date, b.p_when]);
-    ok('and no price, cost or tax — the stock room stamps those', !('p_price' in b) && !('p_cost' in b) && !('p_tax' in b) && Object.keys(b).length === 6, Object.keys(b));
+    // 27 Nov 2026: the price box's price goes with it, in cents — the tire's own
+    // ($129) when nobody typed. Still no cost or tax: the stock room stamps those.
+    ok('with the price in the box, in cents, and no cost or tax', b.p_price_cents === 12900 && !('p_cost' in b) && !('p_tax' in b) && Object.keys(b).length === 7, Object.keys(b));
     const call = calls.find((c) => c.url.indexOf('/rpc/log_sale') !== -1) || {};
+    ok('to log_sale_at, the sale that takes a price', /\/rpc\/log_sale_at$/.test(call.url || ''), call.url);
     ok('to the till_stock schema, signed in', headerOf(call, 'Content-Profile') === 'till_stock'
       && headerOf(call, 'Accept-Profile') === 'till_stock' && /^Bearer /.test(headerOf(call, 'Authorization') || ''));
     ok('the tire now shows what the stock room says is left', countOn(w, 'p1') === '8 in stock', countOn(w, 'p1'));
@@ -101,6 +109,150 @@ const two = () => [row({ id: 'p1', qty: 10 }), row({ id: 'p2', size: '195/65R15'
     const tags = sales.map((s) => (s.p_id || '').slice(1, 5))
     ok('two sales, two numbers, one phone\'s four letters', sales.length === 2 && sales[0].p_id !== sales[1].p_id && tags[0] === tags[1], sales.map((s) => s.p_id));
     ok('kept on the phone', w.localStorage.getItem('till_stock_phone_tag') === tags[0]);
+    w.close();
+  }
+
+  // ---- the price box — 27 Nov 2026 ---------------------------------------------
+  const typeIn = async (w, v) => {
+    const el = $(w, '#spPrice');
+    el.value = v;
+    el.dispatchEvent(new w.Event('input', { bubbles: true }));
+    await wait(10);
+  };
+  {
+    const { w, sales } = phone({ rows: two() });
+    await wait(60);
+    await tap(w, '.row[data-id="p1"] .prices')
+    const kids = Array.from(($(w, '.sellpanel') || { children: [] }).children).map((k) => k.className);
+    ok('the price box sits between the count and Confirm', kids[0] === 'sp-row' && kids[1] === 'sp-price' && kids[2] === 'sp-confirm', kids);
+    ok('filled with the tire\'s own price', $(w, '#spPrice').value === '129.00', $(w, '#spPrice').value);
+    await tap(w, '[data-act="plus"]')
+    ok('and kept when the count changes', $(w, '#spPrice').value === '129.00', $(w, '#spPrice').value);
+    const box = $(w, '#spPrice');
+    box.focus(); await wait(120);
+    ok('tapping the box selects the whole price, so the first key replaces it', box.selectionStart === 0 && box.selectionEnd === box.value.length, [box.selectionStart, box.selectionEnd]);
+    await typeIn(w, '1a0$5.50')
+    ok('numbers only', $(w, '#spPrice').value === '105.50', $(w, '#spPrice').value);
+    await tap(w, '[data-act="plus"]')
+    ok('a typed price is kept when the count changes', $(w, '#spPrice').value === '105.50', $(w, '#spPrice').value);
+    await typeIn(w, '')
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('a blank box sells nothing, and says so', sales.length === 0 && said(w) === 'Type a price for this sale. Nothing was sold.', [sales.length, said(w)]);
+    // A COMMA IS KEPT AND REFUSED, never dropped: dropped, 129,50 was $12,950.
+    await typeIn(w, '129,50')
+    ok('a comma stays in the box', $(w, '#spPrice').value === '129,50', $(w, '#spPrice').value);
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('and is refused, asking for a dot', sales.length === 0 && /use a dot for the cents\. Nothing was sold\./.test(said(w)), [sales.length, said(w)]);
+    await typeIn(w, '105.505')
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('a third place after the dot is refused, not cut off', sales.length === 0 && /“105\.505” is not a price\. Nothing was sold\./.test(said(w)), [sales.length, said(w)]);
+    await typeIn(w, '1234567')
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('and so is more than $999,999.99', sales.length === 0 && /too big for one sale/.test(said(w)), [sales.length, said(w)]);
+    await typeIn(w, '105.50')
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('the typed price goes with the sale, in cents', sales.length === 1 && sales[0].p_price_cents === 10550, sales[0]);
+    ok('and the sale says the price it went out at', said(w) === '3 × 205/55R16 Marchetti Primato 4 at $105.50 sold — 7 left.', said(w));
+    w.close();
+  }
+  {
+    const { w, sales } = phone({ rows: two() });
+    await wait(60);
+    await tap(w, '.row[data-id="p1"] .prices')
+    await typeIn(w, '0')
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('$0 is a price, as it is at the counter', sales.length === 1 && sales[0].p_price_cents === 0, sales[0]);
+    ok('and the sale says so', / at \$0\.00 sold/.test(said(w)), said(w));
+    await tap(w, '.row[data-id="p2"] .prices'); await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('the tire\'s own price is not said', said(w) === '1 × 195/65R15 Norvell Turanto T5 sold — 3 left.', said(w));
+    w.close();
+  }
+  {
+    // NOT TYPED IN, THE BOX FOLLOWS THE BOOK: the desk repriced while the panel was open.
+    const rows = two();
+    const { w, sales } = phone({ rows });
+    await wait(60);
+    await tap(w, '.row[data-id="p1"] .prices')
+    rows[0].price_cents = 13900;
+    Object.defineProperty(w.document, 'visibilityState', { value: 'visible', configurable: true });
+    w.document.dispatchEvent(new w.Event('visibilitychange'));
+    await wait(80);
+    ok('an untouched box takes the new price when the stock is read again', ($(w, '#spPrice') || {}).value === '139.00', ($(w, '#spPrice') || {}).value);
+    await typeIn(w, '120')
+    rows[0].price_cents = 14900;
+    w.document.dispatchEvent(new w.Event('visibilitychange'));
+    await wait(80);
+    ok('a typed price stays when the stock is read again', ($(w, '#spPrice') || {}).value === '120', ($(w, '#spPrice') || {}).value);
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('and is the one sent', sales.length === 1 && sales[0].p_price_cents === 12000, sales[0]);
+    w.close();
+  }
+  {
+    // A product stored below $0 opens at $0, what it always sold at.
+    const { w } = phone({ rows: [row({ id: 'p1', qty: 3, price_cents: -500 })] });
+    await wait(60);
+    await tap(w, '.row[data-id="p1"] .prices')
+    ok('a price stored below $0 opens the box at 0.00', ($(w, '#spPrice') || {}).value === '0.00', ($(w, '#spPrice') || {}).value);
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('and, sold untouched, says no "at $0.00" — nobody typed a price', /sold/.test(said(w)) && !/ at \$/.test(said(w)), said(w));
+    w.close();
+  }
+  {
+    // A sale kept on the phone with its price comes back with it, locked, and sends it again.
+    const kept = JSON.stringify({ id: 'sabcd1758000000009', productId: 'p1', qty: 2, believed: 10, priceCents: 9900, shelfCents: 12900 })
+    const { w, sales } = phone({ rows: two(), seed: { till_stock_phone_pending: kept } })
+    await wait(80)
+    ok('a kept sale comes back showing its price, locked', ($(w, '#spPrice') || {}).value === '99.00' && $(w, '#spPrice').disabled, ($(w, '#spPrice') || {}).value);
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('and Try again sends that price', sales.length === 1 && sales[0].p_id === 'sabcd1758000000009' && sales[0].p_price_cents === 9900, sales[0]);
+    w.close()
+  }
+  {
+    // A sale kept by the page from BEFORE the price box has none: it goes at the product's price, as it was pressed.
+    const kept = JSON.stringify({ id: 'sabcd1758000000010', productId: 'p1', qty: 2, believed: 10 })
+    const rows = two();
+    const { w, sales } = phone({ rows, seed: { till_stock_phone_pending: kept } })
+    await wait(80)
+    rows[0].price_cents = 13500;
+    Object.defineProperty(w.document, 'visibilityState', { value: 'visible', configurable: true });
+    w.document.dispatchEvent(new w.Event('visibilitychange'));
+    await wait(80);
+    ok('its locked box follows the book, which is the price it will go at', ($(w, '#spPrice') || {}).value === '135.00' && $(w, '#spPrice').disabled, ($(w, '#spPrice') || {}).value);
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('a sale kept by the old page sends no price', sales.length === 1 && sales[0].p_price_cents === null, sales[0]);
+    w.close()
+  }
+  {
+    // What the BOOK stamped is said, not what the phone believes it sent.
+    const { w } = phone({
+      rows: two(),
+      sale: (body) => reply({ id: body.p_id, already: false, product_id: 'p1', product: '205/55R16 Marchetti Primato 4', qty_before: 10, qty_left: 9, unit_cents: 11111 }),
+    });
+    await wait(60);
+    await tap(w, '.row[data-id="p1"] .prices')
+    await typeIn(w, '100')
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('the price said is the one the book holds', said(w) === '1 × 205/55R16 Marchetti Primato 4 at $111.11 sold — 9 left.', said(w));
+    w.close();
+  }
+  {
+    // A lost answer: the price is locked with the sale number, and Try again sends it again.
+    let n = 0
+    const { w, sales } = phone({
+      rows: two(),
+      sale: (body) => {
+        n += 1
+        if (n === 1) return Promise.reject(new Error('the signal dropped'))
+        return reply({ id: body.p_id, already: true, product_id: 'p1', qty_before: 10, qty_left: 9, unit_cents: body.p_price_cents })
+      },
+    });
+    await wait(60);
+    await tap(w, '.row[data-id="p1"] .prices')
+    await typeIn(w, '99')
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('waiting on an answer, the price cannot be changed', $(w, '#spPrice').disabled === true && $(w, '#spPrice').value === '99');
+    await tap(w, '[data-act="confirm"]'); await wait(30)
+    ok('Try again sends the same price', sales.length === 2 && sales[0].p_price_cents === 9900 && sales[1].p_price_cents === 9900, sales.map((s) => s.p_price_cents));
     w.close();
   }
 

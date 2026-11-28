@@ -327,6 +327,22 @@
   .sellpanel{ flex-wrap:wrap; }
   .sp-leave{ flex-basis:100%; height:44px; padding:0 12px; border-radius:12px; border:1px solid var(--line-strong);
     background:var(--surface); color:var(--muted); font-size:13px; font-weight:600; }
+  /* THREE LINES — 27 Nov 2026, his comment on the practice copy: − how many + on top, a price box
+     under it (numbers only, filled with the stock price), Confirm under that. */
+  /* :not(.recount) — the recount panel shares .sellpanel and keeps its own layout. */
+  .sellpanel:not(.recount){ flex-direction:column; align-items:stretch; }
+  .sp-row{ display:flex; align-items:center; gap:10px; }
+  .sp-row .sp-qty{ flex:1; }
+  .sp-price{ display:flex; align-items:center; gap:6px; height:54px; padding:0 14px; border-radius:12px;
+    border:1px solid var(--line-strong); background:var(--surface); cursor:text; }
+  .sp-price:focus-within{ border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+  .sp-price .l{ font-size:14px; font-weight:600; color:var(--muted); }
+  .sp-price .cur{ margin-left:auto; font-size:20px; font-weight:700; color:var(--muted); }
+  .sp-price input{ width:6ch; max-width:12ch; min-width:0; border:none; background:transparent; padding:0; font:inherit; font-size:22px;
+    font-weight:800; color:var(--ink); text-align:right; outline:none; font-variant-numeric:tabular-nums; }
+  .sp-price input:disabled{ opacity:.6; }
+  .sellpanel:not(.recount) > .sp-confirm{ flex:none; width:100%; }
+  .sellpanel:not(.recount) > .sp-leave{ flex-basis:auto; }
   /* ---------- One card, two halves — 1 Oct 2026 ----------
      His picture: a line down the card, the left half recounts, the right half
      sells. Same layout as before inside each half; only the padding moved from
@@ -1748,13 +1764,51 @@
   function localDay(d){ return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
   function localClock(d){ return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
 
+  // THE PRICE BOX — 27 Nov 2026, his comment on the practice copy. Filled with the
+  // product's own price when the panel opens; what is in it is what THIS SALE goes
+  // out at, each. The product's own price is never rewritten (the desk's price box
+  // of 13 Nov keeps the same rule). Locked, like the count, once a press is waiting
+  // on an answer: Try again must send the same sale.
+  // A product stored below $0 fills the box at $0, which is what it always sold at.
+  function priceText(n){ return Math.max(0, Number(n) || 0).toFixed(2); }
+  // Numbers and dots — AND COMMAS, KEPT RATHER THAN DROPPED (the Opus review):
+  // dropped, "129,50" from a comma-decimal keypad became $12,950. Kept, the press
+  // refuses it in words. Nothing past two places is cut off either; a third
+  // place is refused, as the desk refuses it (checkTypedPrice), not lost.
+  function cleanPrice(v){ return String(v || '').replace(/[^0-9.,]/g, ''); }
+  // typedCents (below, the phone's add form's own) does the arithmetic in whole
+  // numbers and stops at $999,999.99. "129." is $129.00.
+  function priceCents(v){ return typedCents(String(v || '').trim().replace(/\.$/, '')); }
+  function priceRefusal(v){
+    var t = String(v || '').trim();
+    if (!t) return 'Type a price for this sale. Nothing was sold.';
+    if (t.indexOf(',') !== -1) return '“' + t + '” is not a price — use a dot for the cents. Nothing was sold.';
+    if (/^[0-9]{7,}/.test(t)) return 'That price is too big for one sale — the most is $999,999.99. Nothing was sold.';
+    return '“' + t + '” is not a price. Nothing was sold.';
+  }
+  // The box is as wide as what is in it, so the $ sits against the number.
+  function priceWidth(v){ return (Math.max(String(v || '').length, 3) + 0.4) + 'ch'; }
   function sellPanel(){
-    var busy = sale.busy;
+    var busy = sale.busy, lock = busy || !!sale.pendingId;
     var word = busy ? 'Selling…' : (sale.pendingId ? 'Try again' : 'Confirm');
+    // NOT TYPED IN, THE BOX FOLLOWS THE BOOK — the Opus review: a read that
+    // brought a new price from the desk left the old one in the box, and the
+    // sale went out at it. Once he has typed, what he typed stays.
+    // A sale kept by the page from before the box (priceCents null) goes at the
+    // book's price whenever Try again lands, so its locked box follows the book too.
+    if ((!lock || sale.priceCents === null) && !sale.typed){
+      var cur = productById(sale.id);
+      if (cur) sale.price = priceText(cur.sellPrice);
+    }
     return '<div class="sellpanel" data-sell="1">'
-      + '<button type="button" class="sp-step" data-act="minus" aria-label="One fewer"' + (busy || sale.pendingId || sale.qty <= 1 ? ' disabled' : '') + '>&minus;</button>'
+      + '<div class="sp-row">'
+      + '<button type="button" class="sp-step" data-act="minus" aria-label="One fewer"' + (lock || sale.qty <= 1 ? ' disabled' : '') + '>&minus;</button>'
       + '<div class="sp-qty" aria-live="polite">' + sale.qty + '</div>'
-      + '<button type="button" class="sp-step" data-act="plus" aria-label="One more"' + (busy || sale.pendingId ? ' disabled' : '') + '>+</button>'
+      + '<button type="button" class="sp-step" data-act="plus" aria-label="One more"' + (lock ? ' disabled' : '') + '>+</button>'
+      + '</div>'
+      + '<label class="sp-price"><span class="l">Price each</span><span class="cur">$</span>'
+      + '<input id="spPrice" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" maxlength="9" aria-label="Price each"'
+      + ' style="width:' + priceWidth(sale.price) + '" value="' + esc(sale.price) + '"' + (lock ? ' disabled' : '') + '></label>'
       + '<button type="button" class="sp-confirm" data-act="confirm"' + (busy ? ' disabled' : '') + '>' + word + '</button>'
       + (sale.pendingId && !busy ? '<button type="button" class="sp-leave" data-act="leave">Leave it</button>' : '')
       + '</div>';
@@ -1766,8 +1820,9 @@
   function figure(v){ return (v === null || v === undefined || v === '') ? NaN : Number(v); }
   // What the sale says, in the counter's own words (logSale in the stock room's
   // src/state/stock.js), with how many are left on the end.
-  function saleWords(r, qty){
-    var sold = qty + ' \u00d7 ' + (r.product || 'this tire');
+  // `at` \u2014 the price typed, said only when it is not the product's own (the desk's toast does the same).
+  function saleWords(r, qty, at){
+    var sold = qty + ' \u00d7 ' + (r.product || 'this tire') + (at ? ' at ' + at : '');
     var left = figure(r.qty_left);
     var leftWords = isFinite(left) ? ' ' + left + ' left.' : '';
     if (r.already) return { text: 'That sale was already logged — nothing was sold twice.' + leftWords, tone: '' };
@@ -1790,7 +1845,8 @@
   function keepPending(){
     try {
       if (sale && sale.pendingId) localStorage.setItem(PENDING_KEY, JSON.stringify({ id: sale.pendingId, productId: sale.id, qty: sale.qty,
-        believed: sale.believed, name: sale.name, day: sale.day, clock: sale.clock }));
+        believed: sale.believed, name: sale.name, day: sale.day, clock: sale.clock,
+        priceCents: sale.priceCents, shelfCents: sale.shelfCents }));
       else localStorage.removeItem(PENDING_KEY);
     } catch(e){}
   }
@@ -1828,8 +1884,11 @@
     if (!kept || !kept.id || !kept.productId) return;
     var p = productById(kept.productId);
     openId = kept.productId;
+    var keptCents = (kept.priceCents === null || kept.priceCents === undefined) ? null : Number(kept.priceCents);
     sale = { id: kept.productId, qty: Number(kept.qty) || 1, busy: false, pendingId: kept.id, believed: kept.believed,
-      name: p ? tireName(p) : (kept.name || 'a tire'), day: kept.day, clock: kept.clock };
+      name: p ? tireName(p) : (kept.name || 'a tire'), day: kept.day, clock: kept.clock,
+      priceCents: keptCents, shelfCents: kept.shelfCents, typed: keptCents !== null,
+      price: keptCents === null ? (p ? priceText(p.sellPrice) : '') : priceText(keptCents / 100) };
     said = { id: kept.productId, tone: 'err', text: 'A sale from before never got a clear answer — it may or may not have gone through. Tap Try again: it cannot sell twice.' };
   }
 
@@ -1844,6 +1903,16 @@
     // runs can honestly say nothing was sold.
     var retry = !!sale.pendingId;
     if (!sale.pendingId){
+      // THE PRICE IS READ AT THE FIRST PRESS and kept with the sale number, so
+      // Try again sends the same price. A blank box sells nothing.
+      var cents = priceCents(sale.price);
+      if (cents === null){
+        said = { id: sale.id, tone: 'err', text: priceRefusal(sale.price) };
+        renderList();
+        return;
+      }
+      sale.priceCents = cents;
+      sale.shelfCents = p ? Math.max(0, Math.round((Number(p.sellPrice) || 0) * 100)) : null;
       var now = new Date();
       sale.pendingId = 's' + phoneTag() + now.getTime();
       // THE DAY AND CLOCK OF THE PRESS go with the number, so a retry the next
@@ -1854,7 +1923,16 @@
     if (!sale.day || !sale.clock){ var t = new Date(); sale.day = localDay(t); sale.clock = localClock(t); }
     var body = {
       p_id: sale.pendingId, p_product_id: sale.id, p_qty: sale.qty,
-      p_date: sale.day, p_when: sale.clock, p_believed: sale.believed
+      p_date: sale.day, p_when: sale.clock, p_believed: sale.believed,
+      p_price_cents: sale.priceCents
+    };
+    // "AT $X" ONLY WHEN IT IS NOT THE PRODUCT'S OWN PRICE, and $X is what the
+    // book stamped (the answer's unit_cents), not what this page believes it sent.
+    var shelf = sale.shelfCents;
+    var atWords = function(r){
+      var c = figure(r && r.unit_cents);
+      if (!isFinite(c)) c = figure(body.p_price_cents);
+      return (isFinite(c) && shelf !== null && shelf !== undefined && c !== shelf) ? money(c / 100) : '';
     };
     sale.busy = true;
     keepPending();
@@ -1872,7 +1950,9 @@
     var send = {};
     sale.send = send;
     var mine = function(){ return !!sale && sale.send === send; };
-    rpc('log_sale', body).then(function(res){
+    // log_sale_at, not log_sale — 27 Nov 2026: the same sale with the price from
+    // the box (db/2026-11-27-phone-sale-price.sql in the stock room's repo).
+    rpc('log_sale_at', body).then(function(res){
       // SIGNED OUT, WHICH IS NOT AN ANSWER ABOUT THE SALE. PostgREST turned THIS
       // send away before it ran, so a first press sold nothing — but a retry's
       // earlier send may have landed, and the sale stays waiting for Try again
@@ -1918,7 +1998,7 @@
         var cur = productById(id);
         var left = figure(r.qty_left);
         if (here && cur && isFinite(left)) cur.qty = left;
-        var words = function(){ var w = saleWords(here ? r : Object.assign({}, r, { qty_left: null }), qty); w.id = id; w.pid = pid; return w; };
+        var words = function(){ var w = saleWords(here ? r : Object.assign({}, r, { qty_left: null }), qty, atWords(r)); w.id = id; w.pid = pid; return w; };
         // Another sale on screen now is left alone, but this one is still said
         // if that one has nothing said of its own — a sale left with Leave it
         // that landed after all is worth knowing. A second answer for the same
@@ -4702,7 +4782,8 @@
     if (side === 'count' && !wasCounting && tapped){
       count = newCount(tapped);
     } else if (side === 'sell' && !wasSelling){
-      openId = id; sale = { id: id, qty: 1, busy: false, pendingId: null, name: tapped ? tireName(tapped) : 'a tire' };
+      openId = id; sale = { id: id, qty: 1, busy: false, pendingId: null, name: tapped ? tireName(tapped) : 'a tire',
+        price: tapped ? priceText(tapped.sellPrice) : '' };
     }
     renderList();
   });
@@ -4792,9 +4873,36 @@
   // saves, as the phone keyboard's Go key expects.
   $('list').addEventListener('input', function(e){
     if (e.target && e.target.id === 'rcQty') countTyped(e.target.value);
+    // The price box: kept as typed, numbers only, with no redraw (a redraw would drop the keyboard).
+    if (e.target && e.target.id === 'spPrice' && sale && !sale.busy && !sale.pendingId){
+      var v = cleanPrice(e.target.value);
+      if (v !== e.target.value) e.target.value = v;
+      e.target.style.width = priceWidth(v);
+      sale.price = v;
+      sale.typed = true;
+    }
+  });
+  // THE WHOLE PRICE IS SELECTED WHEN THE BOX IS TAPPED — the Opus review. The
+  // box opens holding "129.00"; tapped with the cursor at the front, "99" made it
+  // "99129.00", $99,129 each. Selected, the first key replaces it. Twice, because
+  // iPhone puts its cursor down a moment after the focus.
+  var priceFocusAt = 0;
+  $('list').addEventListener('focusin', function(e){
+    if (!e.target || e.target.id !== 'spPrice') return;
+    var el = e.target;
+    priceFocusAt = Date.now();
+    var all = function(){ try { if (document.activeElement === el) el.setSelectionRange(0, el.value.length); } catch(err){} };
+    setTimeout(all, 0);
+    setTimeout(all, 80);
+  });
+  // The finger or mouse lifted just after that would put a cursor back down.
+  $('list').addEventListener('mouseup', function(e){
+    if (e.target && e.target.id === 'spPrice' && Date.now() - priceFocusAt < 600) e.preventDefault();
   });
   $('list').addEventListener('keydown', function(e){
     if (e.target && e.target.id === 'rcQty' && e.key === 'Enter'){ e.preventDefault(); saveCount(); return; }
+    // Enter in the price box just puts the keyboard away; Confirm is still its own press.
+    if (e.target && e.target.id === 'spPrice' && e.key === 'Enter'){ e.preventDefault(); e.target.blur(); return; }
     // A half is a button to a keyboard too.
     if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.getAttribute && e.target.getAttribute('data-side')){
       e.preventDefault(); e.target.click();
